@@ -1,10 +1,13 @@
 import arrow
 import colorsys
+import copy
 import yaml
 
+from aenum import Enum, AutoNumberEnum
+from dataclasses import dataclass
 from pathlib import Path
 
-from reportlab.lib.pagesizes import A1, A2, A3, A4, A5, B1, B2, B3, B4, B5, C1, C2, C3, C4, C5, landscape
+from reportlab.lib.pagesizes import A1, A2, A3, A4, A5, A6, B1, B2, B3, B4, B5, B6, C1, C2, C3, C4, C5, C6, landscape, portrait
 from reportlab.lib.units import inch, cm, mm
 from reportlab.lib.colors import Color, HexColor, white, black, red, blue, green, grey, darkgrey, lightgrey
 from reportlab.pdfbase import pdfmetrics
@@ -18,9 +21,15 @@ pdfmetrics.registerFont(TTFont('Calibri', 'calibri.ttf'))
 
 g_lStrGroup = ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H')
 
-# width to height ratios
-g_ratioGroup = 5.0
-g_ratioTeam = 6.0
+@dataclass
+class Point:
+	x: float = 0
+	y: float = 0
+
+@dataclass
+class Rect(Point):
+	dX: float = 0
+	dY: float = 0
 
 def ColorResaturate(color: Color, dS: float) -> Color:
 	h, s, v = colorsys.rgb_to_hsv(color.red, color.green, color.blue)
@@ -82,29 +91,36 @@ class CDataBase:
 				
 g_db = CDataBase()
 
-class CBlot:
-	"""something drawable at a location. some blots may contain other blots."""
-	def __init__(self, c: Canvas) -> None:
-		self.c = c
+class JH(AutoNumberEnum):
+	Left = ()
+	Center = ()
+	Right = ()
 
-	def RectDrawWithin(self, x: float, y: float, dX: float, dY: float, dSLine: float, color: Color) -> tuple[float, float, float, float]:
-		x += 0.5 * dSLine
-		y += 0.5 * dSLine
-		dX -= dSLine
-		dY -= dSLine
-		self.c.setLineWidth(dSLine)
-		self.c.setStrokeColor(color)
-		self.c.rect(x, y, dX, dY)
-		return (x + 0.5 * dSLine, y + 0.5 * dSLine, dX - dSLine, dY - dSLine)
+class JV(AutoNumberEnum):
+	Bottom = ()
+	Middle = ()
+	Top = ()
 
-	def FillWithin(self, x: float, y: float, dX: float, dY: float, color: Color, uAlpha: float = 1.0) -> None:
-		self.c.setFillColor(color, alpha=uAlpha)
-		self.c.rect(x, y, dX, dY, stroke=0, fill=1)
+class COneLineTextBox:
+	"""a box with a single line of text in a particular font, sized to fit the box"""
+	def __init__(self, strFont: str, dYFont, rect: Rect, dSMargin: float = None) -> None:
+		self.strFont = strFont
+		self.dYFont = dYFont
+		self.rect = rect
 
-	def DYFontCap(self) -> float:
+		self.dYCap = self.DYCap()
+		self.dSMargin = dSMargin or max(0.0, (self.rect.dY - self.dYCap) / 2.0)
+
+	def RectMargin(self) -> Rect:
+		return Rect(
+				self.rect.x + self.dSMargin,
+				self.rect.y + self.dSMargin,
+				self.rect.dX - 2.0 * self.dSMargin,
+				self.rect.dY - 2.0 * self.dSMargin)
+
+	def DYCap(self) -> float:
 		"""font cap height. aped from pdfmetrics.getAscentDescent()"""
-		font = pdfmetrics.getFont(self.c._fontname)
-		size = self.c._fontsize
+		font = pdfmetrics.getFont(self.strFont)
 		dYCap = None
 		if not dYCap:
 			try:
@@ -117,13 +133,61 @@ class CBlot:
 			except:
 				pass
 		if not dYCap:
-			dYCap = pdfmetrics.getAscent(self.c._fontname, self.c._fontsize)
-		if self.c._fontsize:
-			norm = self.c._fontsize / 1000.0
-			return dYCap*norm
+			dYCap = pdfmetrics.getAscent(self.strFont, self.dYFont)
+
+		if self.dYFont:
+			norm = self.dYFont / 1000.0
+			return dYCap * norm
+
 		return dYCap
 
-	def Draw(x: float, y: float) -> None:
+class CBlot:
+	"""something drawable at a location. some blots may contain other blots."""
+
+	def __init__(self, c: Canvas) -> None:
+		self.c = c
+
+	def RectDrawWithin(self, rect: Rect, dSLine: float, color: Color) -> Rect:
+		x = rect.x + 0.5 * dSLine
+		y = rect.y + 0.5 * dSLine
+		dX = rect.dX - dSLine
+		dY = rect.dY - dSLine
+		self.c.setLineWidth(dSLine)
+		self.c.setStrokeColor(color)
+		self.c.rect(x, y, dX, dY)
+		return Rect(x + 0.5 * dSLine, y + 0.5 * dSLine, dX - dSLine, dY - dSLine)
+
+	def FillWithin(self, rect: Rect, color: Color, uAlpha: float = 1.0) -> None:
+		self.c.setFillColor(color, alpha=uAlpha)
+		self.c.rect(rect.x, rect.y, rect.dX, rect.dY, stroke=0, fill=1)
+
+	def RectDrawText(self, strText: str, color: Color, oltb : COneLineTextBox, jh : JH = JH.Left, jv: JV = JV.Middle) -> Rect:
+		self.c.setFont(oltb.strFont, oltb.dYFont)
+		rectText = Rect(0, 0, self.c.stringWidth(strText), oltb.dYCap)
+		rectMargin = oltb.RectMargin()
+
+		if jh == JH.Left:
+			rectText.x = rectMargin.x
+		elif jh == JH.Center:
+			rectText.x = rectMargin.x + (rectMargin.dX - rectText.dX) / 2.0
+		else:
+			assert jh == JH.Right
+			rectText.x = rectMargin.x + rectMargin.dX - rectText.dX
+
+		if jv == JV.Bottom:
+			rectText.y = rectMargin.y
+		elif jv == JV.Middle:
+			rectText.y = rectMargin.y + (rectMargin.dY - rectText.dY) / 2.0
+		else:
+			assert jv == JV.Top
+			rectText.y = rectMargin.y + rectMargin.dY - rectText.dY
+
+		self.c.setFillColor(color)
+		self.c.drawString(rectText.x, rectText.y, strText)
+
+		return rectText
+
+	def Draw(pos: Point) -> None:
 		pass
 
 class CGroupBlot(CBlot):
@@ -150,11 +214,9 @@ class CGroupBlot(CBlot):
 	s_dSLineInner = 0.008*inch
 	s_dSLineStats = 0.01*inch
 
-	# unused while we experiment with ISO ratios
-	# s_uYTitle = 0.3
-	# s_uYHeading = 0.08
-	# s_uXTeamArea = 0.35
-
+	# width to height ratios
+	s_ratioGroup = 5.0
+	s_ratioCountry = 6.0
 	s_uAlphaTeam = 0.5
 
 	def __init__(self, c: Canvas, strGroup: str) -> None:
@@ -162,138 +224,137 @@ class CGroupBlot(CBlot):
 		self.group: CGroup = g_db.mpStrGroupGroup[strGroup]
 		self.color: Color = self.s_mpStrGroupColor[strGroup]
 
-	def Draw(self, x: float, y: float) -> None:
+	def Draw(self, pos: Point) -> None:
 		self.c.setLineJoin(0)
 
-		dX, dY = self.s_dX, self.s_dY
+		rectAll = Rect(pos.x, pos.y, self.s_dX, self.s_dY)
 
 		# black/color/black borders
 
-		x, y, dX, dY = self.RectDrawWithin(x, y, dX, dY, self.s_dSLineOuter, black)
-		x, y, dX, dY = self.RectDrawWithin(x, y, dX, dY, self.s_dSLineInner, self.color)
-		x, y, dX, dY = self.RectDrawWithin(x, y, dX, dY, self.s_dSLineOuter, black)
+		rectAll = self.RectDrawWithin(rectAll, self.s_dSLineOuter, black)
+		rectAll = self.RectDrawWithin(rectAll, self.s_dSLineInner, self.color)
+		rectAll = self.RectDrawWithin(rectAll, self.s_dSLineOuter, black)
 
 		# title
 
 		#dYTitle = dY * self.s_uYTitle
-		dYTitle = dX / g_ratioGroup
-		yTitle = y + dY - dYTitle
+		dYTitle = rectAll.dX / self.s_ratioGroup
+		rectTitle = Rect(
+						rectAll.x,
+						rectAll.y + rectAll.dY - dYTitle,
+						rectAll.dX,
+						dYTitle)
 
-		self.FillWithin(x, yTitle, dX, dYTitle, self.color)
+		self.FillWithin(rectTitle, self.color)
 
 		dYGroupName = dYTitle * 1.3
-		self.c.setFont('Consolas-Bold', dYGroupName)
-		dYCap = self.DYFontCap()
-		dSAdjust = max(0.0, (dYTitle - dYCap) / 2.0)
+		oltbGroupName = COneLineTextBox('Consolas-Bold', dYGroupName, rectTitle)
+		rectGroupName = self.RectDrawText(
+								self.group.strName,
+								ColorResaturate(self.color, 0.5),
+								oltbGroupName,
+								JH.Right,
+								JV.Middle)
 
-		xGroupName = x + dX - dSAdjust
-		yGroupName = yTitle + dSAdjust
-		self.c.setFillColor(ColorResaturate(self.color, 0.5))
-		self.c.drawRightString(xGroupName, yGroupName, self.group.strName)
-		dXGroupName = self.c.stringWidth(self.group.strName)
+		rectGroupLabel = Rect(
+							rectTitle.x,
+							rectTitle.y,
+							rectGroupName.x - rectTitle.x,
+							rectTitle.dY)
 
 		uGroupLabel = 0.65
-		dYGroupLabel = dYTitle * uGroupLabel
-		self.c.setFont('Calibri', dYGroupLabel)
-		dYCap = self.DYFontCap()
-
-		xGroupLabel = xGroupName - dXGroupName # x + dSAdjust
-		yGroupLabel = yTitle + dYTitle - (dYCap + dSAdjust)
-		self.c.setFillColor(white) # ColorResaturate(self.color, -0.5))
-		self.c.drawRightString(xGroupLabel, yGroupLabel, 'Group')
+		oltbGroupLabel = COneLineTextBox('Calibri', dYTitle * uGroupLabel, rectGroupLabel, dSMargin=oltbGroupName.dSMargin)
+		self.RectDrawText('Group', white, oltbGroupLabel, JH.Right, JV.Top)
 
 		# heading
 
 		#dYHeading = dY * self.s_uYHeading
 		dYHeading = dYTitle / 4.0
-		yHeading = yTitle - dYHeading
+		rectHeading = Rect(
+						rectAll.x,
+						rectTitle.y - dYHeading,
+						rectAll.dX,
+						dYHeading)
 
-		self.FillWithin(x, yHeading, dX, dYHeading, black)
+		self.FillWithin(rectHeading, black)
 
-		# teams
+		# countries
 
-		dYTeams = dY - (dYTitle + dYHeading)
-		dYTeam = dYTeams / len(self.group.mpStrSeedTeam)
-
-		xTeamArea = x
-		#dXTeamArea = dX * self.s_uXTeamArea
-		dXTeamArea = dYTeam * g_ratioTeam
-		xPoints = x + dXTeamArea
+		dYCountries = rectAll.dY - (dYTitle + dYHeading)
+		dYCountry = dYCountries / len(self.group.mpStrSeedTeam)
+		rectCountry = Rect(rectHeading.x, 0, dYCountry * self.s_ratioCountry, dYCountry)
 
 		for i in range(len(self.group.mpStrSeedTeam)):
-			yTeam = yHeading - (i + 1) * dYTeam
+			rectCountry.y = rectHeading.y - (i + 1) * dYCountry
 			color = self.color if (i & 1) else white
-			self.FillWithin(x, yTeam, dX, dYTeam, color, self.s_uAlphaTeam)
+			self.FillWithin(rectCountry, color, self.s_uAlphaTeam)
 
 		for i, strSeed in enumerate(sorted(self.group.mpStrSeedTeam)):
-			yTeam = yHeading - (i + 1) * dYTeam
+			rectCountry.y = rectHeading.y - (i + 1) * dYCountry
 			team = self.group.mpStrSeedTeam[strSeed]
 
-			dYTeamAbbrev = dYTeam
-			self.c.setFont('Consolas', dYTeamAbbrev)
-			dYCap = self.DYFontCap()
-			dSAdjust = max(0.0, (dYTeam - dYCap) / 2.0)
-
-			xTeamAbbrev = xTeamArea + dXTeamArea - dSAdjust
-			yTeamAbbrev = yTeam + dSAdjust
-			self.c.setFillColor(black)
-			self.c.drawRightString(xTeamAbbrev, yTeamAbbrev, team.strAbbrev)
+			oltbAbbrev = COneLineTextBox('Consolas', dYCountry, rectCountry)
+			self.RectDrawText(team.strAbbrev, black, oltbAbbrev, JH.Right)
 
 			uTeamText = 0.75
-			dYTeamText = dYTeam * uTeamText
-			self.c.setFont('Calibri', dYTeamText)
-			dYCap = self.DYFontCap()
-
-			xTeamText = xTeamArea + dSAdjust
-			yTeamText = yTeam + dYTeam - (dYCap + dSAdjust)
-			self.c.setFillColor(darkgrey)
-			self.c.drawString(xTeamText, yTeamText, team.strName)
+			oltbName = COneLineTextBox('Calibri', dYCountry * uTeamText, rectCountry, dSMargin=oltbAbbrev.dSMargin)
+			self.RectDrawText(team.strName, darkgrey, oltbName, JH.Left, JV.Top)
 
 		# dividers for country/points/gf/ga
 
-		dXStats = (dX - dXTeamArea) / 3.0
-		xGoalsFor = xPoints + dXStats
-		xGoalsAgainst = xGoalsFor + dXStats
+		dXStats = (rectAll.dX - rectCountry.dX) / 3.0
+
+		rectPoints = Rect(
+						rectCountry.x + rectCountry.dX,
+						rectHeading.y,
+						dXStats,
+						rectHeading.dY)
+		rectGoalsFor = Rect(
+						rectPoints.x + rectPoints.dX,
+						rectHeading.y,
+						dXStats,
+						rectHeading.dY)
+		rectGoalsAgainst = Rect(
+						rectGoalsFor.x + rectGoalsFor.dX,
+						rectHeading.y,
+						dXStats,
+						rectHeading.dY)
 
 		self.c.setLineWidth(self.s_dSLineStats)
 		self.c.setStrokeColor(black)
 	
-		self.c.line(xPoints, y, xPoints, yHeading)
-		self.c.line(xGoalsFor, y, xGoalsFor, yHeading)
-		self.c.line(xGoalsAgainst, y, xGoalsAgainst, yHeading)
+		self.c.line(rectPoints.x, rectAll.y, rectPoints.x, rectHeading.y)
+		self.c.line(rectGoalsFor.x, rectAll.y, rectGoalsFor.x, rectHeading.y)
+		self.c.line(rectGoalsAgainst.x, rectAll.y, rectGoalsAgainst.x, rectHeading.y)
 
 		# heading labels
 
-		lTuXStr = (
-			#(xTeamArea + dXTeamArea / 2.0, "COUNTRY"),
-			(xPoints + dXStats / 2.0, "PTS"),
-			(xGoalsFor + dXStats / 2.0, "GF"),
-			(xGoalsAgainst + dXStats / 2.0, "GA"),
+		lTuRectStr = (
+			#(rectCountry, "COUNTRY"),
+			(rectPoints,		"PTS"),
+			(rectGoalsFor,		"GF"),
+			(rectGoalsAgainst,	"GA"),
 		)
 
-		self.c.setFont('Calibri', dYHeading)
-		dYCap = self.DYFontCap()
-		yHeadingText = yHeading + max(0.0, (dYHeading - dYCap) / 2.0)
-		self.c.setFillColor(white)
-
-		for xHeading, strHeading in lTuXStr:
-			self.c.drawCentredString(xHeading, yHeadingText, strHeading)
+		for rectHeading, strHeading in lTuRectStr:
+			oltbHeading = COneLineTextBox('Calibri', rectHeading.dY, rectHeading)
+			self.RectDrawText(strHeading, white, oltbHeading, JH.Center)
 
 pathDst = Path('poster.pdf').absolute()
 strPathDst = str(pathDst)
 
-c = Canvas(str(pathDst), pagesize=landscape(C2))
+c = Canvas(str(pathDst), pagesize=portrait(C3))
 
 lGroupb = [CGroupBlot(c, strGroup) for strGroup in g_lStrGroup]
+
+dX = CGroupBlot.s_dX + 1.0*inch
+dY = CGroupBlot.s_dY + 1.0*inch
 
 for col in range(2):
 	for row in range(4):
 		groupb = lGroupb[col * 4 + row]
-		dX = CGroupBlot.s_dX + 1.0*inch
-		dY = CGroupBlot.s_dY + 1.0*inch
-		x = 1.0*inch + col * dX
-		y = 1.0*inch + ((4 - row) * dY)
-		groupb.Draw(x, y)
+		pos = Point(0.5*inch + col * dX, 0.5*inch + ((4 - row) * dY))
+		groupb.Draw(pos)
 
 c.save()
 
