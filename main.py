@@ -31,9 +31,10 @@ class Rect(Point):
 	dX: float = 0
 	dY: float = 0
 
-def ColorResaturate(color: Color, dS: float) -> Color:
+def ColorResaturate(color: Color, rS: float = 1.0, dS: float = 0.0, rV: float = 1.0, dV: float = 0.0) -> Color:
 	h, s, v = colorsys.rgb_to_hsv(color.red, color.green, color.blue)
-	s = min(1.0, max(0.0, s + dS))
+	s = min(1.0, max(0.0, s * rS + dS))
+	v = min(1.0, max(0.0, v * rV + dV))
 	r, g, b = colorsys.hsv_to_rgb(h, s, v)
 	return Color(r, g, b)
 
@@ -195,14 +196,14 @@ class CGroupBlot(CBlot):
 	# BB (bruceo) put these in the yaml
 
 	s_mpStrGroupColor: dict[str, Color] = {
-		'A' : HexColor(0x94D9F5),
-		'B' : HexColor(0xFEE289),
+		'A' : HexColor(0x94d9f5),
+		'B' : HexColor(0xfee289),
 		'C' : HexColor(0xf79d8f),
 		'D' : HexColor(0xc4e1b5),
 		'E' : HexColor(0xb0d0ee),
 		'F' : HexColor(0xc0e4df),
 		'G' : HexColor(0xfab077),
-		'H' : HexColor(0xf2e8f2),
+		'H' : HexColor(0xeecbef), #(0xf2e8f2),
 	}
 	assert(set(g_lStrGroup) == set(s_mpStrGroupColor.keys()))
 
@@ -251,7 +252,7 @@ class CGroupBlot(CBlot):
 		oltbGroupName = COneLineTextBox('Consolas-Bold', dYGroupName, rectTitle)
 		rectGroupName = self.RectDrawText(
 								self.group.strName,
-								ColorResaturate(self.color, 0.5),
+								ColorResaturate(self.color, dS=0.5),
 								oltbGroupName,
 								JH.Right,
 								JV.Middle)
@@ -264,7 +265,7 @@ class CGroupBlot(CBlot):
 
 		uGroupLabel = 0.65
 		oltbGroupLabel = COneLineTextBox('Calibri', dYTitle * uGroupLabel, rectGroupLabel, dSMargin=oltbGroupName.dSMargin)
-		self.RectDrawText('Group', white, oltbGroupLabel, JH.Right, JV.Top)
+		self.RectDrawText('Group', white, oltbGroupLabel, JH.Right) #, JV.Top)
 
 		# heading
 
@@ -282,12 +283,14 @@ class CGroupBlot(CBlot):
 
 		dYCountries = rectAll.dY - (dYTitle + dYHeading)
 		dYCountry = dYCountries / len(self.group.mpStrSeedTeam)
-		rectCountry = Rect(rectHeading.x, 0, dYCountry * self.s_ratioCountry, dYCountry)
+		rectCountry = Rect(rectHeading.x, 0, rectHeading.dX, dYCountry)
 
 		for i in range(len(self.group.mpStrSeedTeam)):
 			rectCountry.y = rectHeading.y - (i + 1) * dYCountry
-			color = self.color if (i & 1) else white
-			self.FillWithin(rectCountry, color, self.s_uAlphaTeam)
+			color = ColorResaturate(self.color, rV=1.5, rS=0.5) if (i & 1) else white
+			self.FillWithin(rectCountry, color)
+
+		rectCountry.dX = dYCountry * self.s_ratioCountry
 
 		for i, strSeed in enumerate(sorted(self.group.mpStrSeedTeam)):
 			rectCountry.y = rectHeading.y - (i + 1) * dYCountry
@@ -298,7 +301,7 @@ class CGroupBlot(CBlot):
 
 			uTeamText = 0.75
 			oltbName = COneLineTextBox('Calibri', dYCountry * uTeamText, rectCountry, dSMargin=oltbAbbrev.dSMargin)
-			self.RectDrawText(team.strName, darkgrey, oltbName, JH.Left, JV.Top)
+			self.RectDrawText(team.strName, darkgrey, oltbName, JH.Left) #, JV.Top)
 
 		# dividers for country/points/gf/ga
 
