@@ -193,6 +193,19 @@ class CBlot:
 
 class CGroupBlot(CBlot):
 
+	s_dX = 4.5*inch
+	s_dY = s_dX / (16.0 / 9.0) # HDTV ratio
+	s_dSLineOuter = 0.02*inch
+	s_dSLineInner = 0.008*inch
+	s_dSLineStats = 0.01*inch
+
+	# width to height ratios
+
+	s_rSGroup = 5.0
+	s_rSCountry = 6.0
+
+	# colors
+
 	# BB (bruceo) put these in the yaml
 
 	s_mpStrGroupColor: dict[str, Color] = {
@@ -207,23 +220,17 @@ class CGroupBlot(CBlot):
 	}
 	assert(set(g_lStrGroup) == set(s_mpStrGroupColor.keys()))
 
-	s_cTeam = 4
+	s_dSDarker = 0.5
 
-	s_dX = 4.5*inch
-	s_dY = 2.5*inch
-	s_dSLineOuter = 0.02*inch
-	s_dSLineInner = 0.008*inch
-	s_dSLineStats = 0.01*inch
-
-	# width to height ratios
-	s_ratioGroup = 5.0
-	s_ratioCountry = 6.0
-	s_uAlphaTeam = 0.5
+	s_rVLighter = 1.5
+	s_rSLighter = 0.5
 
 	def __init__(self, c: Canvas, strGroup: str) -> None:
 		super().__init__(c)
 		self.group: CGroup = g_db.mpStrGroupGroup[strGroup]
 		self.color: Color = self.s_mpStrGroupColor[strGroup]
+		self.colorDarker = ColorResaturate(self.color, dS=self.s_dSDarker)
+		self.colorLighter = ColorResaturate(self.color, rV=self.s_rVLighter, rS=self.s_rSLighter)
 
 	def Draw(self, pos: Point) -> None:
 		self.c.setLineJoin(0)
@@ -239,7 +246,7 @@ class CGroupBlot(CBlot):
 		# title
 
 		#dYTitle = dY * self.s_uYTitle
-		dYTitle = rectAll.dX / self.s_ratioGroup
+		dYTitle = rectAll.dX / self.s_rSGroup
 		rectTitle = Rect(
 						rectAll.x,
 						rectAll.y + rectAll.dY - dYTitle,
@@ -252,7 +259,7 @@ class CGroupBlot(CBlot):
 		oltbGroupName = COneLineTextBox('Consolas-Bold', dYGroupName, rectTitle)
 		rectGroupName = self.RectDrawText(
 								self.group.strName,
-								ColorResaturate(self.color, dS=0.5),
+								self.colorDarker,
 								oltbGroupName,
 								JH.Right,
 								JV.Middle)
@@ -287,10 +294,10 @@ class CGroupBlot(CBlot):
 
 		for i in range(len(self.group.mpStrSeedTeam)):
 			rectCountry.y = rectHeading.y - (i + 1) * dYCountry
-			color = ColorResaturate(self.color, rV=1.5, rS=0.5) if (i & 1) else white
+			color = self.colorLighter if (i & 1) else white
 			self.FillWithin(rectCountry, color)
 
-		rectCountry.dX = dYCountry * self.s_ratioCountry
+		rectCountry.dX = dYCountry * self.s_rSCountry
 
 		for i, strSeed in enumerate(sorted(self.group.mpStrSeedTeam)):
 			rectCountry.y = rectHeading.y - (i + 1) * dYCountry
