@@ -155,13 +155,6 @@ class CDataBase:
 				assert stagePrev == STAGE.Semis
 				assert len(setMatchNone) == 1
 				stageNext = STAGE.Final
-
-				match = setMatchNone.pop()
-				assert match.FTrySetStage(self.mpIdMatch, stagePrev, stageNext)
-
-				assert not self.mpStageSetMatch[None]
-				del self.mpStageSetMatch[None]
-				break
 			else:
 				stageNext = stagePrev + 1
 
@@ -177,6 +170,8 @@ class CDataBase:
 			self.mpStageSetMatch[stageNext] = setMatchNext
 
 			stagePrev = stageNext
+
+		del self.mpStageSetMatch[None]
 
 
 g_db = CDataBase()
