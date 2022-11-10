@@ -1,6 +1,7 @@
 import arrow
 import colorsys
 import copy
+import re
 import yaml
 
 from aenum import Enum, AutoNumberEnum
@@ -20,23 +21,20 @@ pdfmetrics.registerFont(TTFont('Lucida-Console', 'lucon.ttf'))
 pdfmetrics.registerFont(TTFont('Calibri', 'calibri.ttf'))
 
 g_lStrGroup = ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H')
+g_setStrGroup = frozenset(g_lStrGroup)
 
-@dataclass
-class Point:
-	x: float = 0
-	y: float = 0
+g_patAlphaNum = re.compile('([a-zA-Z]+)([0-9]+)')
+g_patNumAlpha = re.compile('([0-9]+)([a-zA-Z]+)')
 
-@dataclass
-class Rect(Point):
-	dX: float = 0
-	dY: float = 0
-
-def ColorResaturate(color: Color, rS: float = 1.0, dS: float = 0.0, rV: float = 1.0, dV: float = 0.0) -> Color:
-	h, s, v = colorsys.rgb_to_hsv(color.red, color.green, color.blue)
-	s = min(1.0, max(0.0, s * rS + dS))
-	v = min(1.0, max(0.0, v * rV + dV))
-	r, g, b = colorsys.hsv_to_rgb(h, s, v)
-	return Color(r, g, b)
+class STAGE(AutoNumberEnum):
+	Group = ()
+	Round1 = ()
+	Round2 = ()	# may not be used, depending on tourney size
+	Round3 = () # ditto
+	Quarters = ()
+	Semis = ()
+	Third = ()
+	Final = ()
 
 class CVenue:
 	def __init__(self, mpKV: dict[str, any]) -> None:
@@ -65,6 +63,49 @@ class CMatch:
 		self.strAway: str = mpKV['away']
 		self.tStart = arrow.get(mpKV['time'])
 
+		self.stage: STAGE = None
+		self.lStrGroup: list[str] = []
+		self.lIdFeeders = []
+
+		if matHome := g_patNumAlpha.match(self.strHome):
+			matAway = g_patNumAlpha.match(self.strAway)
+			assert matAway
+			self.stage = STAGE.Round1
+			self.lStrGroup = [matHome[2], matAway[2]]
+		elif matHome := g_patAlphaNum.match(self.strHome):
+			matAway = g_patAlphaNum.match(self.strAway)
+			assert matAway
+			assert matHome[1] == matAway[1]
+			
+			if matHome[1] in g_setStrGroup:
+				self.stage = STAGE.Group
+				self.lStrGroup = [matHome[1]]
+			elif matHome[1] == 'RU':
+				assert matAway[1] == 'RU'
+				self.stage = STAGE.Third
+				self.lIdFeeders = [int(matHome[2]), int(matAway[2])]
+			else:
+				# leaving self.stage as None, but setting ids so
+				# we can set it based on feeders' stages
+				assert matHome[1] == 'W'
+				self.lIdFeeders = [int(matHome[2]), int(matAway[2])]
+		else:
+			assert False
+
+	def FTrySetStage(self, mpIdMatch: dict[int, 'CMatch'], stagePrev: STAGE, stage: STAGE):
+		assert self.stage is None
+		assert self.lIdFeeders
+
+		for id in self.lIdFeeders:
+			match = mpIdMatch[id]
+
+			if match.stage != stagePrev:
+				return False
+
+		self.stage = stage
+
+		return True
+
 class CDataBase:
 	def __init__(self) -> None:
 		
@@ -89,7 +130,55 @@ class CDataBase:
 				group.AddTeam(team)
 
 			self.mpIdMatch: dict[int, CMatch] = {mpKV['match']:CMatch(self, mpKV) for mpKV in objTop['matches']}
-				
+
+		# allot matches to stages
+
+		self.mpStageSetMatch: dict[STAGE, set[CMatch]] = {}
+
+		for match in self.mpIdMatch.values():
+			self.mpStageSetMatch.setdefault(match.stage, set()).add(match)
+
+		stagePrev: STAGE = STAGE.Round1
+		setMatchNone = self.mpStageSetMatch[None]
+
+		while setMatchNone:
+			setMatchPrev = self.mpStageSetMatch[stagePrev]
+
+			if len(setMatchPrev) == 8:
+				assert len(setMatchNone) == 7
+				stageNext = STAGE.Quarters
+			elif len(setMatchPrev) == 4:
+				assert stagePrev == STAGE.Quarters
+				assert len(setMatchNone) == 3
+				stageNext = STAGE.Semis
+			elif len(setMatchPrev) == 2:
+				assert stagePrev == STAGE.Semis
+				assert len(setMatchNone) == 1
+				stageNext = STAGE.Final
+
+				match = setMatchNone.pop()
+				assert match.FTrySetStage(self.mpIdMatch, stagePrev, stageNext)
+
+				assert not self.mpStageSetMatch[None]
+				del self.mpStageSetMatch[None]
+				break
+			else:
+				stageNext = stagePrev + 1
+
+			setMatchNext: set[CMatch] = set()
+
+			for match in setMatchNone:
+				if match.FTrySetStage(self.mpIdMatch, stagePrev, stageNext):
+					setMatchNext.add(match)
+			
+			assert setMatchNext
+
+			setMatchNone -= setMatchNext
+			self.mpStageSetMatch[stageNext] = setMatchNext
+
+			stagePrev = stageNext
+
+
 g_db = CDataBase()
 
 class JH(AutoNumberEnum):
@@ -102,22 +191,11 @@ class JV(AutoNumberEnum):
 	Middle = ()
 	Top = ()
 
-class COneLineTextBox:
-	"""a box with a single line of text in a particular font, sized to fit the box"""
-	def __init__(self, strFont: str, dYFont, rect: Rect, dSMargin: float = None) -> None:
+class CFontInstance:
+	"""a sized font"""
+	def __init__(self, strFont: str, dYFont: float) -> None:
 		self.strFont = strFont
 		self.dYFont = dYFont
-		self.rect = rect
-
-		self.dYCap = self.DYCap()
-		self.dSMargin = dSMargin or max(0.0, (self.rect.dY - self.dYCap) / 2.0)
-
-	def RectMargin(self) -> Rect:
-		return Rect(
-				self.rect.x + self.dSMargin,
-				self.rect.y + self.dSMargin,
-				self.rect.dX - 2.0 * self.dSMargin,
-				self.rect.dY - 2.0 * self.dSMargin)
 
 	def DYCap(self) -> float:
 		"""font cap height. aped from pdfmetrics.getAscentDescent()"""
@@ -142,7 +220,40 @@ class COneLineTextBox:
 
 		return dYCap
 
-class CBlot:
+@dataclass
+class Point: # tag = pos
+	x: float = 0
+	y: float = 0
+
+@dataclass
+class Rect(Point): # tag = rect
+	dX: float = 0
+	dY: float = 0
+
+class COneLineTextBox: # tag = oltb
+	"""a box with a single line of text in a particular font, sized to fit the box"""
+	def __init__(self, strFont: str, dYFont: float, rect: Rect, dSMargin: float = None) -> None:
+		self.fonti = CFontInstance(strFont, dYFont)
+		self.rect = rect
+
+		self.dYCap = self.fonti.DYCap()
+		self.dSMargin = dSMargin or max(0.0, (self.rect.dY - self.dYCap) / 2.0)
+
+	def RectMargin(self) -> Rect:
+		return Rect(
+				self.rect.x + self.dSMargin,
+				self.rect.y + self.dSMargin,
+				self.rect.dX - 2.0 * self.dSMargin,
+				self.rect.dY - 2.0 * self.dSMargin)
+
+def ColorResaturate(color: Color, rS: float = 1.0, dS: float = 0.0, rV: float = 1.0, dV: float = 0.0) -> Color:
+	h, s, v = colorsys.rgb_to_hsv(color.red, color.green, color.blue)
+	s = min(1.0, max(0.0, s * rS + dS))
+	v = min(1.0, max(0.0, v * rV + dV))
+	r, g, b = colorsys.hsv_to_rgb(h, s, v)
+	return Color(r, g, b)
+
+class CBlot: # tag = blot
 	"""something drawable at a location. some blots may contain other blots."""
 
 	def __init__(self, c: Canvas) -> None:
@@ -163,7 +274,7 @@ class CBlot:
 		self.c.rect(rect.x, rect.y, rect.dX, rect.dY, stroke=0, fill=1)
 
 	def RectDrawText(self, strText: str, color: Color, oltb : COneLineTextBox, jh : JH = JH.Left, jv: JV = JV.Middle) -> Rect:
-		self.c.setFont(oltb.strFont, oltb.dYFont)
+		self.c.setFont(oltb.fonti.strFont, oltb.fonti.dYFont)
 		rectText = Rect(0, 0, self.c.stringWidth(strText), oltb.dYCap)
 		rectMargin = oltb.RectMargin()
 
@@ -191,7 +302,7 @@ class CBlot:
 	def Draw(pos: Point) -> None:
 		pass
 
-class CGroupBlot(CBlot):
+class CGroupBlot(CBlot): # tag = groupb
 
 	s_dX = 4.5*inch
 	s_dY = s_dX / (16.0 / 9.0) # HDTV ratio
@@ -218,7 +329,7 @@ class CGroupBlot(CBlot):
 		'G' : HexColor(0xfab077),
 		'H' : HexColor(0xeecbef), #(0xf2e8f2),
 	}
-	assert(set(g_lStrGroup) == set(s_mpStrGroupColor.keys()))
+	assert(g_setStrGroup == frozenset(s_mpStrGroupColor.keys()))
 
 	s_dSDarker = 0.5
 
@@ -233,7 +344,6 @@ class CGroupBlot(CBlot):
 		self.colorLighter = ColorResaturate(self.color, rV=self.s_rVLighter, rS=self.s_rSLighter)
 
 	def Draw(self, pos: Point) -> None:
-		self.c.setLineJoin(0)
 
 		rectAll = Rect(pos.x, pos.y, self.s_dX, self.s_dY)
 
@@ -350,21 +460,102 @@ class CGroupBlot(CBlot):
 			oltbHeading = COneLineTextBox('Calibri', rectHeading.dY, rectHeading)
 			self.RectDrawText(strHeading, white, oltbHeading, JH.Center)
 
+class CDayBlot(CBlot): # tag = dayb
+
+	s_dX = 2.25*inch
+	s_dY = s_dX # square
+	s_dSLineOuter = CGroupBlot.s_dSLineOuter
+	s_dSLineScore = CGroupBlot.s_dSLineStats
+
+	s_uYDate = 0.06
+	s_dYDate = s_dY * s_uYDate
+
+	s_uYTime = 0.075
+	s_strFontTime = 'Calibri'
+	s_dYFontTime = s_dY * s_uYTime
+	s_dYTime = CFontInstance(s_strFontTime, s_dYFontTime).DYCap()
+
+	s_uYScore = 0.147
+	s_dYScore = s_dY * s_uYScore
+
+	def __init__(self, c: Canvas, mpStrGroupGroupb: dict[str, CGroupBlot], lMatch: list[CMatch]) -> None:
+		super().__init__(c)
+		self.mpStrGroupGroupb = mpStrGroupGroupb
+		self.lMatch = lMatch
+		for match in lMatch[1:]:
+			assert lMatch[0].tStart.date() == match.tStart.date()
+		# BB (bruceo) only include year/month sometimes
+		self.strDate = lMatch[0].tStart.format("MMMM Do")
+
+	def Draw(self, pos: Point) -> None:
+
+		rectAll = Rect(pos.x, pos.y, self.s_dX, self.s_dY)
+
+		# black border
+
+		rectAll = self.RectDrawWithin(rectAll, self.s_dSLineOuter, black)
+
+		# Date
+
+		rectDate = Rect(
+						rectAll.x,
+						rectAll.y + rectAll.dY - self.s_dYDate,
+						rectAll.dX,
+						self.s_dYDate)
+		oltbHeading = COneLineTextBox('Calibri', rectDate.dY, rectDate)
+		self.RectDrawText(self.strDate, black, oltbHeading, JH.Center)
+
+		rectAll.dY -= rectDate.dY
+
+		# count the time segments
+
+		dYMatch = rectAll.dY / len(self.lMatch)
+
+		# draw matches top to bottom
+
+		rectMatch = Rect(rectAll.x, rectAll.y + rectAll.dY, rectAll.dX, dYMatch)
+
+		for match in self.lMatch:
+			strGroupHome = match.strHome[:1]
+			strGroupAway = match.strAway[:1]
+
+			assert strGroupHome in g_setStrGroup and strGroupAway in g_setStrGroup
+			assert strGroupHome == strGroupAway
+
+			groupb = self.mpStrGroupGroupb[strGroupHome]
+
+			timeMatch = match.tStart.time()
+
+			if timeMatch not in setTimeDrawn:
+				rectCur.dY = self.s_dYTime + dYGap
+				rectCur.y -= rectCur.dY
+				self.FillWithin(rectCur, groupb.color)
+
+				oltb = COneLineTextBox(self.s_strFontTime, self.s_dYFontTime, rectCur)
+				strTime = match.tStart.format('HH:mmA')
+				self.RectDrawText(strTime, oltb, JH.Center, JV.Middle)
+
+			rectCur.dY = self.s_dYScore + dYGap
+			rectCur.y -= rectCur.dY
+			
+
 pathDst = Path('poster.pdf').absolute()
 strPathDst = str(pathDst)
 
 c = Canvas(str(pathDst), pagesize=portrait(C3))
 
-lGroupb = [CGroupBlot(c, strGroup) for strGroup in g_lStrGroup]
+mpStrGroupGroupb = {strGroup:CGroupBlot(c, strGroup) for strGroup in g_lStrGroup}
 
-dX = CGroupBlot.s_dX + 1.0*inch
-dY = CGroupBlot.s_dY + 1.0*inch
+def DrawGroups():
+	dXGrid = CGroupBlot.s_dX + 1.0*inch
+	dYGrid = CGroupBlot.s_dY + 1.0*inch
 
-for col in range(2):
-	for row in range(4):
-		groupb = lGroupb[col * 4 + row]
-		pos = Point(0.5*inch + col * dX, 0.5*inch + ((4 - row) * dY))
-		groupb.Draw(pos)
+	for col in range(2):
+		for row in range(4):
+			strGroup = g_lStrGroup[col * 4 + row]
+			groupb = mpStrGroupGroupb[strGroup]
+			pos = Point(0.5*inch + col * dXGrid, 0.5*inch + ((4 - row) * dYGrid))
+			groupb.Draw(pos)
 
 c.save()
 
