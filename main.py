@@ -8,7 +8,7 @@ from aenum import Enum, AutoNumberEnum
 from dataclasses import dataclass
 from pathlib import Path
 
-from reportlab.lib.pagesizes import A1, A2, A3, A4, A5, A6, B1, B2, B3, B4, B5, B6, C1, C2, C3, C4, C5, C6, landscape, portrait
+from reportlab.lib.pagesizes import landscape, portrait, LETTER, A1, A2, A3, A4, A5, A6, B1, B2, B3, B4, B5, B6, C1, C2, C3, C4, C5, C6
 from reportlab.lib.units import inch, cm, mm
 from reportlab.lib.colors import Color, HexColor, white, black, red, blue, green, grey, darkgrey, lightgrey
 from reportlab.pdfbase import pdfmetrics
@@ -19,6 +19,7 @@ pdfmetrics.registerFont(TTFont('Consolas', 'consola.ttf'))
 pdfmetrics.registerFont(TTFont('Consolas-Bold', 'consolab.ttf'))
 pdfmetrics.registerFont(TTFont('Lucida-Console', 'lucon.ttf'))
 pdfmetrics.registerFont(TTFont('Calibri', 'calibri.ttf'))
+pdfmetrics.registerFont(TTFont('Calibri-Light-Italic', 'calibrili.ttf'))
 
 g_lStrGroup = ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H')
 g_setStrGroup = frozenset(g_lStrGroup)
@@ -131,6 +132,13 @@ class CDataBase:
 
 			self.mpIdMatch: dict[int, CMatch] = {mpKV['match']:CMatch(self, mpKV) for mpKV in objTop['matches']}
 
+		# map dates to matches
+
+		self.mpDateSetMatch: dict[STAGE, set[CMatch]] = {}
+
+		for match in self.mpIdMatch.values():
+			self.mpDateSetMatch.setdefault(match.tStart.date(), set()).add(match)
+
 		# allot matches to stages
 
 		self.mpStageSetMatch: dict[STAGE, set[CMatch]] = {}
@@ -216,26 +224,26 @@ class CFontInstance:
 		return dYCap
 
 @dataclass
-class Point: # tag = pos
+class SPoint: # tag = pos
 	x: float = 0
 	y: float = 0
 
 @dataclass
-class Rect(Point): # tag = rect
+class SRect(SPoint): # tag = rect
 	dX: float = 0
 	dY: float = 0
 
 class COneLineTextBox: # tag = oltb
 	"""a box with a single line of text in a particular font, sized to fit the box"""
-	def __init__(self, strFont: str, dYFont: float, rect: Rect, dSMargin: float = None) -> None:
+	def __init__(self, strFont: str, dYFont: float, rect: SRect, dSMargin: float = None) -> None:
 		self.fonti = CFontInstance(strFont, dYFont)
 		self.rect = rect
 
 		self.dYCap = self.fonti.DYCap()
 		self.dSMargin = dSMargin or max(0.0, (self.rect.dY - self.dYCap) / 2.0)
 
-	def RectMargin(self) -> Rect:
-		return Rect(
+	def RectMargin(self) -> SRect:
+		return SRect(
 				self.rect.x + self.dSMargin,
 				self.rect.y + self.dSMargin,
 				self.rect.dX - 2.0 * self.dSMargin,
@@ -254,23 +262,31 @@ class CBlot: # tag = blot
 	def __init__(self, c: Canvas) -> None:
 		self.c = c
 
-	def RectDrawWithin(self, rect: Rect, dSLine: float, color: Color) -> Rect:
+	def RectInsetDrawBox(self, rect: SRect, dSLine: float, color: Color) -> SRect:
 		x = rect.x + 0.5 * dSLine
 		y = rect.y + 0.5 * dSLine
 		dX = rect.dX - dSLine
 		dY = rect.dY - dSLine
+		self.c.setFillColor(white, alpha=1.0)
 		self.c.setLineWidth(dSLine)
 		self.c.setStrokeColor(color)
-		self.c.rect(x, y, dX, dY)
-		return Rect(x + 0.5 * dSLine, y + 0.5 * dSLine, dX - dSLine, dY - dSLine)
+		self.c.rect(x, y, dX, dY, stroke=1, fill=1)
+		return SRect(x + 0.5 * dSLine, y + 0.5 * dSLine, dX - dSLine, dY - dSLine)
 
-	def FillWithin(self, rect: Rect, color: Color, uAlpha: float = 1.0) -> None:
+	def DrawBox(self, rect: SRect, dSLine: float, color: Color) -> None:
+		self.RectInsetDrawBox(rect, dSLine, color)
+
+	def FillWithin(self, rect: SRect, color: Color, uAlpha: float = 1.0) -> None:
 		self.c.setFillColor(color, alpha=uAlpha)
 		self.c.rect(rect.x, rect.y, rect.dX, rect.dY, stroke=0, fill=1)
 
-	def RectDrawText(self, strText: str, color: Color, oltb : COneLineTextBox, jh : JH = JH.Left, jv: JV = JV.Middle) -> Rect:
+	def WhiteBox(self, rect: SRect, color: Color, uAlpha: float = 1.0) -> None:
+		self.c.setFillColor(color, alpha=uAlpha)
+		self.c.rect(rect.x, rect.y, rect.dX, rect.dY, stroke=0, fill=1)
+
+	def RectDrawText(self, strText: str, color: Color, oltb : COneLineTextBox, jh : JH = JH.Left, jv: JV = JV.Middle) -> SRect:
 		self.c.setFont(oltb.fonti.strFont, oltb.fonti.dYFont)
-		rectText = Rect(0, 0, self.c.stringWidth(strText), oltb.dYCap)
+		rectText = SRect(0, 0, self.c.stringWidth(strText), oltb.dYCap)
 		rectMargin = oltb.RectMargin()
 
 		if jh == JH.Left:
@@ -294,7 +310,7 @@ class CBlot: # tag = blot
 
 		return rectText
 
-	def Draw(pos: Point) -> None:
+	def Draw(pos: SPoint) -> None:
 		pass
 
 class CGroupBlot(CBlot): # tag = groupb
@@ -338,21 +354,21 @@ class CGroupBlot(CBlot): # tag = groupb
 		self.colorDarker = ColorResaturate(self.color, dS=self.s_dSDarker)
 		self.colorLighter = ColorResaturate(self.color, rV=self.s_rVLighter, rS=self.s_rSLighter)
 
-	def Draw(self, pos: Point) -> None:
+	def Draw(self, pos: SPoint) -> None:
 
-		rectAll = Rect(pos.x, pos.y, self.s_dX, self.s_dY)
+		rectAll = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
 
 		# black/color/black borders
 
-		rectAll = self.RectDrawWithin(rectAll, self.s_dSLineOuter, black)
-		rectAll = self.RectDrawWithin(rectAll, self.s_dSLineInner, self.color)
-		rectAll = self.RectDrawWithin(rectAll, self.s_dSLineOuter, black)
+		rectAll = self.RectInsetDrawBox(rectAll, self.s_dSLineOuter, black)
+		rectAll = self.RectInsetDrawBox(rectAll, self.s_dSLineInner, self.color)
+		rectAll = self.RectInsetDrawBox(rectAll, self.s_dSLineOuter, black)
 
 		# title
 
 		#dYTitle = dY * self.s_uYTitle
 		dYTitle = rectAll.dX / self.s_rSGroup
-		rectTitle = Rect(
+		rectTitle = SRect(
 						rectAll.x,
 						rectAll.y + rectAll.dY - dYTitle,
 						rectAll.dX,
@@ -369,7 +385,7 @@ class CGroupBlot(CBlot): # tag = groupb
 								JH.Right,
 								JV.Middle)
 
-		rectGroupLabel = Rect(
+		rectGroupLabel = SRect(
 							rectTitle.x,
 							rectTitle.y,
 							rectGroupName.x - rectTitle.x,
@@ -383,7 +399,7 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		#dYHeading = dY * self.s_uYHeading
 		dYHeading = dYTitle / 4.0
-		rectHeading = Rect(
+		rectHeading = SRect(
 						rectAll.x,
 						rectTitle.y - dYHeading,
 						rectAll.dX,
@@ -395,7 +411,7 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		dYCountries = rectAll.dY - (dYTitle + dYHeading)
 		dYCountry = dYCountries / len(self.group.mpStrSeedTeam)
-		rectCountry = Rect(rectHeading.x, 0, rectHeading.dX, dYCountry)
+		rectCountry = SRect(rectHeading.x, 0, rectHeading.dX, dYCountry)
 
 		for i in range(len(self.group.mpStrSeedTeam)):
 			rectCountry.y = rectHeading.y - (i + 1) * dYCountry
@@ -419,17 +435,17 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		dXStats = (rectAll.dX - rectCountry.dX) / 3.0
 
-		rectPoints = Rect(
+		rectPoints = SRect(
 						rectCountry.x + rectCountry.dX,
 						rectHeading.y,
 						dXStats,
 						rectHeading.dY)
-		rectGoalsFor = Rect(
+		rectGoalsFor = SRect(
 						rectPoints.x + rectPoints.dX,
 						rectHeading.y,
 						dXStats,
 						rectHeading.dY)
-		rectGoalsAgainst = Rect(
+		rectGoalsAgainst = SRect(
 						rectGoalsFor.x + rectGoalsFor.dX,
 						rectHeading.y,
 						dXStats,
@@ -454,6 +470,71 @@ class CGroupBlot(CBlot): # tag = groupb
 		for rectHeading, strHeading in lTuRectStr:
 			oltbHeading = COneLineTextBox('Calibri', rectHeading.dY, rectHeading)
 			self.RectDrawText(strHeading, white, oltbHeading, JH.Center)
+
+class CMatchBlot(CBlot): # tag = dayb
+	def __init__(self, dayb: 'CDayBlot', match: CMatch, rect: SRect) -> None:
+		super().__init__(dayb.c)
+		self.dayb = dayb
+		self.match = match
+		self.rect = rect
+
+		self.dYInfo = dayb.s_dYScore + dayb.s_dYTime
+		dYGap = (self.rect.dY - self.dYInfo) / 3.0
+		self.yScore = self.rect.y + dYGap
+		self.yTime = self.yScore + dayb.s_dYScore + dYGap
+
+	def DrawFill(self) -> None:
+		lColor = [self.dayb.mpStrGroupGroupb[strGroup].color for strGroup in self.match.lStrGroup]
+
+		@dataclass
+		class SRectColor:
+			rect: SRect = None
+			color: Color = None
+
+		lRc: list[SRectColor] = []
+
+		if self.match.stage == STAGE.Group:
+			assert len(lColor) == 1
+			lRc.append(SRectColor(self.rect, lColor[0]))
+		elif self.match.stage == STAGE.Round1:
+			assert len(lColor) == 2
+			lRc.append(SRectColor(copy.copy(self.rect), lColor[0]))
+			lRc[-1].rect.dX /= 2.0
+
+			lRc.append(SRectColor(copy.copy(self.rect), lColor[1]))
+			lRc[-1].rect.dX /= 2.0
+			lRc[-1].rect.x += lRc[-1].rect.dX
+		else:
+			lColor = [self.dayb.mpStrGroupGroupb[strGroup].color for strGroup in g_lStrGroup]
+			dXStripe = self.rect.dX / len(lColor)
+			xStripe = self.rect.x
+			for color in lColor:
+				lRc.append(SRectColor(copy.copy(self.rect), color))
+				lRc[-1].rect.x = xStripe
+				lRc[-1].rect.dX = dXStripe
+				xStripe += dXStripe
+
+		for rc in lRc:
+			self.FillWithin(rc.rect, rc.color)
+
+	def DrawInfo(self) -> None:
+		rectTime = SRect(self.rect.x, self.yTime, self.rect.dX, self.dayb.s_dYTime)
+		oltbTime = COneLineTextBox(self.dayb.s_strFontTime, self.dayb.s_dYFontTime, rectTime)
+		strTime = self.match.tStart.format('HH:mma')
+		self.RectDrawText(strTime, black, oltbTime, JH.Center)
+
+		rectScore = SRect(self.rect.x, self.yScore, self.rect.dX, self.dayb.s_dYScore)
+		oltbDash = COneLineTextBox(self.dayb.s_strFontTime, rectScore.dY, rectScore)
+		rectDash = self.RectDrawText('-', black, oltbDash, JH.Center)
+		dXDashAdjust = rectDash.dX / 2.0 + rectDash.dX / 3.0
+
+		xRectHome = rectScore.x + (rectScore.dX / 2.0) - (dXDashAdjust + self.dayb.s_dYScore)
+		rectHome = SRect(xRectHome, rectScore.y , self.dayb.s_dYScore, self.dayb.s_dYScore)
+		self.DrawBox(rectHome, self.dayb.s_dSLineScore, black)
+
+		xRectAway = rectScore.x + (rectScore.dX / 2.0) + dXDashAdjust
+		rectAway = SRect(xRectAway, rectScore.y , self.dayb.s_dYScore, self.dayb.s_dYScore)
+		self.DrawBox(rectAway, self.dayb.s_dSLineScore, black)
 
 class CDayBlot(CBlot): # tag = dayb
 
@@ -482,23 +563,23 @@ class CDayBlot(CBlot): # tag = dayb
 		# BB (bruceo) only include year/month sometimes
 		self.strDate = lMatch[0].tStart.format("MMMM Do")
 
-	def Draw(self, pos: Point) -> None:
+	def Draw(self, pos: SPoint) -> None:
 
-		rectAll = Rect(pos.x, pos.y, self.s_dX, self.s_dY)
+		rectAll = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
 
 		# black border
 
-		rectAll = self.RectDrawWithin(rectAll, self.s_dSLineOuter, black)
+		rectAll = self.RectInsetDrawBox(rectAll, self.s_dSLineOuter, black)
 
 		# Date
 
-		rectDate = Rect(
+		rectDate = SRect(
 						rectAll.x,
 						rectAll.y + rectAll.dY - self.s_dYDate,
 						rectAll.dX,
 						self.s_dYDate)
-		oltbHeading = COneLineTextBox('Calibri', rectDate.dY, rectDate)
-		self.RectDrawText(self.strDate, black, oltbHeading, JH.Center)
+		oltbHeading = COneLineTextBox('Calibri-Light-Italic', rectDate.dY, rectDate)
+		self.RectDrawText(self.strDate, black, oltbHeading)
 
 		rectAll.dY -= rectDate.dY
 
@@ -508,49 +589,74 @@ class CDayBlot(CBlot): # tag = dayb
 
 		# draw matches top to bottom
 
-		rectMatch = Rect(rectAll.x, rectAll.y + rectAll.dY, rectAll.dX, dYMatch)
+		lMatchb: list[CMatchBlot] = []
+		yMatch = rectAll.y + rectAll.dY - dYMatch
 
 		for match in self.lMatch:
-			strGroupHome = match.strHome[:1]
-			strGroupAway = match.strAway[:1]
+			lMatchb.append(CMatchBlot(self, match, SRect(rectAll.x, yMatch, rectAll.dX, dYMatch)))
+			yMatch -= dYMatch
 
-			assert strGroupHome in g_setStrGroup and strGroupAway in g_setStrGroup
-			assert strGroupHome == strGroupAway
+		pass
 
-			groupb = self.mpStrGroupGroupb[strGroupHome]
+		for matchb in lMatchb:
+			matchb.DrawFill()
 
-			timeMatch = match.tStart.time()
-
-			if timeMatch not in setTimeDrawn:
-				rectCur.dY = self.s_dYTime + dYGap
-				rectCur.y -= rectCur.dY
-				self.FillWithin(rectCur, groupb.color)
-
-				oltb = COneLineTextBox(self.s_strFontTime, self.s_dYFontTime, rectCur)
-				strTime = match.tStart.format('HH:mmA')
-				self.RectDrawText(strTime, oltb, JH.Center, JV.Middle)
-
-			rectCur.dY = self.s_dYScore + dYGap
-			rectCur.y -= rectCur.dY
-			
+		for matchb in lMatchb:
+			matchb.DrawInfo()
 
 pathDst = Path('poster.pdf').absolute()
 strPathDst = str(pathDst)
 
-c = Canvas(str(pathDst), pagesize=portrait(C3))
+c = Canvas(str(pathDst), pagesize=portrait(LETTER))
+rectPage = SRect(0, 0, c._pagesize[0], c._pagesize[1])
 
 mpStrGroupGroupb = {strGroup:CGroupBlot(c, strGroup) for strGroup in g_lStrGroup}
 
+dSMargin = 0.5*inch
+
 def DrawGroups():
-	dXGrid = CGroupBlot.s_dX + 1.0*inch
-	dYGrid = CGroupBlot.s_dY + 1.0*inch
+	dXGrid = CGroupBlot.s_dX + dSMargin
+	dYGrid = CGroupBlot.s_dY + dSMargin
 
 	for col in range(2):
 		for row in range(4):
-			strGroup = g_lStrGroup[col * 4 + row]
+			try:
+				strGroup = g_lStrGroup[col * 4 + row]
+			except IndexError:
+				continue
 			groupb = mpStrGroupGroupb[strGroup]
-			pos = Point(0.5*inch + col * dXGrid, 0.5*inch + ((4 - row) * dYGrid))
+			pos = SPoint(
+					dSMargin + col * dXGrid,
+					rectPage.dY - ((row + 1) * dYGrid))
 			groupb.Draw(pos)
+
+def DrawDays():
+	dXGrid = CDayBlot.s_dX + dSMargin
+	dYGrid = CDayBlot.s_dY + dSMargin
+
+	lDayb: list[CDayBlot] = []
+
+	lIdMatch = (1,2,5,9)
+	setDate: set[any] = {g_db.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
+	for dateMatch in sorted(setDate):
+		lMatch = sorted(g_db.mpDateSetMatch[dateMatch], key=lambda match: match.tStart)
+
+		lDayb.append(CDayBlot(c, mpStrGroupGroupb, lMatch))
+
+	for row in range(2):
+		for col in range(2):
+			try:
+				dayb = lDayb[row * 2 + col]
+			except IndexError:
+				continue
+			pos = SPoint(
+					dSMargin + col * dXGrid,
+					rectPage.dY - ((row + 1) * dYGrid))
+			dayb.Draw(pos)
+
+#DrawGroups()
+DrawDays()
+
 
 c.save()
 
