@@ -1,15 +1,16 @@
 import arrow
 import colorsys
 import copy
+import fpdf
 import logging
 import re
 import yaml
 
 from aenum import Enum, AutoNumberEnum
 from dataclasses import dataclass
-from fpdf import FPDF
-from fpdf.html import color_as_decimal
 from pathlib import Path
+
+CPdf = fpdf.FPDF
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
@@ -190,16 +191,16 @@ class JV(AutoNumberEnum):
 
 class CFontInstance:
 	"""a sized font"""
-	def __init__(self, p: FPDF, strFont: str, dYFont: float) -> None:
-		self.p = p
+	def __init__(self, pdf: CPdf, strFont: str, dYFont: float, strStyle: str = '') -> None:
+		self.pdf = pdf
 		self.strFont = strFont
 		self.dYFont = dYFont
+		self.strStyle = strStyle
 		self.dPtFont = self.dYFont * 72.0 # inches to points
 
-		with self.p.local_context():
-			strStyle = style='I' if 'Italic' in self.strFont else ''
-			self.p.set_font(self.strFont, strStyle, size=self.dPtFont)
-			self.dYCap = self.p.current_font['desc']['CapHeight'] * self.dYFont / 1000.0
+		with self.pdf.local_context():
+			self.pdf.set_font(self.strFont, self.strStyle, size=self.dPtFont)
+			self.dYCap = self.pdf.current_font['desc']['CapHeight'] * self.dYFont / 1000.0
 
 @dataclass
 class SColor: # tag = color
@@ -209,7 +210,7 @@ class SColor: # tag = color
 	a: int = 255
 
 def ColorNamed(strColor: str, alpha: int = 255) -> SColor:
-	return SColor(*color_as_decimal(strColor), alpha)
+	return SColor(*fpdf.html.color_as_decimal(strColor), alpha)
 
 colorWhite = ColorNamed("white")
 colorDarkgrey = ColorNamed("darkgrey")
@@ -234,9 +235,9 @@ class SRect(SPoint): # tag = rect
 
 class COneLineTextBox: # tag = oltb
 	"""a box with a single line of text in a particular font, sized to fit the box"""
-	def __init__(self, p: FPDF, strFont: str, dYFont: float, rect: SRect, dSMargin: float = None) -> None:
-		self.p = p
-		self.fonti = CFontInstance(p, strFont, dYFont)
+	def __init__(self, pdf: CPdf, rect: SRect, strFont: str, dYFont: float, strStyle: str = '', dSMargin: float = None) -> None:
+		self.pdf = pdf
+		self.fonti = CFontInstance(pdf, strFont, dYFont, strStyle)
 		self.rect = rect
 
 		self.dYCap = self.fonti.dYCap
@@ -250,9 +251,8 @@ class COneLineTextBox: # tag = oltb
 				self.rect.dY - 2.0 * self.dSMargin)
 
 	def RectDrawText(self, strText: str, color: SColor, jh : JH = JH.Left, jv: JV = JV.Middle) -> SRect:
-		strStyle = style='I' if 'Italic' in self.fonti.strFont else ''
-		self.p.set_font(self.fonti.strFont, style=strStyle, size=self.fonti.dPtFont)
-		rectText = SRect(0, 0, self.p.get_string_width(strText), self.dYCap)
+		self.pdf.set_font(self.fonti.strFont, style=self.fonti.strStyle, size=self.fonti.dPtFont)
+		rectText = SRect(0, 0, self.pdf.get_string_width(strText), self.dYCap)
 		rectMargin = self.RectMargin()
 
 		if jh == JH.Left:
@@ -271,8 +271,8 @@ class COneLineTextBox: # tag = oltb
 			assert jv == JV.Top
 			rectText.y = rectMargin.y + rectText.dY
 
-		self.p.set_text_color(color.r, color.g, color.b)
-		self.p.text(rectText.x, rectText.y, strText)
+		self.pdf.set_text_color(color.r, color.g, color.b)
+		self.pdf.text(rectText.x, rectText.y, strText)
 
 		return rectText
 
@@ -283,29 +283,29 @@ class COneLineTextBox: # tag = oltb
 class CBlot: # tag = blot
 	"""something drawable at a location. some blots may contain other blots."""
 
-	def __init__(self, p: FPDF) -> None:
-		self.p = p
+	def __init__(self, pdf: CPdf) -> None:
+		self.pdf = pdf
 
 	def RectInsetDrawBox(self, rect: SRect, dSLine: float, color: SColor) -> SRect:
 		x = rect.x + 0.5 * dSLine
 		y = rect.y + 0.5 * dSLine
 		dX = rect.dX - dSLine
 		dY = rect.dY - dSLine
-		self.p.set_fill_color(255) # white
-		self.p.set_line_width(dSLine)
-		self.p.set_draw_color(color.r, color.g, color.b)
-		self.p.rect(x, y, dX, dY, style='FD')
+		self.pdf.set_fill_color(255) # white
+		self.pdf.set_line_width(dSLine)
+		self.pdf.set_draw_color(color.r, color.g, color.b)
+		self.pdf.rect(x, y, dX, dY, style='FD')
 		return SRect(x + 0.5 * dSLine, y + 0.5 * dSLine, dX - dSLine, dY - dSLine)
 
 	def DrawBox(self, rect: SRect, dSLine: float, color: SColor) -> None:
 		self.RectInsetDrawBox(rect, dSLine, color)
 
 	def FillWithin(self, rect: SRect, color: SColor) -> None:
-		self.p.set_fill_color(color.r, color.g, color.b)
-		self.p.rect(rect.x, rect.y, rect.dX, rect.dY, style='F')
+		self.pdf.set_fill_color(color.r, color.g, color.b)
+		self.pdf.rect(rect.x, rect.y, rect.dX, rect.dY, style='F')
 
-	def Oltb(self, strFont: str, dYFont: float, rect: SRect, dSMargin: float = None) ->COneLineTextBox:
-		return COneLineTextBox(self.p, strFont, dYFont, rect, dSMargin)
+	def Oltb(self, rect: SRect, strFont: str, dYFont: float, strStyle: str = '', dSMargin: float = None) ->COneLineTextBox:
+		return COneLineTextBox(self.pdf, rect, strFont, dYFont, strStyle, dSMargin)
 
 	def Draw(pos: SPoint) -> None:
 		pass
@@ -344,8 +344,8 @@ class CGroupBlot(CBlot): # tag = groupb
 	s_rVLighter = 1.5
 	s_rSLighter = 0.5
 
-	def __init__(self, p: FPDF, strGroup: str) -> None:
-		super().__init__(p)
+	def __init__(self, pdf: CPdf, strGroup: str) -> None:
+		super().__init__(pdf)
 		self.group: CGroup = g_db.mpStrGroupGroup[strGroup]
 		self.color: SColor = self.s_mpStrGroupColor[strGroup]
 		self.colorDarker = ColorResaturate(self.color, dS=self.s_dSDarker)
@@ -374,7 +374,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		self.FillWithin(rectTitle, self.color)
 
 		dYGroupName = dYTitle * 1.3
-		oltbGroupName = self.Oltb('Consolas-Bold', dYGroupName, rectTitle)
+		oltbGroupName = self.Oltb(rectTitle, 'Consolas-Bold', dYGroupName)
 		rectGroupName = oltbGroupName.RectDrawText(
 										self.group.strName,
 										self.colorDarker,
@@ -388,7 +388,7 @@ class CGroupBlot(CBlot): # tag = groupb
 							rectTitle.dY)
 
 		uGroupLabel = 0.65
-		oltbGroupLabel = self.Oltb('Calibri', dYTitle * uGroupLabel, rectGroupLabel, dSMargin=oltbGroupName.dSMargin)
+		oltbGroupLabel = self.Oltb(rectGroupLabel, 'Calibri', dYTitle * uGroupLabel, dSMargin=oltbGroupName.dSMargin)
 		oltbGroupLabel.DrawText('Group', colorWhite, JH.Right) #, JV.Top)
 
 		# heading
@@ -420,11 +420,11 @@ class CGroupBlot(CBlot): # tag = groupb
 			rectTeam.y = rectHeading.y + rectHeading.dY + i * dYTeam
 			team = self.group.mpStrSeedTeam[strSeed]
 
-			oltbAbbrev = self.Oltb('Consolas', dYTeam, rectTeam)
+			oltbAbbrev = self.Oltb(rectTeam, 'Consolas', dYTeam)
 			oltbAbbrev.DrawText(team.strAbbrev, colorBlack, JH.Right)
 
 			uTeamText = 0.75
-			oltbName = self.Oltb('Calibri', dYTeam * uTeamText, rectTeam, dSMargin=oltbAbbrev.dSMargin)
+			oltbName = self.Oltb(rectTeam, 'Calibri', dYTeam * uTeamText, dSMargin=oltbAbbrev.dSMargin)
 			oltbName.DrawText(team.strName, colorDarkgrey, JH.Left) #, JV.Top)
 
 		# dividers for team/points/gf/ga
@@ -447,12 +447,12 @@ class CGroupBlot(CBlot): # tag = groupb
 						dXStats,
 						rectHeading.dY)
 
-		self.p.set_line_width(self.s_dSLineStats)
-		self.p.set_draw_color(0) # black
+		self.pdf.set_line_width(self.s_dSLineStats)
+		self.pdf.set_draw_color(0) # black
 	
-		self.p.line(rectPoints.x, rectHeading.y + rectHeading.dY, rectPoints.x, rectAll.y + rectAll.dY)
-		self.p.line(rectGoalsFor.x, rectHeading.y + rectHeading.dY, rectGoalsFor.x, rectAll.y + rectAll.dY)
-		self.p.line(rectGoalsAgainst.x, rectHeading.y + rectHeading.dY, rectGoalsAgainst.x, rectAll.y + rectAll.dY)
+		self.pdf.line(rectPoints.x, rectHeading.y + rectHeading.dY, rectPoints.x, rectAll.y + rectAll.dY)
+		self.pdf.line(rectGoalsFor.x, rectHeading.y + rectHeading.dY, rectGoalsFor.x, rectAll.y + rectAll.dY)
+		self.pdf.line(rectGoalsAgainst.x, rectHeading.y + rectHeading.dY, rectGoalsAgainst.x, rectAll.y + rectAll.dY)
 
 		# heading labels
 
@@ -464,12 +464,12 @@ class CGroupBlot(CBlot): # tag = groupb
 		)
 
 		for rectHeading, strHeading in lTuRectStr:
-			oltbHeading = self.Oltb('Calibri', rectHeading.dY, rectHeading)
+			oltbHeading = self.Oltb(rectHeading, 'Calibri', rectHeading.dY)
 			oltbHeading.DrawText(strHeading, colorWhite, JH.Center)
 
 class CMatchBlot(CBlot): # tag = dayb
 	def __init__(self, dayb: 'CDayBlot', match: CMatch, rect: SRect) -> None:
-		super().__init__(dayb.p)
+		super().__init__(dayb.pdf)
 		self.dayb = dayb
 		self.match = match
 		self.rect = rect
@@ -501,7 +501,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			lRc[-1].rect.dX /= 2.0
 			lRc[-1].rect.x += lRc[-1].rect.dX
 		else:
-			lColor = [self.dayb.mpStrGroupGroupb[strGroup].color for strGroup in g_lStrGroup]
+			lColor = [self.dayb.mpStrGroupGroupb[strGroup].colorLighter for strGroup in g_lStrGroup]
 			dXStripe = self.rect.dX / len(lColor)
 			xStripe = self.rect.x
 			for color in lColor:
@@ -519,7 +519,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 		rectTime = SRect(self.rect.x, self.yTime, self.rect.dX, self.dayb.dYTime)
 		strTime = self.match.tStart.format('HH:mma')
-		oltbTime = self.Oltb(self.dayb.s_strFontTime, self.dayb.s_dYFontTime, rectTime)
+		oltbTime = self.Oltb(rectTime, self.dayb.s_strFontTime, self.dayb.s_dYFontTime)
 		oltbTime.DrawText(strTime, colorBlack, JH.Center)
 
 		# dash between score boxes
@@ -529,9 +529,9 @@ class CMatchBlot(CBlot): # tag = dayb
 		xLineMin = self.rect.x + (self.rect.dX / 2.0) - (dXLine / 2.0)
 		xLineMax = xLineMin + dXLine
 		yLine = self.yScore + (self.dayb.s_dSScore / 2.0)
-		self.p.set_line_width(self.dayb.s_dSLineScore)
-		self.p.set_draw_color(0) # black
-		self.p.line(xLineMin, yLine, xLineMax, yLine)
+		self.pdf.set_line_width(self.dayb.s_dSLineScore)
+		self.pdf.set_draw_color(0) # black
+		self.pdf.line(xLineMin, yLine, xLineMax, yLine)
 
 		# score boxes
 
@@ -549,11 +549,11 @@ class CMatchBlot(CBlot): # tag = dayb
 		dXLabel = dXLabels / 2.0
 
 		rectHomeLabel = SRect(self.rect.x, self.yScore, dXLabel, self.dayb.s_dSScore)
-		oltbHomeLabel = self.Oltb('Consolas', self.dayb.s_dSScore, rectHomeLabel)
+		oltbHomeLabel = self.Oltb(rectHomeLabel, 'Consolas', self.dayb.s_dSScore)
 		oltbHomeLabel.DrawText(self.match.strHome, colorBlack, JH.Center)
 
 		rectAwayLabel = SRect(self.rect.x + self.rect.dX - dXLabel, self.yScore, dXLabel, self.dayb.s_dSScore)
-		oltbAwayLabel = self.Oltb('Consolas', self.dayb.s_dSScore, rectAwayLabel)
+		oltbAwayLabel = self.Oltb(rectAwayLabel, 'Consolas', self.dayb.s_dSScore)
 		oltbAwayLabel.DrawText(self.match.strAway, colorBlack, JH.Center)
 
 class CDayBlot(CBlot): # tag = dayb
@@ -576,15 +576,15 @@ class CDayBlot(CBlot): # tag = dayb
 	s_dSScore = s_dY * s_uSScore
 	s_dSScoreGap = s_dSScore / 2.0
 
-	def __init__(self, p: FPDF, mpStrGroupGroupb: dict[str, CGroupBlot], lMatch: list[CMatch]) -> None:
-		super().__init__(p)
+	def __init__(self, pdf: CPdf, mpStrGroupGroupb: dict[str, CGroupBlot], lMatch: list[CMatch]) -> None:
+		super().__init__(pdf)
 		self.mpStrGroupGroupb = mpStrGroupGroupb
 		self.lMatch = lMatch
 		for match in lMatch[1:]:
 			assert lMatch[0].tStart.date() == match.tStart.date()
 		# BB (bruceo) only include year/month sometimes
 		self.strDate = lMatch[0].tStart.format("MMMM Do")
-		self.dYTime = CFontInstance(self.p, self.s_strFontTime, self.s_dYFontTime).dYCap
+		self.dYTime = CFontInstance(self.pdf, self.s_strFontTime, self.s_dYFontTime).dYCap
 
 	def Draw(self, pos: SPoint) -> None:
 
@@ -601,7 +601,7 @@ class CDayBlot(CBlot): # tag = dayb
 						rectAll.y,
 						rectAll.dX,
 						self.s_dYDate)
-		oltbHeading = self.Oltb('Calibri Light Italic', rectDate.dY, rectDate)
+		oltbHeading = self.Oltb(rectDate, 'Calibri', rectDate.dY, strStyle='I')
 		oltbHeading.DrawText(self.strDate, colorBlack)
 
 		rectAll.y += rectDate.dY
@@ -631,22 +631,81 @@ class CDayBlot(CBlot): # tag = dayb
 pathDst = Path('poster.pdf').absolute()
 strPathDst = str(pathDst)
 
-p = FPDF(orientation='portrait', unit='in', format='letter')
-p.add_page()
+g_mpStrFormatWH: dict[str, tuple[float, float]] ={
+	"a0": (2383.94, 3370.39),
+	"a1": (1683.78, 2383.94),
+	"a2": (1190.55, 1683.78),
+	"a3": (841.89, 1190.55),
+	"a4": (595.28, 841.89),
+	# fpdf.PAGE_FORMATS is wrong about a5.
+	# they list the short side as 420.94pt.
+	#	(their long side is correctly listed as 595.28pt)
+	# ISO std a5 short side is 148mm. this table is in pts.
+	# excel tells me that 148mm / 25.4 is 5.83in.
+	#	and 5.83in * 72 is 419.53pt.
+	# so i have no idea where fpdf's 420.94pt comes from.
+	# on github, it appears to have been this way since
+	#	the original source was checked added in 2008.
+	# probably doesn't matter, since the conversion rounds
+	#	to the correct size in mm
+	"a5": (419.53, 595.28),
+	"a6": (297.64, 419.53),
+	"a7": (209.76, 297.64),
+	"a8": (147.40, 209.76),
+	"b0": (2834.65, 4008.19),
+	"b1": (2004.09, 2834.65),
+	"b2": (1417.32, 2004.09),
+	"b3": (1000.63, 1417.32),
+	"b4": (708.66, 1000.63),
+	"b5": (498.90, 708.66),
+	"b6": (354.33, 498.90),
+	"b7": (249.45, 354.33),
+	"b8": (175.75, 249.45),
+	"b9": (124.72, 175.75),
+	"b10": (87.87, 124.72),
+	"c2": (1298.27, 1836.85),
+	"c3": (918.43, 1298.27),
+	"c4": (649.13, 918.43),
+	"c5": (459.21, 649.13),
+	"c6": (323.15, 459.21),
+	"d0": (2185.51, 3089.76),
+	"letter": (612.00, 792.00),
+	"legal": (612.00, 1008.00),
+	"ledger": (792.00, 1224.00),
+	"tabloid": (792.00, 1224.00),
+	"executive": (521.86, 756.00),
+	"ansi c": (1224.57, 1584.57),
+	"ansi d": (1584.57, 2449.13),
+	"ansi e": (2449.13, 3169.13),
+	"sra0": (2551.18, 3628.35),
+	"sra1": (1814.17, 2551.18),
+	"sra2": (1275.59, 1814.17),
+	"sra3": (907.09, 1275.59),
+	"sra4": (637.80, 907.09),
+	"ra0": (2437.80, 3458.27),
+	"ra1": (1729.13, 2437.80),
+	"ra2": (1218.90, 1729.13),
+}
+fpdf.fpdf.PAGE_FORMATS.update(g_mpStrFormatWH)
 
-p.add_font(family='Consolas', fname=r'fonts\consola.ttf')
-p.add_font(family='Consolas-Bold', fname=r'fonts\consolab.ttf')
-p.add_font(family='Lucida-Console', fname=r'fonts\lucon.ttf')
-p.add_font(family='Calibri', fname=r'fonts\calibri.ttf')
-p.add_font(family='Calibri Light Italic', style='I', fname=r'fonts\calibrili.ttf')
+pdf = CPdf(unit='in')
 
-rectPage = SRect(0, 0, p.w, p.h)
+pdf.add_font(family='Consolas', fname=r'fonts\consola.ttf')
+pdf.add_font(family='Consolas-Bold', fname=r'fonts\consolab.ttf')
+pdf.add_font(family='Lucida-Console', fname=r'fonts\lucon.ttf')
+pdf.add_font(family='Calibri', fname=r'fonts\calibri.ttf')
+pdf.add_font(family='Calibri', style='I', fname=r'fonts\calibrili.ttf')
 
-mpStrGroupGroupb = {strGroup:CGroupBlot(p, strGroup) for strGroup in g_lStrGroup}
+rectPage = SRect(0, 0, pdf.w, pdf.h)
 
-dSMargin = 0.5
+mpStrGroupGroupb = {strGroup:CGroupBlot(pdf, strGroup) for strGroup in g_lStrGroup}
 
-def DrawGroups():
+def DrawGroups(pdf: CPdf):
+
+	pdf.add_page(orientation='portrait', format='c3')
+
+	dSMargin = 0.5
+
 	dXGrid = CGroupBlot.s_dX + dSMargin
 	dYGrid = CGroupBlot.s_dY + dSMargin
 
@@ -662,23 +721,29 @@ def DrawGroups():
 					dSMargin + row * dYGrid)
 			groupb.Draw(pos)
 
-def DrawDays():
+def DrawDays(pdf: CPdf):
+
+	pdf.add_page(orientation='landscape', format='c3')
+
+	dSMargin = 0.25
+
 	dXGrid = CDayBlot.s_dX + dSMargin
 	dYGrid = CDayBlot.s_dY + dSMargin
 
 	lDayb: list[CDayBlot] = []
 
-	lIdMatch = (1,2,5,9)
-	setDate: set[any] = {g_db.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
-	for dateMatch in sorted(setDate):
-		lMatch = sorted(g_db.mpDateSetMatch[dateMatch], key=lambda match: match.tStart)
+	# lIdMatch = (1,2,5,9,49,51,57,59)
+	# setDate: set[any] = {g_db.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
+	for dateMatch in sorted(g_db.mpDateSetMatch):
+		setMatch = g_db.mpDateSetMatch[dateMatch]
+		lMatch = sorted(setMatch, key=lambda match: match.tStart)
 
-		lDayb.append(CDayBlot(p, mpStrGroupGroupb, lMatch))
+		lDayb.append(CDayBlot(pdf, mpStrGroupGroupb, lMatch))
 
-	for row in range(2):
-		for col in range(2):
+	for row in range(4):
+		for col in range(7):
 			try:
-				dayb = lDayb[row * 2 + col]
+				dayb = lDayb[row * 7 + col]
 			except IndexError:
 				continue
 			pos = SPoint(
@@ -686,7 +751,7 @@ def DrawDays():
 					dSMargin + row * dYGrid)
 			dayb.Draw(pos)
 
-#DrawGroups()
-DrawDays()
+DrawGroups(pdf)
+#DrawDays(pdf)
 
-p.output("poster.pdf")
+pdf.output("poster.pdf")
