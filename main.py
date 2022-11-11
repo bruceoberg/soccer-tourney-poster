@@ -1,6 +1,7 @@
 import arrow
 import colorsys
 import copy
+import datetime
 import fpdf
 import logging
 import re
@@ -55,7 +56,7 @@ class CMatch:
 		self.venue: CVenue = db.mpIdVenue[mpKV['venue']]
 		self.strHome: str = mpKV['home']
 		self.strAway: str = mpKV['away']
-		self.tStart = arrow.get(mpKV['time'])
+		self.tStart: datetime.date = arrow.get(mpKV['time'])
 
 		self.stage: STAGE = None
 		self.lStrGroup: list[str] = []
@@ -129,7 +130,7 @@ class CDataBase:
 
 		# map dates to matches
 
-		self.mpDateSetMatch: dict[STAGE, set[CMatch]] = {}
+		self.mpDateSetMatch: dict[datetime.date, set[CMatch]] = {}
 
 		for match in self.mpIdMatch.values():
 			self.mpDateSetMatch.setdefault(match.tStart.date(), set()).add(match)
@@ -696,13 +697,12 @@ pdf.add_font(family='Lucida-Console', fname=r'fonts\lucon.ttf')
 pdf.add_font(family='Calibri', fname=r'fonts\calibri.ttf')
 pdf.add_font(family='Calibri', style='I', fname=r'fonts\calibrili.ttf')
 
-rectPage = SRect(0, 0, pdf.w, pdf.h)
-
 mpStrGroupGroupb = {strGroup:CGroupBlot(pdf, strGroup) for strGroup in g_lStrGroup}
 
-def DrawGroups(pdf: CPdf):
+def DrawTestPageGroups(pdf: CPdf):
 
 	pdf.add_page(orientation='portrait', format='c3')
+	rectPage = SRect(0, 0, pdf.w, pdf.h)
 
 	dSMargin = 0.5
 
@@ -721,9 +721,10 @@ def DrawGroups(pdf: CPdf):
 					dSMargin + row * dYGrid)
 			groupb.Draw(pos)
 
-def DrawDays(pdf: CPdf):
+def DrawTestPageDays(pdf: CPdf):
 
 	pdf.add_page(orientation='landscape', format='c3')
+	rectPage = SRect(0, 0, pdf.w, pdf.h)
 
 	dSMargin = 0.25
 
@@ -751,7 +752,58 @@ def DrawDays(pdf: CPdf):
 					dSMargin + row * dYGrid)
 			dayb.Draw(pos)
 
-DrawGroups(pdf)
-#DrawDays(pdf)
+def DrawPoster(pdf: CPdf):
+
+	pdf.add_page(orientation='landscape', format=(22, 28))
+	rectPage = SRect(0, 0, pdf.w, pdf.h)
+
+	dYGroupsGap = 1.0
+	cGroup = 4
+	dXGroups = CGroupBlot.s_dX
+	dYGroups = (cGroup * CGroupBlot.s_dY) + ((cGroup - 1) * dYGroupsGap)
+	yGroups = (rectPage.dY - dYGroups) / 2.0
+	lGroupbLeft = [mpStrGroupGroupb[strGroup] for strGroup in g_lStrGroup[:cGroup]]
+	lGroupbRight = [mpStrGroupGroupb[strGroup] for strGroup in g_lStrGroup[cGroup:]]
+
+	dateMin: datetime.date = min(g_db.mpDateSetMatch.keys())
+	dateMax: datetime.date = max(g_db.mpDateSetMatch.keys())
+
+	cDay = (dateMax - dateMin).days + 1
+	cWeek = (cDay + 6) // 7
+	if dateMin.weekday() != 6: # SUNDAY
+		cWeek += 1
+
+	dXCalendar = 7 * CDayBlot.s_dX
+	dYCalendar = cWeek * CDayBlot.s_dY
+	yCalendar = (rectPage.dY - dYCalendar) / 2.0
+
+	dXUnused = rectPage.dX - (dXCalendar + 2 * dXGroups)
+	dXGap = dXUnused / 4 # both margins and both gaps between groups and calendar
+
+	xGroupsLeft = dXGap
+	xCalendar = xGroupsLeft + dXGroups + dXGap
+	xGroupsRight = xCalendar + dXCalendar + dXGap
+
+	for xGroups, lGroupb in ((xGroupsLeft, lGroupbLeft), (xGroupsRight, lGroupbRight)):
+		for iGroupb, groupb in enumerate(lGroupb):
+			yGroup = yGroups + iGroupb * (CGroupBlot.s_dY + dYGroupsGap)
+			groupb.Draw(SPoint(xGroups, yGroup))
+		
+	for dateMatch in sorted(g_db.mpDateSetMatch):
+		setMatch = g_db.mpDateSetMatch[dateMatch]
+		dayb = CDayBlot(pdf, mpStrGroupGroupb, sorted(setMatch, key=lambda match: match.tStart))
+
+		iDay = (dateMatch.weekday() + 1) % 7 # we want sunday as 0
+		iWeek = (dateMatch - dateMin).days // 7
+
+		xDay = xCalendar + iDay * CDayBlot.s_dX
+		yDay = yCalendar + iWeek * CDayBlot.s_dY
+
+		dayb.Draw(SPoint(xDay, yDay))
+
+#DrawTestPageGroups(pdf)
+#DrawTestPageDays(pdf)
+DrawPoster(pdf)
 
 pdf.output("poster.pdf")
+
