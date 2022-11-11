@@ -81,6 +81,8 @@ class CMatch:
 			if matHome[1] in g_setStrGroup:
 				self.stage = STAGE.Group
 				self.lStrGroup = [matHome[1]]
+				self.strHome = db.mpStrSeedTeam[self.strHome].strAbbrev
+				self.strAway = db.mpStrSeedTeam[self.strAway].strAbbrev
 			elif matHome[1] == 'RU':
 				assert matAway[1] == 'RU'
 				self.stage = STAGE.Third
@@ -307,6 +309,10 @@ class CBlot: # tag = blot
 
 		self.c.setFillColor(color)
 		self.c.drawString(rectText.x, rectText.y, strText)
+		# to = self.c.beginText(rectText.x, rectText.y, direction=None)
+		# to.setCharSpace(0)
+		# to.textLine(strText)
+		# self.c.drawText(to)
 
 		return rectText
 
@@ -324,7 +330,7 @@ class CGroupBlot(CBlot): # tag = groupb
 	# width to height ratios
 
 	s_rSGroup = 5.0
-	s_rSCountry = 6.0
+	s_rSTeamName = 6.0
 
 	# colors
 
@@ -407,36 +413,36 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		self.FillWithin(rectHeading, black)
 
-		# countries
+		# teams
 
-		dYCountries = rectAll.dY - (dYTitle + dYHeading)
-		dYCountry = dYCountries / len(self.group.mpStrSeedTeam)
-		rectCountry = SRect(rectHeading.x, 0, rectHeading.dX, dYCountry)
+		dYTeams = rectAll.dY - (dYTitle + dYHeading)
+		dYTeam = dYTeams / len(self.group.mpStrSeedTeam)
+		rectTeam = SRect(rectHeading.x, 0, rectHeading.dX, dYTeam)
 
 		for i in range(len(self.group.mpStrSeedTeam)):
-			rectCountry.y = rectHeading.y - (i + 1) * dYCountry
+			rectTeam.y = rectHeading.y - (i + 1) * dYTeam
 			color = self.colorLighter if (i & 1) else white
-			self.FillWithin(rectCountry, color)
+			self.FillWithin(rectTeam, color)
 
-		rectCountry.dX = dYCountry * self.s_rSCountry
+		rectTeam.dX = dYTeam * self.s_rSTeamName
 
 		for i, strSeed in enumerate(sorted(self.group.mpStrSeedTeam)):
-			rectCountry.y = rectHeading.y - (i + 1) * dYCountry
+			rectTeam.y = rectHeading.y - (i + 1) * dYTeam
 			team = self.group.mpStrSeedTeam[strSeed]
 
-			oltbAbbrev = COneLineTextBox('Consolas', dYCountry, rectCountry)
+			oltbAbbrev = COneLineTextBox('Consolas', dYTeam, rectTeam)
 			self.RectDrawText(team.strAbbrev, black, oltbAbbrev, JH.Right)
 
 			uTeamText = 0.75
-			oltbName = COneLineTextBox('Calibri', dYCountry * uTeamText, rectCountry, dSMargin=oltbAbbrev.dSMargin)
+			oltbName = COneLineTextBox('Calibri', dYTeam * uTeamText, rectTeam, dSMargin=oltbAbbrev.dSMargin)
 			self.RectDrawText(team.strName, darkgrey, oltbName, JH.Left) #, JV.Top)
 
-		# dividers for country/points/gf/ga
+		# dividers for team/points/gf/ga
 
-		dXStats = (rectAll.dX - rectCountry.dX) / 3.0
+		dXStats = (rectAll.dX - rectTeam.dX) / 3.0
 
 		rectPoints = SRect(
-						rectCountry.x + rectCountry.dX,
+						rectTeam.x + rectTeam.dX,
 						rectHeading.y,
 						dXStats,
 						rectHeading.dY)
@@ -461,7 +467,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		# heading labels
 
 		lTuRectStr = (
-			#(rectCountry, "COUNTRY"),
+			#(rectTeam, "COUNTRY"),
 			(rectPoints,		"PTS"),
 			(rectGoalsFor,		"GF"),
 			(rectGoalsAgainst,	"GA"),
@@ -478,10 +484,10 @@ class CMatchBlot(CBlot): # tag = dayb
 		self.match = match
 		self.rect = rect
 
-		self.dYInfo = dayb.s_dYScore + dayb.s_dYTime
+		self.dYInfo = dayb.s_dSScore + dayb.s_dYTime
 		dYGap = (self.rect.dY - self.dYInfo) / 3.0
 		self.yScore = self.rect.y + dYGap
-		self.yTime = self.yScore + dayb.s_dYScore + dYGap
+		self.yTime = self.yScore + dayb.s_dSScore + dYGap
 
 	def DrawFill(self) -> None:
 		lColor = [self.dayb.mpStrGroupGroupb[strGroup].color for strGroup in self.match.lStrGroup]
@@ -518,23 +524,47 @@ class CMatchBlot(CBlot): # tag = dayb
 			self.FillWithin(rc.rect, rc.color)
 
 	def DrawInfo(self) -> None:
+
+		# time
+
 		rectTime = SRect(self.rect.x, self.yTime, self.rect.dX, self.dayb.s_dYTime)
 		oltbTime = COneLineTextBox(self.dayb.s_strFontTime, self.dayb.s_dYFontTime, rectTime)
 		strTime = self.match.tStart.format('HH:mma')
 		self.RectDrawText(strTime, black, oltbTime, JH.Center)
 
-		rectScore = SRect(self.rect.x, self.yScore, self.rect.dX, self.dayb.s_dYScore)
-		oltbDash = COneLineTextBox(self.dayb.s_strFontTime, rectScore.dY, rectScore)
-		rectDash = self.RectDrawText('-', black, oltbDash, JH.Center)
-		dXDashAdjust = rectDash.dX / 2.0 + rectDash.dX / 3.0
+		# dash between score boxes
 
-		xRectHome = rectScore.x + (rectScore.dX / 2.0) - (dXDashAdjust + self.dayb.s_dYScore)
-		rectHome = SRect(xRectHome, rectScore.y , self.dayb.s_dYScore, self.dayb.s_dYScore)
-		self.DrawBox(rectHome, self.dayb.s_dSLineScore, black)
+		dXLineGap = self.dayb.s_dSScore / 2.0
+		dXLine = dXLineGap / 2.0
+		xLineMin = self.rect.x + (self.rect.dX / 2.0) - (dXLine / 2.0)
+		xLineMax = xLineMin + dXLine
+		yLine = self.yScore + (self.dayb.s_dSScore / 2.0)
+		self.c.setLineWidth(self.dayb.s_dSLineScore)
+		self.c.setStrokeColor(black)
+		self.c.line(xLineMin, yLine, xLineMax, yLine)
 
-		xRectAway = rectScore.x + (rectScore.dX / 2.0) + dXDashAdjust
-		rectAway = SRect(xRectAway, rectScore.y , self.dayb.s_dYScore, self.dayb.s_dYScore)
-		self.DrawBox(rectAway, self.dayb.s_dSLineScore, black)
+		# score boxes
+
+		xHomeBox = self.rect.x + (self.rect.dX / 2.0) - ((dXLineGap / 2.0 ) + self.dayb.s_dSScore)
+		rectHomeBox = SRect(xHomeBox, self.yScore, self.dayb.s_dSScore, self.dayb.s_dSScore)
+		self.DrawBox(rectHomeBox, self.dayb.s_dSLineScore, black)
+
+		xAwayBox = self.rect.x + (self.rect.dX / 2.0) + (dXLineGap / 2.0 )
+		rectAwayBox = SRect(xAwayBox, self.yScore, self.dayb.s_dSScore, self.dayb.s_dSScore)
+		self.DrawBox(rectAwayBox, self.dayb.s_dSLineScore, black)
+
+		# team labels
+
+		dXLabels = self.rect.dX - (2 * self.dayb.s_dSScore) - dXLineGap
+		dXLabel = dXLabels / 2.0
+
+		rectHomeLabel = SRect(self.rect.x, self.yScore, dXLabel, self.dayb.s_dSScore)
+		oltbHomeLabel = COneLineTextBox('Consolas', self.dayb.s_dSScore, rectHomeLabel)
+		self.RectDrawText(self.match.strHome, black, oltbHomeLabel, JH.Center)
+
+		rectAwayLabel = SRect(self.rect.x + self.rect.dX - dXLabel, self.yScore, dXLabel, self.dayb.s_dSScore)
+		oltbAwayLabel = COneLineTextBox('Consolas', self.dayb.s_dSScore, rectAwayLabel)
+		self.RectDrawText(self.match.strAway, black, oltbAwayLabel, JH.Center)
 
 class CDayBlot(CBlot): # tag = dayb
 
@@ -551,8 +581,11 @@ class CDayBlot(CBlot): # tag = dayb
 	s_dYFontTime = s_dY * s_uYTime
 	s_dYTime = CFontInstance(s_strFontTime, s_dYFontTime).DYCap()
 
-	s_uYScore = 0.147
-	s_dYScore = s_dY * s_uYScore
+	# scores are square, so we use dS
+
+	s_uSScore = 0.147
+	s_dSScore = s_dY * s_uSScore
+	s_dSScoreGap = s_dSScore / 2.0
 
 	def __init__(self, c: Canvas, mpStrGroupGroupb: dict[str, CGroupBlot], lMatch: list[CMatch]) -> None:
 		super().__init__(c)
