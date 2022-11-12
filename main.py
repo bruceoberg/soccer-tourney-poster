@@ -576,7 +576,11 @@ class CMatchBlot(CBlot): # tag = dayb
 
 	def DrawFill(self) -> None:
 		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else g_lStrGroup
-		lColor = [self.dayb.mpStrGroupGroupb[strGroup].color for strGroup in lStrGroup]
+		lGroupb = [self.dayb.mpStrGroupGroupb[strGroup] for strGroup in lStrGroup] 
+		if self.match.stage == STAGE.Group:
+			lColor = [groupb.color for groupb in lGroupb]
+		else:
+			lColor = [groupb.colorLighter for groupb in lGroupb]
 
 		@dataclass
 		class SRectColor:
@@ -654,15 +658,20 @@ class CMatchBlot(CBlot): # tag = dayb
 			dXLineFormGap = ((rectHomeBox.xMin - self.rect.xMin) - self.dayb.s_dXLineForm) / 2.0
 
 			xLineFormLeftMin = self.rect.xMin + dXLineFormGap
-			xLineFormLeftMax = xLineFormLeftMin + self.dayb.s_dXLineForm
-			xLineFormRightMax = self.rect.xMax - dXLineFormGap
-			xLineFormRightMin =  xLineFormRightMax - self.dayb.s_dXLineForm
-			
-			self.pdf.set_line_width(self.dayb.s_dSLineScore)
-			self.pdf.set_draw_color(0) # black
-	
-			self.pdf.line(xLineFormLeftMin, yLineForm, xLineFormLeftMax, yLineForm)
-			self.pdf.line(xLineFormRightMin, yLineForm, xLineFormRightMax, yLineForm)
+			xLineFormRightMin =  self.rect.xMax - (dXLineFormGap + self.dayb.s_dXLineForm)
+
+			for xLineFormMin in (xLineFormLeftMin, xLineFormRightMin):
+				xLineFormMax = xLineFormMin + self.dayb.s_dXLineForm
+				self.pdf.set_line_width(self.dayb.s_dSLineScore)
+				self.pdf.set_draw_color(0) # black
+				self.pdf.line(xLineFormMin, yLineForm, xLineFormMax, yLineForm)
+
+			# form labels
+
+			for xLineFormMin, strLabel in ((xLineFormLeftMin, self.match.strHome), (xLineFormRightMin, self.match.strAway)):
+				rectLabelForm = SRect(xLineFormMin, yLineForm, self.dayb.s_dXLineForm, self.dayb.s_dYFontForm)
+				oltbLabelForm = self.Oltb(rectLabelForm, self.dayb.s_strFontForm, self.dayb.s_dYFontForm)
+				oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
 
 			# match label
 
