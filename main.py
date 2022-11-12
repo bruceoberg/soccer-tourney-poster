@@ -638,18 +638,36 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			# PK boxes
 
-			rectHomePens = SRect(rectHomeBox.xMax, rectHomeBox.yMax).Outset(self.dayb.s_dSPens)
+			rectHomePens = SRect(rectHomeBox.xMax, rectHomeBox.yMax)
+			rectHomePens.Outset(self.dayb.s_dSPens)
 			rectHomePens.Shift(dX=-self.dayb.s_dSPensNudge, dY=-self.dayb.s_dSPensNudge)
 			self.DrawBox(rectHomePens, self.dayb.s_dSLineScore, colorBlack, colorWhite)
 
-			rectAwayPens = SRect(rectAwayBox.xMin, rectAwayBox.yMax).Outset(self.dayb.s_dSPens)
+			rectAwayPens = SRect(rectAwayBox.xMin, rectAwayBox.yMax)
+			rectAwayPens.Outset(self.dayb.s_dSPens)
 			rectAwayPens.Shift(dX=self.dayb.s_dSPensNudge, dY=-self.dayb.s_dSPensNudge)
 			self.DrawBox(rectAwayPens, self.dayb.s_dSLineScore, colorBlack, colorWhite)
+
+			# form lines
+
+			yLineForm = (rectHomeBox.yMax + rectHomePens.yMin) / 2.0
+			dXLineFormGap = ((rectHomeBox.xMin - self.rect.xMin) - self.dayb.s_dXLineForm) / 2.0
+
+			xLineFormLeftMin = self.rect.xMin + dXLineFormGap
+			xLineFormLeftMax = xLineFormLeftMin + self.dayb.s_dXLineForm
+			xLineFormRightMax = self.rect.xMax - dXLineFormGap
+			xLineFormRightMin =  xLineFormRightMax - self.dayb.s_dXLineForm
+			
+			self.pdf.set_line_width(self.dayb.s_dSLineScore)
+			self.pdf.set_draw_color(0) # black
+	
+			self.pdf.line(xLineFormLeftMin, yLineForm, xLineFormLeftMax, yLineForm)
+			self.pdf.line(xLineFormRightMin, yLineForm, xLineFormRightMax, yLineForm)
 
 			# match label
 
 			rectLabel = self.rect.Copy(y=rectHomePens.yMax, dY=self.dayb.s_dYFontLabel + self.dayb.s_dYTimeGapMax)
-			oltbLabel = self.Oltb(rectLabel, 'Consolas', self.dayb.s_dYFontLabel, strStyle='B')
+			oltbLabel = self.Oltb(rectLabel, 'Calibri', self.dayb.s_dYFontLabel, strStyle='B')
 			oltbLabel.DrawText(self.match.strName, colorBlack, JH.Center)
 
 		else:
@@ -689,6 +707,8 @@ class CDayBlot(CBlot): # tag = dayb
 
 	s_dSPens = s_dSScore / 2.0
 	s_dSPensNudge = 0.02
+
+	s_dXLineForm = s_dSScore * 1.32
 
 	s_strFontForm = s_strFontTime
 	s_dYFontForm = s_dYFontTime
@@ -807,6 +827,7 @@ pdf.add_font(family='Consolas', fname=r'fonts\consola.ttf')
 pdf.add_font(family='Consolas', style='B', fname=r'fonts\consolab.ttf')
 pdf.add_font(family='Lucida-Console', fname=r'fonts\lucon.ttf')
 pdf.add_font(family='Calibri', fname=r'fonts\calibri.ttf')
+pdf.add_font(family='Calibri', style='B', fname=r'fonts\calibrib.ttf')
 pdf.add_font(family='Calibri', style='I', fname=r'fonts\calibrili.ttf')
 
 mpStrGroupGroupb = {strGroup:CGroupBlot(pdf, strGroup) for strGroup in g_lStrGroup}
