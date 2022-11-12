@@ -10,6 +10,7 @@ import yaml
 from aenum import Enum, AutoNumberEnum
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 CPdf = fpdf.FPDF
 
@@ -93,11 +94,20 @@ class CMatch:
 		assert self.stage is None
 		assert self.lIdFeeders
 
+		lStrGroup: list[str] = []
+
 		for id in self.lIdFeeders:
 			match = mpIdMatch[id]
 
 			if match.stage != stagePrev:
 				return False
+
+			lStrGroup += match.lStrGroup
+
+		if stagePrev == STAGE.Round1:
+			assert not self.lStrGroup
+			assert len(lStrGroup) == 4
+			self.lStrGroup = lStrGroup
 
 		self.stage = stage
 
@@ -229,10 +239,93 @@ class SPoint: # tag = pos
 	x: float = 0
 	y: float = 0
 
-@dataclass
-class SRect(SPoint): # tag = rect
-	dX: float = 0
-	dY: float = 0
+	def Shift(self, dX: float = 0, dY: float = 0) -> None:
+		self.x += dX
+		self.y += dY
+
+class SRect: # tag = rect
+	def __init__(self, x: float, y: float, dX: float, dY: float):
+		self.posMin: SPoint = SPoint(x, y)
+		self.posMax: SPoint = SPoint(x + dX, y + dY)
+
+	def Set(self, x: Optional[float] = None, y: Optional[float] = None, dX: Optional[float] = None, dY: Optional[float] = None) -> 'SRect':
+		if x is not None:
+			self.x = x
+		if y is not None:
+			self.y = y
+		if dX is not None:
+			self.dX = dX
+		if dY is not None:
+			self.dY = dY
+		return self
+
+	def Copy(self, x: Optional[float] = None, y: Optional[float] = None, dX: Optional[float] = None, dY: Optional[float] = None) -> 'SRect':
+		rectNew = copy.deepcopy(self)
+		rectNew.Set(x, y, dX, dY)
+		return rectNew
+
+	def __repr__(self):
+		# NOTE (bruceo) avoiding property wrappers for faster debugger perf
+		strVals = ', '.join([
+			# NOTE (bruceo) avoiding property wrappers for faster debugger perf
+			f'_x={self.posMin.x!r}',
+			f'_y={self.posMin.y!r}',
+			f'dX={self.posMax.x - self.posMin.x!r}',
+			f'dY={self.posMax.y - self.posMin.y!r}',
+			f'x_={self.posMax.x!r}',
+			f'y_={self.posMax.y!r}',
+		])
+		return f'{type(self).__name__}({strVals})'
+
+	@property
+	def x(self) -> float:
+		return self.posMin.x
+	@x.setter
+	def x(self, xNew: float) -> None:
+		dX = xNew - self.posMin.x
+		self.Shift(dX, 0)
+
+	@property
+	def y(self) -> float:
+		return self.posMin.y
+	@y.setter
+	def y(self, yNew: float) -> None:
+		dY = yNew - self.posMin.y
+		self.Shift(0, dY)
+
+	@property
+	def dX(self) -> float:
+		return self.posMax.x - self.posMin.x
+	@dX.setter
+	def dX(self, dXNew: float) -> None:
+		self.posMax.x = self.posMin.x + dXNew
+
+	@property
+	def dY(self) -> float:
+		return self.posMax.y - self.posMin.y
+	@dY.setter
+	def dY(self, dYNew: float) -> None:
+		self.posMax.y = self.posMin.y + dYNew
+
+	def Shift(self, dX: float = 0, dY: float = 0) -> 'SRect':
+		self.posMin.Shift(dX, dY)
+		self.posMax.Shift(dX, dY)
+		return self
+
+	def Inset(self, dS: float) -> 'SRect':
+		dSHalf = dS / 2.0
+		self.posMin.Shift(dSHalf, dSHalf)
+		self.posMax.Shift(-dSHalf, -dSHalf)
+		return self
+
+	def Outset(self, dS: float) -> 'SRect':
+		self.Inset(-dS)
+		return self
+
+	def Stretch(self, dXLeft: float = 0, dYTop: float = 0, dXRight: float = 0, dYBottom: float = 0) -> 'SRect':
+		self.posMin.Shift(dXLeft, dYTop)
+		self.posMax.Shift(dXRight, dYBottom)
+		return self
 
 class COneLineTextBox: # tag = oltb
 	"""a box with a single line of text in a particular font, sized to fit the box"""
@@ -243,34 +336,27 @@ class COneLineTextBox: # tag = oltb
 
 		self.dYCap = self.fonti.dYCap
 		self.dSMargin = dSMargin or max(0.0, (self.rect.dY - self.dYCap) / 2.0)
-
-	def RectMargin(self) -> SRect:
-		return SRect(
-				self.rect.x + self.dSMargin,
-				self.rect.y + self.dSMargin,
-				self.rect.dX - 2.0 * self.dSMargin,
-				self.rect.dY - 2.0 * self.dSMargin)
+		self.rectMargin = self.rect.Copy().Inset(self.dSMargin)
 
 	def RectDrawText(self, strText: str, color: SColor, jh : JH = JH.Left, jv: JV = JV.Middle) -> SRect:
 		self.pdf.set_font(self.fonti.strFont, style=self.fonti.strStyle, size=self.fonti.dPtFont)
 		rectText = SRect(0, 0, self.pdf.get_string_width(strText), self.dYCap)
-		rectMargin = self.RectMargin()
 
 		if jh == JH.Left:
-			rectText.x = rectMargin.x
+			rectText.x = self.rectMargin.x
 		elif jh == JH.Center:
-			rectText.x = rectMargin.x + (rectMargin.dX - rectText.dX) / 2.0
+			rectText.x = self.rectMargin.x + (self.rectMargin.dX - rectText.dX) / 2.0
 		else:
 			assert jh == JH.Right
-			rectText.x = rectMargin.x + rectMargin.dX - rectText.dX
+			rectText.x = self.rectMargin.x + self.rectMargin.dX - rectText.dX
 
 		if jv == JV.Bottom:
-			rectText.y = rectMargin.y + rectMargin.dY
+			rectText.y = self.rectMargin.y + self.rectMargin.dY
 		elif jv == JV.Middle:
-			rectText.y = rectMargin.y + (rectMargin.dY + rectText.dY) / 2.0
+			rectText.y = self.rectMargin.y + (self.rectMargin.dY + rectText.dY) / 2.0
 		else:
 			assert jv == JV.Top
-			rectText.y = rectMargin.y + rectText.dY
+			rectText.y = self.rectMargin.y + rectText.dY
 
 		self.pdf.set_text_color(color.r, color.g, color.b)
 		self.pdf.text(rectText.x, rectText.y, strText)
@@ -287,35 +373,33 @@ class CBlot: # tag = blot
 	def __init__(self, pdf: CPdf) -> None:
 		self.pdf = pdf
 
-	def RectInsetDrawBox(self, rect: SRect, dSLine: float, color: SColor) -> SRect:
-		x = rect.x + 0.5 * dSLine
-		y = rect.y + 0.5 * dSLine
-		dX = rect.dX - dSLine
-		dY = rect.dY - dSLine
-		self.pdf.set_fill_color(255) # white
+	def DrawBox(self, rect: SRect, dSLine: float, color: SColor, colorFill: SColor = None) -> None:
+		if colorFill is None:
+			strStyle = 'D'
+		else:
+			strStyle = 'FD'
+			self.pdf.set_fill_color(colorFill.r, colorFill.g, colorFill.b)
+
 		self.pdf.set_line_width(dSLine)
 		self.pdf.set_draw_color(color.r, color.g, color.b)
-		self.pdf.rect(x, y, dX, dY, style='FD')
-		return SRect(x + 0.5 * dSLine, y + 0.5 * dSLine, dX - dSLine, dY - dSLine)
 
-	def DrawBox(self, rect: SRect, dSLine: float, color: SColor) -> None:
-		self.RectInsetDrawBox(rect, dSLine, color)
+		self.pdf.rect(rect.x, rect.y, rect.dX, rect.dY, style=strStyle)
 
-	def FillWithin(self, rect: SRect, color: SColor) -> None:
+	def FillBox(self, rect: SRect, color: SColor) -> None:
 		self.pdf.set_fill_color(color.r, color.g, color.b)
 		self.pdf.rect(rect.x, rect.y, rect.dX, rect.dY, style='F')
 
 	def Oltb(self, rect: SRect, strFont: str, dYFont: float, strStyle: str = '', dSMargin: float = None) ->COneLineTextBox:
 		return COneLineTextBox(self.pdf, rect, strFont, dYFont, strStyle, dSMargin)
 
-	def Draw(pos: SPoint) -> None:
+	def Draw(self, pos: SPoint) -> None:
 		pass
 
 class CGroupBlot(CBlot): # tag = groupb
 
 	s_dX = 4.5
 	s_dY = s_dX / (16.0 / 9.0) # HDTV ratio
-	s_dSLineOuter = 0.02
+	s_dSLineOuter = 0.04
 	s_dSLineInner = 0.008
 	s_dSLineStats = 0.01
 
@@ -354,25 +438,20 @@ class CGroupBlot(CBlot): # tag = groupb
 
 	def Draw(self, pos: SPoint) -> None:
 
-		rectAll = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
-
-		# black/color/black borders
-
-		rectAll = self.RectInsetDrawBox(rectAll, self.s_dSLineOuter, colorBlack)
-		rectAll = self.RectInsetDrawBox(rectAll, self.s_dSLineInner, self.color)
-		rectAll = self.RectInsetDrawBox(rectAll, self.s_dSLineOuter, colorBlack)
+		rectBorder = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
+		rectInside = rectBorder.Copy().Inset(self.s_dSLineOuter / 2.0)
 
 		# title
 
 		#dYTitle = dY * self.s_uYTitle
-		dYTitle = rectAll.dX / self.s_rSGroup
+		dYTitle = rectInside.dX / self.s_rSGroup
 		rectTitle = SRect(
-						rectAll.x,
-						rectAll.y,
-						rectAll.dX,
+						rectInside.x,
+						rectInside.y,
+						rectInside.dX,
 						dYTitle)
 
-		self.FillWithin(rectTitle, self.color)
+		self.FillBox(rectTitle, self.color)
 
 		dYGroupName = dYTitle * 1.3
 		oltbGroupName = self.Oltb(rectTitle, 'Consolas-Bold', dYGroupName)
@@ -397,23 +476,23 @@ class CGroupBlot(CBlot): # tag = groupb
 		#dYHeading = dY * self.s_uYHeading
 		dYHeading = dYTitle / 4.0
 		rectHeading = SRect(
-						rectAll.x,
+						rectInside.x,
 						rectTitle.y + rectTitle.dY,
-						rectAll.dX,
+						rectInside.dX,
 						dYHeading)
 
-		self.FillWithin(rectHeading, colorBlack)
+		self.FillBox(rectHeading, colorBlack)
 
 		# teams
 
-		dYTeams = rectAll.dY - (dYTitle + dYHeading)
+		dYTeams = rectInside.dY - (dYTitle + dYHeading)
 		dYTeam = dYTeams / len(self.group.mpStrSeedTeam)
 		rectTeam = SRect(rectHeading.x, 0, rectHeading.dX, dYTeam)
 
 		for i in range(len(self.group.mpStrSeedTeam)):
 			rectTeam.y = rectHeading.y + rectHeading.dY + i * dYTeam
 			color = self.colorLighter if (i & 1) else colorWhite
-			self.FillWithin(rectTeam, color)
+			self.FillBox(rectTeam, color)
 
 		rectTeam.dX = dYTeam * self.s_rSTeamName
 
@@ -430,7 +509,7 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		# dividers for team/points/gf/ga
 
-		dXStats = (rectAll.dX - rectTeam.dX) / 3.0
+		dXStats = (rectInside.dX - rectTeam.dX) / 3.0
 
 		rectPoints = SRect(
 						rectTeam.x + rectTeam.dX,
@@ -451,9 +530,9 @@ class CGroupBlot(CBlot): # tag = groupb
 		self.pdf.set_line_width(self.s_dSLineStats)
 		self.pdf.set_draw_color(0) # black
 	
-		self.pdf.line(rectPoints.x, rectHeading.y + rectHeading.dY, rectPoints.x, rectAll.y + rectAll.dY)
-		self.pdf.line(rectGoalsFor.x, rectHeading.y + rectHeading.dY, rectGoalsFor.x, rectAll.y + rectAll.dY)
-		self.pdf.line(rectGoalsAgainst.x, rectHeading.y + rectHeading.dY, rectGoalsAgainst.x, rectAll.y + rectAll.dY)
+		self.pdf.line(rectPoints.x, rectHeading.y + rectHeading.dY, rectPoints.x, rectInside.y + rectInside.dY)
+		self.pdf.line(rectGoalsFor.x, rectHeading.y + rectHeading.dY, rectGoalsFor.x, rectInside.y + rectInside.dY)
+		self.pdf.line(rectGoalsAgainst.x, rectHeading.y + rectHeading.dY, rectGoalsAgainst.x, rectInside.y + rectInside.dY)
 
 		# heading labels
 
@@ -468,6 +547,11 @@ class CGroupBlot(CBlot): # tag = groupb
 			oltbHeading = self.Oltb(rectHeading, 'Calibri', rectHeading.dY)
 			oltbHeading.DrawText(strHeading, colorWhite, JH.Center)
 
+		# draw border last to cover any alignment weirdness
+
+		self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
+		self.DrawBox(rectBorder, self.s_dSLineInner, self.color)
+
 class CMatchBlot(CBlot): # tag = dayb
 	def __init__(self, dayb: 'CDayBlot', match: CMatch, rect: SRect) -> None:
 		super().__init__(dayb.pdf)
@@ -481,7 +565,8 @@ class CMatchBlot(CBlot): # tag = dayb
 		self.yScore = self.yTime + dayb.dYTime + dYGap
 
 	def DrawFill(self) -> None:
-		lColor = [self.dayb.mpStrGroupGroupb[strGroup].color for strGroup in self.match.lStrGroup]
+		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else g_lStrGroup
+		lColor = [self.dayb.mpStrGroupGroupb[strGroup].color for strGroup in lStrGroup]
 
 		@dataclass
 		class SRectColor:
@@ -495,24 +580,19 @@ class CMatchBlot(CBlot): # tag = dayb
 			lRc.append(SRectColor(self.rect, lColor[0]))
 		elif self.match.stage == STAGE.Round1:
 			assert len(lColor) == 2
-			lRc.append(SRectColor(copy.copy(self.rect), lColor[0]))
-			lRc[-1].rect.dX /= 2.0
+			rectLeft = self.rect.Copy(dX=self.rect.dX / 2.0)
+			lRc.append(SRectColor(rectLeft, lColor[0]))
 
-			lRc.append(SRectColor(copy.copy(self.rect), lColor[1]))
-			lRc[-1].rect.dX /= 2.0
-			lRc[-1].rect.x += lRc[-1].rect.dX
+			rectRight = rectLeft.Copy().Shift(dX=rectLeft.dX)
+			lRc.append(SRectColor(rectRight, lColor[1]))
 		else:
-			lColor = [self.dayb.mpStrGroupGroupb[strGroup].colorLighter for strGroup in g_lStrGroup]
-			dXStripe = self.rect.dX / len(lColor)
-			xStripe = self.rect.x
+			rectStripe = self.rect.Copy(dX=self.rect.dX / len(lColor))
 			for color in lColor:
-				lRc.append(SRectColor(copy.copy(self.rect), color))
-				lRc[-1].rect.x = xStripe
-				lRc[-1].rect.dX = dXStripe
-				xStripe += dXStripe
+				lRc.append(SRectColor(rectStripe, color))
+				rectStripe = rectStripe.Copy().Shift(dX=rectStripe.dX)
 
 		for rc in lRc:
-			self.FillWithin(rc.rect, rc.color)
+			self.FillBox(rc.rect, rc.color)
 
 	def DrawInfo(self) -> None:
 
@@ -538,11 +618,11 @@ class CMatchBlot(CBlot): # tag = dayb
 
 		xHomeBox = self.rect.x + (self.rect.dX / 2.0) - ((dXLineGap / 2.0 ) + self.dayb.s_dSScore)
 		rectHomeBox = SRect(xHomeBox, self.yScore, self.dayb.s_dSScore, self.dayb.s_dSScore)
-		self.DrawBox(rectHomeBox, self.dayb.s_dSLineScore, colorBlack)
+		self.DrawBox(rectHomeBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
 
 		xAwayBox = self.rect.x + (self.rect.dX / 2.0) + (dXLineGap / 2.0 )
 		rectAwayBox = SRect(xAwayBox, self.yScore, self.dayb.s_dSScore, self.dayb.s_dSScore)
-		self.DrawBox(rectAwayBox, self.dayb.s_dSLineScore, colorBlack)
+		self.DrawBox(rectAwayBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
 
 		# team labels
 
@@ -561,8 +641,8 @@ class CDayBlot(CBlot): # tag = dayb
 
 	s_dX = 2.25
 	s_dY = s_dX # square
-	s_dSLineOuter = CGroupBlot.s_dSLineOuter
-	s_dSLineScore = CGroupBlot.s_dSLineStats
+	s_dSLineOuter = 0.02
+	s_dSLineScore = 0.01
 
 	s_uYDate = 0.06
 	s_dYDate = s_dY * s_uYDate
@@ -589,45 +669,39 @@ class CDayBlot(CBlot): # tag = dayb
 
 	def Draw(self, pos: SPoint) -> None:
 
-		rectAll = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
-
-		# black border
-
-		rectAll = self.RectInsetDrawBox(rectAll, self.s_dSLineOuter, colorBlack)
+		rectBorder = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
+		rectInside = rectBorder.Copy().Inset(self.s_dSLineOuter / 2.0)
 
 		# Date
 
-		rectDate = SRect(
-						rectAll.x,
-						rectAll.y,
-						rectAll.dX,
-						self.s_dYDate)
+		rectDate = rectInside.Copy(dY=self.s_dYDate)
 		oltbHeading = self.Oltb(rectDate, 'Calibri', rectDate.dY, strStyle='I')
 		oltbHeading.DrawText(self.strDate, colorBlack)
 
-		rectAll.y += rectDate.dY
-		rectAll.dY -= rectDate.dY
+		rectInside.Stretch(dYTop=rectDate.dY)
 
 		# count the time segments
 
-		dYMatch = rectAll.dY / len(self.lMatch)
+		dYMatch = rectInside.dY / len(self.lMatch)
+		rectMatch = rectInside.Copy(dY=dYMatch)
 
 		# draw matches top to bottom
 
 		lMatchb: list[CMatchBlot] = []
-		yMatch = rectAll.y
 
 		for match in self.lMatch:
-			lMatchb.append(CMatchBlot(self, match, SRect(rectAll.x, yMatch, rectAll.dX, dYMatch)))
-			yMatch += dYMatch
-
-		pass
+			lMatchb.append(CMatchBlot(self, match, rectMatch))
+			rectMatch = rectMatch.Copy().Shift(dY=rectMatch.dY)
 
 		for matchb in lMatchb:
 			matchb.DrawFill()
 
 		for matchb in lMatchb:
 			matchb.DrawInfo()
+
+		# draw border last to cover any alignment weirdness
+
+		self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
 
 pathDst = Path('poster.pdf').absolute()
 strPathDst = str(pathDst)
@@ -733,8 +807,9 @@ def DrawTestPageDays(pdf: CPdf):
 
 	lDayb: list[CDayBlot] = []
 
-	# lIdMatch = (1,2,5,9,49,51,57,59)
+	# lIdMatch = (49,57)
 	# setDate: set[any] = {g_db.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
+	# for dateMatch in sorted(setDate):
 	for dateMatch in sorted(g_db.mpDateSetMatch):
 		setMatch = g_db.mpDateSetMatch[dateMatch]
 		lMatch = sorted(setMatch, key=lambda match: match.tStart)
