@@ -9,6 +9,7 @@ import yaml
 
 from aenum import Enum, AutoNumberEnum
 from dataclasses import dataclass
+from dateutil import tz
 from pathlib import Path
 from typing import Optional
 
@@ -57,7 +58,7 @@ class CMatch:
 		self.venue: CVenue = db.mpIdVenue[mpKV['venue']]
 		self.strHome: str = mpKV['home']
 		self.strAway: str = mpKV['away']
-		self.tStart: datetime.date = arrow.get(mpKV['time'])
+		self.tStart: arrow.Arrow = arrow.get(mpKV['time'])
 
 		self.stage: STAGE = None
 		self.lStrGroup: list[str] = []
@@ -570,9 +571,9 @@ class CMatchBlot(CBlot): # tag = dayb
 
 		dYGaps = (self.rect.dY - self.dYInfo)
 		dYTimeGap = min(self.dayb.s_dYTimeGapMax, dYGaps / 3.0)
-		dYOuterGap = (dYGaps - dYTimeGap) / 2.0
-		self.yTime = self.rect.y + dYOuterGap
-		self.yScore = self.yTime + dayb.dYTime + dYTimeGap
+		self.dYOuterGap = (dYGaps - dYTimeGap) / 2.0
+		# self.dYTimeAndGap may be cleared if we coalesce times
+		self.dYTimeAndGap = self.dayb.dYTime + dYTimeGap
 
 	def DrawFill(self) -> None:
 		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else g_lStrGroup
@@ -612,10 +613,17 @@ class CMatchBlot(CBlot): # tag = dayb
 
 		# time
 
-		rectTime = SRect(self.rect.x, self.yTime, self.rect.dX, self.dayb.dYTime)
-		strTime = self.match.tStart.format('HH:mma')
-		oltbTime = self.Oltb(rectTime, self.dayb.s_strFontTime, self.dayb.s_dYFontTime)
-		oltbTime.DrawText(strTime, colorBlack, JH.Center)
+		if self.dYTimeAndGap:
+			yTime = self.rect.y + self.dYOuterGap
+			yScore = yTime + self.dYTimeAndGap
+
+			rectTime = SRect(self.rect.x, yTime, self.rect.dX, self.dayb.dYTime)
+			tStartPacific = self.match.tStart.to(tz.gettz('US/Pacific'))
+			strTime = tStartPacific.format('h:mma')
+			oltbTime = self.Oltb(rectTime, self.dayb.s_strFontTime, self.dayb.s_dYFontTime)
+			oltbTime.DrawText(strTime, colorBlack, JH.Center)
+		else:
+			yScore = self.rect.y + self.dYOuterGap
 
 		# dash between score boxes
 
@@ -623,7 +631,7 @@ class CMatchBlot(CBlot): # tag = dayb
 		dXLine = dXLineGap / 2.0
 		xLineMin = self.rect.x + (self.rect.dX / 2.0) - (dXLine / 2.0)
 		xLineMax = xLineMin + dXLine
-		yLine = self.yScore + (self.dayb.s_dSScore / 2.0)
+		yLine = yScore + (self.dayb.s_dSScore / 2.0)
 		self.pdf.set_line_width(self.dayb.s_dSLineScore)
 		self.pdf.set_draw_color(0) # black
 		self.pdf.line(xLineMin, yLine, xLineMax, yLine)
@@ -631,11 +639,11 @@ class CMatchBlot(CBlot): # tag = dayb
 		# score boxes
 
 		xHomeBox = self.rect.x + (self.rect.dX / 2.0) - ((dXLineGap / 2.0 ) + self.dayb.s_dSScore)
-		rectHomeBox = SRect(xHomeBox, self.yScore, self.dayb.s_dSScore, self.dayb.s_dSScore)
+		rectHomeBox = SRect(xHomeBox, yScore, self.dayb.s_dSScore, self.dayb.s_dSScore)
 		self.DrawBox(rectHomeBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
 
 		xAwayBox = self.rect.x + (self.rect.dX / 2.0) + (dXLineGap / 2.0 )
-		rectAwayBox = SRect(xAwayBox, self.yScore, self.dayb.s_dSScore, self.dayb.s_dSScore)
+		rectAwayBox = SRect(xAwayBox, yScore, self.dayb.s_dSScore, self.dayb.s_dSScore)
 		self.DrawBox(rectAwayBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
 
 		if self.fElimination:
@@ -686,11 +694,11 @@ class CMatchBlot(CBlot): # tag = dayb
 			dXTeams = self.rect.dX - (2 * self.dayb.s_dSScore) - dXLineGap
 			dXTeam = dXTeams / 2.0
 
-			rectHomeTeam = SRect(self.rect.x, self.yScore, dXTeam, self.dayb.s_dSScore)
+			rectHomeTeam = SRect(self.rect.x, yScore, dXTeam, self.dayb.s_dSScore)
 			oltbHomeTeam = self.Oltb(rectHomeTeam, 'Consolas', self.dayb.s_dSScore)
 			oltbHomeTeam.DrawText(self.match.strHome, colorBlack, JH.Center)
 
-			rectAwayTeam = SRect(self.rect.xMax - dXTeam, self.yScore, dXTeam, self.dayb.s_dSScore)
+			rectAwayTeam = SRect(self.rect.xMax - dXTeam, yScore, dXTeam, self.dayb.s_dSScore)
 			oltbAwayTeam = self.Oltb(rectAwayTeam, 'Consolas', self.dayb.s_dSScore)
 			oltbAwayTeam.DrawText(self.match.strAway, colorBlack, JH.Center)
 
@@ -752,13 +760,34 @@ class CDayBlot(CBlot): # tag = dayb
 		dYMatch = rectInside.dY / len(self.lMatch)
 		rectMatch = rectInside.Copy(dY=dYMatch)
 
-		# draw matches top to bottom
+		# lay out matches top to bottom
 
 		lMatchb: list[CMatchBlot] = []
 
 		for match in self.lMatch:
 			lMatchb.append(CMatchBlot(self, match, rectMatch))
 			rectMatch = rectMatch.Copy().Shift(dY=rectMatch.dY)
+
+		# coalesce matches at the same time
+
+		for matchbTop, matchbBottom in zip(lMatchb, lMatchb[1:]):
+			if not matchbTop.dYTimeAndGap:
+				continue
+
+			if matchbTop.match.tStart != matchbBottom.match.tStart:
+				continue
+
+			dYToSplit = matchbBottom.dYTimeAndGap
+			dYAdjust = dYToSplit / 3.0
+			matchbBottom.dYOuterGap = dYAdjust
+			matchbBottom.dYTimeAndGap = 0
+
+			matchbTop.dYOuterGap += dYAdjust
+			matchbTop.dYTimeAndGap += dYAdjust
+			matchbTop.rect.Stretch(dYBottom=dYAdjust * 2)
+			matchbBottom.rect.Stretch(dYTop=dYAdjust * 2)
+
+		# draw fills, then boxes.text
 
 		for matchb in lMatchb:
 			matchb.DrawFill()
