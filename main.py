@@ -732,14 +732,18 @@ class CDayBlot(CBlot): # tag = dayb
 
 	s_dYFontLabel = s_dYFontTime * 1.3
 
-	def __init__(self, pdf: CPdf, mpStrGroupGroupb: dict[str, CGroupBlot], lMatch: list[CMatch]) -> None:
+	def __init__(self, pdf: CPdf, mpStrGroupGroupb: dict[str, CGroupBlot], lMatch: list[CMatch], datePrev: Optional[datetime.date]) -> None:
 		super().__init__(pdf)
 		self.mpStrGroupGroupb = mpStrGroupGroupb
 		self.lMatch = lMatch
 		for match in lMatch[1:]:
 			assert lMatch[0].tStart.date() == match.tStart.date()
 		# BB (bruceo) only include year/month sometimes
-		self.strDate = lMatch[0].tStart.format("MMMM Do")
+		if datePrev and datePrev.month == lMatch[0].tStart.month:
+			strFormat = "D"
+		else:
+			strFormat = "MMMM D"
+		self.strDate = lMatch[0].tStart.format(strFormat)
 		self.dYTime = CFontInstance(self.pdf, self.s_strFontTime, self.s_dYFontTime).dYCap
 
 	def Draw(self, pos: SPoint) -> None:
@@ -907,11 +911,13 @@ def DrawTestPageDays(pdf: CPdf):
 	# lIdMatch = (49,57)
 	# setDate: set[any] = {g_db.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
 	# for dateMatch in sorted(setDate):
+	datePrev: Optional[datetime.date] = None
 	for dateMatch in sorted(g_db.mpDateSetMatch):
 		setMatch = g_db.mpDateSetMatch[dateMatch]
 		lMatch = sorted(setMatch, key=lambda match: match.tStart)
 
-		lDayb.append(CDayBlot(pdf, mpStrGroupGroupb, lMatch))
+		lDayb.append(CDayBlot(pdf, mpStrGroupGroupb, lMatch, datePrev))
+		datePrev = dateMatch
 
 	for row in range(4):
 		for col in range(7):
@@ -961,10 +967,12 @@ def DrawPoster(pdf: CPdf):
 			yGroup = yGroups + iGroupb * (CGroupBlot.s_dY + dYGroupsGap)
 			groupb.Draw(SPoint(xGroups, yGroup))
 		
+	
+	datePrev: Optional[datetime.date] = None
 	for dateMatch in sorted(g_db.mpDateSetMatch):
 		setMatch = g_db.mpDateSetMatch[dateMatch]
-		dayb = CDayBlot(pdf, mpStrGroupGroupb, sorted(setMatch, key=lambda match: match.tStart))
-
+		dayb = CDayBlot(pdf, mpStrGroupGroupb, sorted(setMatch, key=lambda match: match.tStart), datePrev)
+		datePrev = dateMatch
 		iDay = (dateMatch.weekday() + 1) % 7 # we want sunday as 0
 		iWeek = (dateMatch - dateMin).days // 7
 
