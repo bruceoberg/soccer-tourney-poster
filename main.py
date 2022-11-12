@@ -278,6 +278,34 @@ class SRect: # tag = rect
 		return f'{type(self).__name__}({strVals})'
 
 	@property
+	def xMin(self) -> float:
+		return self.posMin.x
+	@xMin.setter
+	def xMin(self, xNew: float) -> None:
+		self.posMin.x = xNew
+
+	@property
+	def yMin(self) -> float:
+		return self.posMin.y
+	@yMin.setter
+	def yMin(self, yNew: float) -> None:
+		self.posMin.y = yNew
+
+	@property
+	def xMax(self) -> float:
+		return self.posMax.x
+	@xMax.setter
+	def xMax(self, xNew: float) -> None:
+		self.posMax.x = xNew
+
+	@property
+	def yMax(self) -> float:
+		return self.posMax.y
+	@yMax.setter
+	def yMax(self, yNew: float) -> None:
+		self.posMax.y = yNew
+
+	@property
 	def x(self) -> float:
 		return self.posMin.x
 	@x.setter
@@ -445,11 +473,7 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		#dYTitle = dY * self.s_uYTitle
 		dYTitle = rectInside.dX / self.s_rSGroup
-		rectTitle = SRect(
-						rectInside.x,
-						rectInside.y,
-						rectInside.dX,
-						dYTitle)
+		rectTitle = rectInside.Copy(dY=dYTitle)
 
 		self.FillBox(rectTitle, self.color)
 
@@ -461,11 +485,7 @@ class CGroupBlot(CBlot): # tag = groupb
 										JH.Right,
 										JV.Middle)
 
-		rectGroupLabel = SRect(
-							rectTitle.x,
-							rectTitle.y,
-							rectGroupName.x - rectTitle.x,
-							rectTitle.dY)
+		rectGroupLabel = rectTitle.Copy(dX=rectGroupName.x - rectTitle.x)
 
 		uGroupLabel = 0.65
 		oltbGroupLabel = self.Oltb(rectGroupLabel, 'Calibri', dYTitle * uGroupLabel, dSMargin=oltbGroupName.dSMargin)
@@ -475,11 +495,7 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		#dYHeading = dY * self.s_uYHeading
 		dYHeading = dYTitle / 4.0
-		rectHeading = SRect(
-						rectInside.x,
-						rectTitle.y + rectTitle.dY,
-						rectInside.dX,
-						dYHeading)
+		rectHeading = rectInside.Copy(y=rectTitle.yMax, dY=dYHeading)
 
 		self.FillBox(rectHeading, colorBlack)
 
@@ -487,12 +503,12 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		dYTeams = rectInside.dY - (dYTitle + dYHeading)
 		dYTeam = dYTeams / len(self.group.mpStrSeedTeam)
-		rectTeam = SRect(rectHeading.x, 0, rectHeading.dX, dYTeam)
+		rectTeam = rectHeading.Copy(y=rectHeading.yMax, dY=dYTeam)
 
 		for i in range(len(self.group.mpStrSeedTeam)):
-			rectTeam.y = rectHeading.y + rectHeading.dY + i * dYTeam
 			color = self.colorLighter if (i & 1) else colorWhite
 			self.FillBox(rectTeam, color)
+			rectTeam.Shift(dY=dYTeam)
 
 		rectTeam.dX = dYTeam * self.s_rSTeamName
 
@@ -511,28 +527,16 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		dXStats = (rectInside.dX - rectTeam.dX) / 3.0
 
-		rectPoints = SRect(
-						rectTeam.x + rectTeam.dX,
-						rectHeading.y,
-						dXStats,
-						rectHeading.dY)
-		rectGoalsFor = SRect(
-						rectPoints.x + rectPoints.dX,
-						rectHeading.y,
-						dXStats,
-						rectHeading.dY)
-		rectGoalsAgainst = SRect(
-						rectGoalsFor.x + rectGoalsFor.dX,
-						rectHeading.y,
-						dXStats,
-						rectHeading.dY)
+		rectPoints = rectHeading.Copy(x=rectTeam.xMax, dX=dXStats)
+		rectGoalsFor = rectHeading.Copy(x=rectPoints.xMax, dX=dXStats)
+		rectGoalsAgainst = rectHeading.Copy(x=rectGoalsFor.xMax, dX=dXStats)
 
 		self.pdf.set_line_width(self.s_dSLineStats)
 		self.pdf.set_draw_color(0) # black
 	
-		self.pdf.line(rectPoints.x, rectHeading.y + rectHeading.dY, rectPoints.x, rectInside.y + rectInside.dY)
-		self.pdf.line(rectGoalsFor.x, rectHeading.y + rectHeading.dY, rectGoalsFor.x, rectInside.y + rectInside.dY)
-		self.pdf.line(rectGoalsAgainst.x, rectHeading.y + rectHeading.dY, rectGoalsAgainst.x, rectInside.y + rectInside.dY)
+		self.pdf.line(rectPoints.xMin, rectHeading.yMax, rectPoints.xMin, rectInside.yMax)
+		self.pdf.line(rectGoalsFor.xMin, rectHeading.yMax, rectGoalsFor.xMin, rectInside.yMax)
+		self.pdf.line(rectGoalsAgainst.xMin, rectHeading.yMax, rectGoalsAgainst.xMin, rectInside.yMax)
 
 		# heading labels
 
@@ -560,9 +564,11 @@ class CMatchBlot(CBlot): # tag = dayb
 		self.rect = rect
 
 		self.dYInfo = dayb.dYTime + dayb.s_dSScore
-		dYGap = (self.rect.dY - self.dYInfo) / 3.0
-		self.yTime = self.rect.y + dYGap
-		self.yScore = self.yTime + dayb.dYTime + dYGap
+		dYGaps = (self.rect.dY - self.dYInfo)
+		dYTimeGap = min(self.dayb.s_dYFontTime / 2.0, dYGaps / 3.0)
+		dYOuterGap = (dYGaps - dYTimeGap) / 2.0
+		self.yTime = self.rect.y + dYOuterGap
+		self.yScore = self.yTime + dayb.dYTime + dYTimeGap
 
 	def DrawFill(self) -> None:
 		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else g_lStrGroup
@@ -656,6 +662,8 @@ class CDayBlot(CBlot): # tag = dayb
 	s_uSScore = 0.147
 	s_dSScore = s_dY * s_uSScore
 	s_dSScoreGap = s_dSScore / 2.0
+
+	s_dSPens = s_dSScore / 2.0
 
 	def __init__(self, pdf: CPdf, mpStrGroupGroupb: dict[str, CGroupBlot], lMatch: list[CMatch]) -> None:
 		super().__init__(pdf)
