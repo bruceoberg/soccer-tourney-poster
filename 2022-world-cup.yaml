@@ -374,8 +374,8 @@ matches:
     match: 62
     time: 2022-12-14 19:00:00
     venue: 1
-  - away: RU62
-    home: RU61
+  - away: L62
+    home: L61
     match: 63
     time: 2022-12-17 15:00:00
     venue: 2

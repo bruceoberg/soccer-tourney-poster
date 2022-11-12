@@ -53,7 +53,7 @@ class CGroup:
 
 class CMatch:
 	def __init__(self, db: 'CDataBase', mpKV: dict[str, any]) -> None:
-		self.strName: str = str(mpKV['match'])
+		self.strName: str = '#' + str(mpKV['match'])
 		self.venue: CVenue = db.mpIdVenue[mpKV['venue']]
 		self.strHome: str = mpKV['home']
 		self.strAway: str = mpKV['away']
@@ -78,8 +78,7 @@ class CMatch:
 				self.lStrGroup = [matHome[1]]
 				self.strHome = db.mpStrSeedTeam[self.strHome].strAbbrev
 				self.strAway = db.mpStrSeedTeam[self.strAway].strAbbrev
-			elif matHome[1] == 'RU':
-				assert matAway[1] == 'RU'
+			elif matHome[1] == 'RU' or matHome[1] == 'L':
 				self.stage = STAGE.Third
 				self.lIdFeeders = [int(matHome[2]), int(matAway[2])]
 			else:
@@ -244,7 +243,7 @@ class SPoint: # tag = pos
 		self.y += dY
 
 class SRect: # tag = rect
-	def __init__(self, x: float, y: float, dX: float, dY: float):
+	def __init__(self, x: float = 0, y: float = 0, dX: float = 0, dY: float = 0):
 		self.posMin: SPoint = SPoint(x, y)
 		self.posMax: SPoint = SPoint(x + dX, y + dY)
 
@@ -478,7 +477,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		self.FillBox(rectTitle, self.color)
 
 		dYGroupName = dYTitle * 1.3
-		oltbGroupName = self.Oltb(rectTitle, 'Consolas-Bold', dYGroupName)
+		oltbGroupName = self.Oltb(rectTitle, 'Consolas', dYGroupName, strStyle = 'B')
 		rectGroupName = oltbGroupName.RectDrawText(
 										self.group.strName,
 										self.colorDarker,
@@ -562,10 +561,15 @@ class CMatchBlot(CBlot): # tag = dayb
 		self.dayb = dayb
 		self.match = match
 		self.rect = rect
+		self.fElimination = match.stage != STAGE.Group
 
 		self.dYInfo = dayb.dYTime + dayb.s_dSScore
+		
+		if self.fElimination:
+			self.dYInfo += self.dayb.s_dYFontLabel + (self.dayb.s_dSPens / 2.0) - self.dayb.s_dSPensNudge
+
 		dYGaps = (self.rect.dY - self.dYInfo)
-		dYTimeGap = min(self.dayb.s_dYFontTime / 2.0, dYGaps / 3.0)
+		dYTimeGap = min(self.dayb.s_dYTimeGapMax, dYGaps / 3.0)
 		dYOuterGap = (dYGaps - dYTimeGap) / 2.0
 		self.yTime = self.rect.y + dYOuterGap
 		self.yScore = self.yTime + dayb.dYTime + dYTimeGap
@@ -630,18 +634,38 @@ class CMatchBlot(CBlot): # tag = dayb
 		rectAwayBox = SRect(xAwayBox, self.yScore, self.dayb.s_dSScore, self.dayb.s_dSScore)
 		self.DrawBox(rectAwayBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
 
-		# team labels
+		if self.fElimination:
 
-		dXLabels = self.rect.dX - (2 * self.dayb.s_dSScore) - dXLineGap
-		dXLabel = dXLabels / 2.0
+			# PK boxes
 
-		rectHomeLabel = SRect(self.rect.x, self.yScore, dXLabel, self.dayb.s_dSScore)
-		oltbHomeLabel = self.Oltb(rectHomeLabel, 'Consolas', self.dayb.s_dSScore)
-		oltbHomeLabel.DrawText(self.match.strHome, colorBlack, JH.Center)
+			rectHomePens = SRect(rectHomeBox.xMax, rectHomeBox.yMax).Outset(self.dayb.s_dSPens)
+			rectHomePens.Shift(dX=-self.dayb.s_dSPensNudge, dY=-self.dayb.s_dSPensNudge)
+			self.DrawBox(rectHomePens, self.dayb.s_dSLineScore, colorBlack, colorWhite)
 
-		rectAwayLabel = SRect(self.rect.x + self.rect.dX - dXLabel, self.yScore, dXLabel, self.dayb.s_dSScore)
-		oltbAwayLabel = self.Oltb(rectAwayLabel, 'Consolas', self.dayb.s_dSScore)
-		oltbAwayLabel.DrawText(self.match.strAway, colorBlack, JH.Center)
+			rectAwayPens = SRect(rectAwayBox.xMin, rectAwayBox.yMax).Outset(self.dayb.s_dSPens)
+			rectAwayPens.Shift(dX=self.dayb.s_dSPensNudge, dY=-self.dayb.s_dSPensNudge)
+			self.DrawBox(rectAwayPens, self.dayb.s_dSLineScore, colorBlack, colorWhite)
+
+			# match label
+
+			rectLabel = self.rect.Copy(y=rectHomePens.yMax, dY=self.dayb.s_dYFontLabel + self.dayb.s_dYTimeGapMax)
+			oltbLabel = self.Oltb(rectLabel, 'Consolas', self.dayb.s_dYFontLabel, strStyle='B')
+			oltbLabel.DrawText(self.match.strName, colorBlack, JH.Center)
+
+		else:
+
+			# team names
+
+			dXTeams = self.rect.dX - (2 * self.dayb.s_dSScore) - dXLineGap
+			dXTeam = dXTeams / 2.0
+
+			rectHomeTeam = SRect(self.rect.x, self.yScore, dXTeam, self.dayb.s_dSScore)
+			oltbHomeTeam = self.Oltb(rectHomeTeam, 'Consolas', self.dayb.s_dSScore)
+			oltbHomeTeam.DrawText(self.match.strHome, colorBlack, JH.Center)
+
+			rectAwayTeam = SRect(self.rect.xMax - dXTeam, self.yScore, dXTeam, self.dayb.s_dSScore)
+			oltbAwayTeam = self.Oltb(rectAwayTeam, 'Consolas', self.dayb.s_dSScore)
+			oltbAwayTeam.DrawText(self.match.strAway, colorBlack, JH.Center)
 
 class CDayBlot(CBlot): # tag = dayb
 
@@ -656,7 +680,7 @@ class CDayBlot(CBlot): # tag = dayb
 	s_uYTime = 0.075
 	s_strFontTime = 'Calibri'
 	s_dYFontTime = s_dY * s_uYTime
-	
+	s_dYTimeGapMax = s_dYFontTime / 2.0	
 	# scores are square, so we use dS
 
 	s_uSScore = 0.147
@@ -664,6 +688,12 @@ class CDayBlot(CBlot): # tag = dayb
 	s_dSScoreGap = s_dSScore / 2.0
 
 	s_dSPens = s_dSScore / 2.0
+	s_dSPensNudge = 0.02
+
+	s_strFontForm = s_strFontTime
+	s_dYFontForm = s_dYFontTime
+
+	s_dYFontLabel = s_dYFontTime * 1.3
 
 	def __init__(self, pdf: CPdf, mpStrGroupGroupb: dict[str, CGroupBlot], lMatch: list[CMatch]) -> None:
 		super().__init__(pdf)
@@ -774,7 +804,7 @@ fpdf.fpdf.PAGE_FORMATS.update(g_mpStrFormatWH)
 pdf = CPdf(unit='in')
 
 pdf.add_font(family='Consolas', fname=r'fonts\consola.ttf')
-pdf.add_font(family='Consolas-Bold', fname=r'fonts\consolab.ttf')
+pdf.add_font(family='Consolas', style='B', fname=r'fonts\consolab.ttf')
 pdf.add_font(family='Lucida-Console', fname=r'fonts\lucon.ttf')
 pdf.add_font(family='Calibri', fname=r'fonts\calibri.ttf')
 pdf.add_font(family='Calibri', style='I', fname=r'fonts\calibrili.ttf')
