@@ -1,254 +1,15 @@
-import colorsys
-import copy
 import datetime
-import fpdf
 import logging
 
-from enum import Enum, auto
 from dataclasses import dataclass
 from dateutil import tz
 from pathlib import Path
 from typing import Optional
 
 from database import *
-
-CPdf = fpdf.FPDF
+from pdf import *
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
-
-g_pathHere = Path(__file__).parent
-g_db = CDataBase(g_pathHere / '2022-world-cup.xlsx')
-
-class JH(Enum):
-	Left = auto()
-	Center = auto()
-	Right = auto()
-
-class JV(Enum):
-	Bottom = auto()
-	Middle = auto()
-	Top = auto()
-
-class CFontInstance:
-	"""a sized font"""
-	def __init__(self, pdf: CPdf, strFont: str, dYFont: float, strStyle: str = '') -> None:
-		self.pdf = pdf
-		self.strFont = strFont
-		self.dYFont = dYFont
-		self.strStyle = strStyle
-		self.dPtFont = self.dYFont * 72.0 # inches to points
-
-		with self.pdf.local_context():
-			self.pdf.set_font(self.strFont, self.strStyle, size=self.dPtFont)
-			self.dYCap = self.pdf.current_font['desc']['CapHeight'] * self.dYFont / 1000.0
-
-@dataclass
-class SColor: # tag = color
-	r: int = 0
-	g: int = 0
-	b: int = 0
-	a: int = 255
-
-def ColorFromStr(strColor: str, alpha: int = 255) -> SColor:
-	return SColor(*fpdf.html.color_as_decimal(strColor), alpha)
-
-colorWhite = ColorFromStr("white")
-colorDarkgrey = ColorFromStr("darkgrey")
-colorBlack = ColorFromStr("black")
-
-def ColorResaturate(color: SColor, rS: float = 1.0, dS: float = 0.0, rV: float = 1.0, dV: float = 0.0) -> SColor:
-	h, s, v = colorsys.rgb_to_hsv(color.r / 255.0, color.g / 255.0, color.b / 255.0)
-	s = min(1.0, max(0.0, s * rS + dS))
-	v = min(1.0, max(0.0, v * rV + dV))
-	r, g, b = colorsys.hsv_to_rgb(h, s, v)
-	return SColor(round(r * 255), round(g * 255), round(b * 255), color.a)
-
-@dataclass
-class SPoint: # tag = pos
-	x: float = 0
-	y: float = 0
-
-	def Shift(self, dX: float = 0, dY: float = 0) -> None:
-		self.x += dX
-		self.y += dY
-
-class SRect: # tag = rect
-	def __init__(self, x: float = 0, y: float = 0, dX: float = 0, dY: float = 0):
-		self.posMin: SPoint = SPoint(x, y)
-		self.posMax: SPoint = SPoint(x + dX, y + dY)
-
-	def Set(self, x: Optional[float] = None, y: Optional[float] = None, dX: Optional[float] = None, dY: Optional[float] = None) -> 'SRect':
-		if x is not None:
-			self.x = x
-		if y is not None:
-			self.y = y
-		if dX is not None:
-			self.dX = dX
-		if dY is not None:
-			self.dY = dY
-		return self
-
-	def Copy(self, x: Optional[float] = None, y: Optional[float] = None, dX: Optional[float] = None, dY: Optional[float] = None) -> 'SRect':
-		rectNew = copy.deepcopy(self)
-		rectNew.Set(x, y, dX, dY)
-		return rectNew
-
-	def __repr__(self):
-		# NOTE (bruceo) avoiding property wrappers for faster debugger perf
-		strVals = ', '.join([
-			# NOTE (bruceo) avoiding property wrappers for faster debugger perf
-			f'_x={self.posMin.x!r}',
-			f'_y={self.posMin.y!r}',
-			f'dX={self.posMax.x - self.posMin.x!r}',
-			f'dY={self.posMax.y - self.posMin.y!r}',
-			f'x_={self.posMax.x!r}',
-			f'y_={self.posMax.y!r}',
-		])
-		return f'{type(self).__name__}({strVals})'
-
-	@property
-	def xMin(self) -> float:
-		return self.posMin.x
-	@xMin.setter
-	def xMin(self, xNew: float) -> None:
-		self.posMin.x = xNew
-
-	@property
-	def yMin(self) -> float:
-		return self.posMin.y
-	@yMin.setter
-	def yMin(self, yNew: float) -> None:
-		self.posMin.y = yNew
-
-	@property
-	def xMax(self) -> float:
-		return self.posMax.x
-	@xMax.setter
-	def xMax(self, xNew: float) -> None:
-		self.posMax.x = xNew
-
-	@property
-	def yMax(self) -> float:
-		return self.posMax.y
-	@yMax.setter
-	def yMax(self, yNew: float) -> None:
-		self.posMax.y = yNew
-
-	@property
-	def x(self) -> float:
-		return self.posMin.x
-	@x.setter
-	def x(self, xNew: float) -> None:
-		dX = xNew - self.posMin.x
-		self.Shift(dX, 0)
-
-	@property
-	def y(self) -> float:
-		return self.posMin.y
-	@y.setter
-	def y(self, yNew: float) -> None:
-		dY = yNew - self.posMin.y
-		self.Shift(0, dY)
-
-	@property
-	def dX(self) -> float:
-		return self.posMax.x - self.posMin.x
-	@dX.setter
-	def dX(self, dXNew: float) -> None:
-		self.posMax.x = self.posMin.x + dXNew
-
-	@property
-	def dY(self) -> float:
-		return self.posMax.y - self.posMin.y
-	@dY.setter
-	def dY(self, dYNew: float) -> None:
-		self.posMax.y = self.posMin.y + dYNew
-
-	def Shift(self, dX: float = 0, dY: float = 0) -> 'SRect':
-		self.posMin.Shift(dX, dY)
-		self.posMax.Shift(dX, dY)
-		return self
-
-	def Inset(self, dS: float) -> 'SRect':
-		dSHalf = dS / 2.0
-		self.posMin.Shift(dSHalf, dSHalf)
-		self.posMax.Shift(-dSHalf, -dSHalf)
-		return self
-
-	def Outset(self, dS: float) -> 'SRect':
-		self.Inset(-dS)
-		return self
-
-	def Stretch(self, dXLeft: float = 0, dYTop: float = 0, dXRight: float = 0, dYBottom: float = 0) -> 'SRect':
-		self.posMin.Shift(dXLeft, dYTop)
-		self.posMax.Shift(dXRight, dYBottom)
-		return self
-
-class COneLineTextBox: # tag = oltb
-	"""a box with a single line of text in a particular font, sized to fit the box"""
-	def __init__(self, pdf: CPdf, rect: SRect, strFont: str, dYFont: float, strStyle: str = '', dSMargin: float = None) -> None:
-		self.pdf = pdf
-		self.fonti = CFontInstance(pdf, strFont, dYFont, strStyle)
-		self.rect = rect
-
-		self.dYCap = self.fonti.dYCap
-		self.dSMargin = dSMargin or max(0.0, (self.rect.dY - self.dYCap) / 2.0)
-		self.rectMargin = self.rect.Copy().Inset(self.dSMargin)
-
-	def RectDrawText(self, strText: str, color: SColor, jh : JH = JH.Left, jv: JV = JV.Middle) -> SRect:
-		self.pdf.set_font(self.fonti.strFont, style=self.fonti.strStyle, size=self.fonti.dPtFont)
-		rectText = SRect(0, 0, self.pdf.get_string_width(strText), self.dYCap)
-
-		if jh == JH.Left:
-			rectText.x = self.rectMargin.x
-		elif jh == JH.Center:
-			rectText.x = self.rectMargin.x + (self.rectMargin.dX - rectText.dX) / 2.0
-		else:
-			assert jh == JH.Right
-			rectText.x = self.rectMargin.x + self.rectMargin.dX - rectText.dX
-
-		if jv == JV.Bottom:
-			rectText.y = self.rectMargin.y + self.rectMargin.dY
-		elif jv == JV.Middle:
-			rectText.y = self.rectMargin.y + (self.rectMargin.dY + rectText.dY) / 2.0
-		else:
-			assert jv == JV.Top
-			rectText.y = self.rectMargin.y + rectText.dY
-
-		self.pdf.set_text_color(color.r, color.g, color.b)
-		self.pdf.text(rectText.x, rectText.y, strText)
-
-		return rectText
-
-	DrawText = RectDrawText
-
-class CBlot: # tag = blot
-	"""something drawable at a location. some blots may contain other blots."""
-
-	def __init__(self, pdf: CPdf) -> None:
-		self.pdf = pdf
-
-	def DrawBox(self, rect: SRect, dSLine: float, color: SColor, colorFill: SColor = None) -> None:
-		if colorFill is None:
-			strStyle = 'D'
-		else:
-			strStyle = 'FD'
-			self.pdf.set_fill_color(colorFill.r, colorFill.g, colorFill.b)
-
-		self.pdf.set_line_width(dSLine)
-		self.pdf.set_draw_color(color.r, color.g, color.b)
-
-		self.pdf.rect(rect.x, rect.y, rect.dX, rect.dY, style=strStyle)
-
-	def FillBox(self, rect: SRect, color: SColor) -> None:
-		self.pdf.set_fill_color(color.r, color.g, color.b)
-		self.pdf.rect(rect.x, rect.y, rect.dX, rect.dY, style='F')
-
-	def Oltb(self, rect: SRect, strFont: str, dYFont: float, strStyle: str = '', dSMargin: float = None) ->COneLineTextBox:
-		return COneLineTextBox(self.pdf, rect, strFont, dYFont, strStyle, dSMargin)
-
-	def Draw(self, pos: SPoint) -> None:
-		pass
 
 class CGroupBlot(CBlot): # tag = groupb
 
@@ -270,9 +31,10 @@ class CGroupBlot(CBlot): # tag = groupb
 	s_rVLighter = 1.5
 	s_rSLighter = 0.5
 
-	def __init__(self, pdf: CPdf, strGroup: str) -> None:
-		super().__init__(pdf)
-		self.group: CGroup = g_db.mpStrGroupGroup[strGroup]
+	def __init__(self, doc: 'CDocument', group: CGroup) -> None:
+		super().__init__(doc.pdf)
+		self.doc = doc
+		self.group = group
 		self.color: SColor = ColorFromStr(self.group.strColor)
 		self.colorDarker = ColorResaturate(self.color, dS=self.s_dSDarker)
 		self.colorLighter = ColorResaturate(self.color, rV=self.s_rVLighter, rS=self.s_rSLighter)
@@ -372,6 +134,8 @@ class CGroupBlot(CBlot): # tag = groupb
 class CMatchBlot(CBlot): # tag = dayb
 	def __init__(self, dayb: 'CDayBlot', match: CMatch, rect: SRect) -> None:
 		super().__init__(dayb.pdf)
+		self.doc = dayb.doc
+		self.db = dayb.db
 		self.dayb = dayb
 		self.match = match
 		self.rect = rect
@@ -389,8 +153,8 @@ class CMatchBlot(CBlot): # tag = dayb
 		self.dYTimeAndGap = self.dayb.dYTime + dYTimeGap
 
 	def DrawFill(self) -> None:
-		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else g_db.lStrGroup
-		lGroupb = [self.dayb.mpStrGroupGroupb[strGroup] for strGroup in lStrGroup] 
+		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else self.db.lStrGroup
+		lGroupb = [self.doc.mpStrGroupGroupb[strGroup] for strGroup in lStrGroup] 
 		if self.match.stage == STAGE.Group:
 			lColor = [groupb.color for groupb in lGroupb]
 		else:
@@ -398,8 +162,8 @@ class CMatchBlot(CBlot): # tag = dayb
 
 		@dataclass
 		class SRectColor:
-			rect: SRect = None
-			color: SColor = None
+			rect: SRect
+			color: SColor
 
 		lRc: list[SRectColor] = []
 
@@ -546,21 +310,23 @@ class CDayBlot(CBlot): # tag = dayb
 
 	s_dYFontLabel = s_dYFontTime * 1.3
 
-	def __init__(self, pdf: CPdf, mpStrGroupGroupb: dict[str, CGroupBlot], lMatch: list[CMatch], datePrev: Optional[datetime.date]) -> None:
-		super().__init__(pdf)
-		self.mpStrGroupGroupb = mpStrGroupGroupb
-		self.lMatch = lMatch
-		for match in lMatch[1:]:
-			assert lMatch[0].tStart.date() == match.tStart.date()
+	def __init__(self, doc: 'CDocument', setMatch: set[CMatch]) -> None:
+		super().__init__(doc.pdf)
+		self.doc = doc
+		self.db = doc.db
+		self.lMatch = sorted(setMatch, key=lambda match: (match.tStart, match.strHome))
+		for match in self.lMatch[1:]:
+			assert self.lMatch[0].tStart.date() == match.tStart.date()
+		self.dYTime = CFontInstance(self.pdf, self.s_strFontTime, self.s_dYFontTime).dYCap
+
+	def Draw(self, pos: SPoint, datePrev: Optional[datetime.date] = None) -> None:
+
 		# BB (bruceo) only include year/month sometimes
-		if datePrev and datePrev.month == lMatch[0].tStart.month:
+		if datePrev and datePrev.month == self.lMatch[0].tStart.month:
 			strFormat = "D"
 		else:
 			strFormat = "MMMM D"
-		self.strDate = lMatch[0].tStart.format(strFormat)
-		self.dYTime = CFontInstance(self.pdf, self.s_strFontTime, self.s_dYFontTime).dYCap
-
-	def Draw(self, pos: SPoint) -> None:
+		strDate = self.lMatch[0].tStart.format(strFormat)
 
 		rectBorder = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
 		rectInside = rectBorder.Copy().Inset(self.s_dSLineOuter / 2.0)
@@ -569,7 +335,7 @@ class CDayBlot(CBlot): # tag = dayb
 
 		rectDate = rectInside.Copy(dY=self.s_dYDate)
 		oltbHeading = self.Oltb(rectDate, 'Calibri', rectDate.dY, strStyle='I')
-		oltbHeading.DrawText(self.strDate, colorBlack)
+		oltbHeading.DrawText(strDate, colorBlack)
 
 		rectInside.Stretch(dYTop=rectDate.dY)
 
@@ -617,187 +383,138 @@ class CDayBlot(CBlot): # tag = dayb
 
 		self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
 
-pathDst = Path('poster.pdf').absolute()
-strPathDst = str(pathDst)
+class CPage:
+	def __init__(self, doc: 'CDocument', strOrientation: str, fmt: str | tuple):
+		self.doc = doc
 
-g_mpStrFormatWH: dict[str, tuple[float, float]] ={
-	"a0": (2383.94, 3370.39),
-	"a1": (1683.78, 2383.94),
-	"a2": (1190.55, 1683.78),
-	"a3": (841.89, 1190.55),
-	"a4": (595.28, 841.89),
-	# fpdf.PAGE_FORMATS is wrong about a5.
-	# they list the short side as 420.94pt.
-	#	(their long side is correctly listed as 595.28pt)
-	# ISO std a5 short side is 148mm. this table is in pts.
-	# excel tells me that 148mm / 25.4 is 5.83in.
-	#	and 5.83in * 72 is 419.53pt.
-	# so i have no idea where fpdf's 420.94pt comes from.
-	# on github, it appears to have been this way since
-	#	the original source was checked added in 2008.
-	# probably doesn't matter, since the conversion rounds
-	#	to the correct size in mm
-	"a5": (419.53, 595.28),
-	"a6": (297.64, 419.53),
-	"a7": (209.76, 297.64),
-	"a8": (147.40, 209.76),
-	"b0": (2834.65, 4008.19),
-	"b1": (2004.09, 2834.65),
-	"b2": (1417.32, 2004.09),
-	"b3": (1000.63, 1417.32),
-	"b4": (708.66, 1000.63),
-	"b5": (498.90, 708.66),
-	"b6": (354.33, 498.90),
-	"b7": (249.45, 354.33),
-	"b8": (175.75, 249.45),
-	"b9": (124.72, 175.75),
-	"b10": (87.87, 124.72),
-	"c2": (1298.27, 1836.85),
-	"c3": (918.43, 1298.27),
-	"c4": (649.13, 918.43),
-	"c5": (459.21, 649.13),
-	"c6": (323.15, 459.21),
-	"d0": (2185.51, 3089.76),
-	"letter": (612.00, 792.00),
-	"legal": (612.00, 1008.00),
-	"ledger": (792.00, 1224.00),
-	"tabloid": (792.00, 1224.00),
-	"executive": (521.86, 756.00),
-	"ansi c": (1224.57, 1584.57),
-	"ansi d": (1584.57, 2449.13),
-	"ansi e": (2449.13, 3169.13),
-	"sra0": (2551.18, 3628.35),
-	"sra1": (1814.17, 2551.18),
-	"sra2": (1275.59, 1814.17),
-	"sra3": (907.09, 1275.59),
-	"sra4": (637.80, 907.09),
-	"ra0": (2437.80, 3458.27),
-	"ra1": (1729.13, 2437.80),
-	"ra2": (1218.90, 1729.13),
-}
-fpdf.fpdf.PAGE_FORMATS.update(g_mpStrFormatWH)
+		# unwind CDocument field so everyone doesn't have to use ".doc." everywhere.
 
-pdf = CPdf(unit='in')
+		self.db = doc.db
+		self.pdf = doc.pdf
+		self.mpStrGroupGroupb = doc.mpStrGroupGroupb
+		self.mpDateDayb = doc.mpDateDayb
 
-pdf.add_font(family='Consolas', fname=r'fonts\consola.ttf')
-pdf.add_font(family='Consolas', style='B', fname=r'fonts\consolab.ttf')
-pdf.add_font(family='Lucida-Console', fname=r'fonts\lucon.ttf')
-pdf.add_font(family='Calibri', fname=r'fonts\calibri.ttf')
-pdf.add_font(family='Calibri', style='B', fname=r'fonts\calibrib.ttf')
-pdf.add_font(family='Calibri', style='I', fname=r'fonts\calibrili.ttf')
+		self.strOrientation = strOrientation
+		self.fmt = fmt
+		self.rect = SRect
+		self.pdf.add_page(orientation=self.strOrientation, format=self.fmt)
+		self.rect = SRect(0, 0, self.pdf.w, self.pdf.h)
 
-mpStrGroupGroupb = {strGroup:CGroupBlot(pdf, strGroup) for strGroup in g_db.lStrGroup}
+class CGroupsTestPage(CPage): # gtp
+	def __init__(self, doc: 'CDocument'):
+		super().__init__(doc, 'portrait', 'c3')
 
-def DrawTestPageGroups(pdf: CPdf):
+		dSMargin = 0.5
 
-	pdf.add_page(orientation='portrait', format='c3')
-	rectPage = SRect(0, 0, pdf.w, pdf.h)
+		dXGrid = CGroupBlot.s_dX + dSMargin
+		dYGrid = CGroupBlot.s_dY + dSMargin
 
-	dSMargin = 0.5
+		for col in range(2):
+			for row in range(4):
+				try:
+					strGroup = self.db.lStrGroup[col * 4 + row]
+				except IndexError:
+					continue
+				groupb = self.mpStrGroupGroupb[strGroup]
+				pos = SPoint(
+						dSMargin + col * dXGrid,
+						dSMargin + row * dYGrid)
+				groupb.Draw(pos)
 
-	dXGrid = CGroupBlot.s_dX + dSMargin
-	dYGrid = CGroupBlot.s_dY + dSMargin
+class CDaysTestPage(CPage): # gtp
+	def __init__(self, doc: 'CDocument'):
+		super().__init__(doc, 'landscape', 'c3')
 
-	for col in range(2):
+		dSMargin = 0.25
+
+		dXGrid = CDayBlot.s_dX + dSMargin
+		dYGrid = CDayBlot.s_dY + dSMargin
+
+		# lIdMatch = (49,57)
+		# setDate: set[datetime.date] = {g_db.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
+		setDate: set[datetime.date] = set(doc.mpDateDayb.keys())
+
+		lDayb: list[CDayBlot] = [doc.mpDateDayb[date] for date in sorted(setDate)]
+
 		for row in range(4):
-			try:
-				strGroup = g_db.lStrGroup[col * 4 + row]
-			except IndexError:
-				continue
-			groupb = mpStrGroupGroupb[strGroup]
-			pos = SPoint(
-					dSMargin + col * dXGrid,
-					dSMargin + row * dYGrid)
-			groupb.Draw(pos)
+			for col in range(7):
+				try:
+					dayb = lDayb[row * 7 + col]
+				except IndexError:
+					continue
+				pos = SPoint(
+						dSMargin + col * dXGrid,
+						dSMargin + row * dYGrid)
+				dayb.Draw(pos)
 
-def DrawTestPageDays(pdf: CPdf):
+class CPosterPage(CPage): # tag = benjyp
+	def __init__(self, doc: 'CDocument'):
+		super().__init__(doc, 'landscape', (22, 28))
 
-	pdf.add_page(orientation='landscape', format='c3')
-	rectPage = SRect(0, 0, pdf.w, pdf.h)
+		dYGroupsGap = 1.0
+		cGroup = len(self.db.lStrGroup) // 2
+		dXGroups = CGroupBlot.s_dX
+		dYGroups = (cGroup * CGroupBlot.s_dY) + ((cGroup - 1) * dYGroupsGap)
+		yGroups = (self.rect.dY - dYGroups) / 2.0
+		lGroupbLeft = [self.mpStrGroupGroupb[strGroup] for strGroup in self.db.lStrGroup[:cGroup]]
+		lGroupbRight = [self.mpStrGroupGroupb[strGroup] for strGroup in self.db.lStrGroup[cGroup:]]
 
-	dSMargin = 0.25
+		dateMin: datetime.date = min(self.db.mpDateSetMatch.keys())
+		dateMax: datetime.date = max(self.db.mpDateSetMatch.keys())
 
-	dXGrid = CDayBlot.s_dX + dSMargin
-	dYGrid = CDayBlot.s_dY + dSMargin
+		cDay = (dateMax - dateMin).days + 1
+		cWeek = (cDay + 6) // 7
+		if dateMin.weekday() != 6: # SUNDAY
+			cWeek += 1
 
-	lDayb: list[CDayBlot] = []
+		dXCalendar = 7 * CDayBlot.s_dX
+		dYCalendar = cWeek * CDayBlot.s_dY
+		yCalendar = (self.rect.dY - dYCalendar) / 2.0
 
-	# lIdMatch = (49,57)
-	# setDate: set[any] = {g_db.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
-	# for dateMatch in sorted(setDate):
-	datePrev: Optional[datetime.date] = None
-	for dateMatch in sorted(g_db.mpDateSetMatch):
-		setMatch = g_db.mpDateSetMatch[dateMatch]
-		lMatch = sorted(setMatch, key=lambda match: match.tStart)
+		dXUnused = self.rect.dX - (dXCalendar + 2 * dXGroups)
+		dXGap = dXUnused / 4 # both margins and both gaps between groups and calendar
 
-		lDayb.append(CDayBlot(pdf, mpStrGroupGroupb, lMatch, datePrev))
-		datePrev = dateMatch
+		xGroupsLeft = dXGap
+		xCalendar = xGroupsLeft + dXGroups + dXGap
+		xGroupsRight = xCalendar + dXCalendar + dXGap
 
-	for row in range(4):
-		for col in range(7):
-			try:
-				dayb = lDayb[row * 7 + col]
-			except IndexError:
-				continue
-			pos = SPoint(
-					dSMargin + col * dXGrid,
-					dSMargin + row * dYGrid)
-			dayb.Draw(pos)
-
-def DrawPoster(pdf: CPdf):
-
-	pdf.add_page(orientation='landscape', format=(22, 28))
-	rectPage = SRect(0, 0, pdf.w, pdf.h)
-
-	dYGroupsGap = 1.0
-	cGroup = 4
-	dXGroups = CGroupBlot.s_dX
-	dYGroups = (cGroup * CGroupBlot.s_dY) + ((cGroup - 1) * dYGroupsGap)
-	yGroups = (rectPage.dY - dYGroups) / 2.0
-	lGroupbLeft = [mpStrGroupGroupb[strGroup] for strGroup in g_db.lStrGroup[:cGroup]]
-	lGroupbRight = [mpStrGroupGroupb[strGroup] for strGroup in g_db.lStrGroup[cGroup:]]
-
-	dateMin: datetime.date = min(g_db.mpDateSetMatch.keys())
-	dateMax: datetime.date = max(g_db.mpDateSetMatch.keys())
-
-	cDay = (dateMax - dateMin).days + 1
-	cWeek = (cDay + 6) // 7
-	if dateMin.weekday() != 6: # SUNDAY
-		cWeek += 1
-
-	dXCalendar = 7 * CDayBlot.s_dX
-	dYCalendar = cWeek * CDayBlot.s_dY
-	yCalendar = (rectPage.dY - dYCalendar) / 2.0
-
-	dXUnused = rectPage.dX - (dXCalendar + 2 * dXGroups)
-	dXGap = dXUnused / 4 # both margins and both gaps between groups and calendar
-
-	xGroupsLeft = dXGap
-	xCalendar = xGroupsLeft + dXGroups + dXGap
-	xGroupsRight = xCalendar + dXCalendar + dXGap
-
-	for xGroups, lGroupb in ((xGroupsLeft, lGroupbLeft), (xGroupsRight, lGroupbRight)):
-		for iGroupb, groupb in enumerate(lGroupb):
-			yGroup = yGroups + iGroupb * (CGroupBlot.s_dY + dYGroupsGap)
-			groupb.Draw(SPoint(xGroups, yGroup))
+		for xGroups, lGroupb in ((xGroupsLeft, lGroupbLeft), (xGroupsRight, lGroupbRight)):
+			for iGroupb, groupb in enumerate(lGroupb):
+				yGroup = yGroups + iGroupb * (CGroupBlot.s_dY + dYGroupsGap)
+				groupb.Draw(SPoint(xGroups, yGroup))
+			
 		
-	
-	datePrev: Optional[datetime.date] = None
-	for dateMatch in sorted(g_db.mpDateSetMatch):
-		setMatch = g_db.mpDateSetMatch[dateMatch]
-		dayb = CDayBlot(pdf, mpStrGroupGroupb, sorted(setMatch, key=lambda match: match.tStart), datePrev)
-		datePrev = dateMatch
-		iDay = (dateMatch.weekday() + 1) % 7 # we want sunday as 0
-		iWeek = (dateMatch - dateMin).days // 7
+		datePrev: Optional[datetime.date] = None
+		for dateMatch in sorted(self.mpDateDayb):
+			dayb = self.mpDateDayb[dateMatch]
 
-		xDay = xCalendar + iDay * CDayBlot.s_dX
-		yDay = yCalendar + iWeek * CDayBlot.s_dY
+			iDay = (dateMatch.weekday() + 1) % 7 # we want sunday as 0
+			iWeek = (dateMatch - dateMin).days // 7
 
-		dayb.Draw(SPoint(xDay, yDay))
+			xDay = xCalendar + iDay * CDayBlot.s_dX
+			yDay = yCalendar + iWeek * CDayBlot.s_dY
 
-#DrawTestPageGroups(pdf)
-#DrawTestPageDays(pdf)
-DrawPoster(pdf)
+			dayb.Draw(SPoint(xDay, yDay), datePrev)
+			datePrev = dateMatch
 
-pdf.output("poster.pdf")
+class CDocument: # tag = doc
+	def __init__(self, pathDb: Path) -> None:
+		self.db = CDataBase(pathDb)
+		self.pdf = CPdf()
+		self.mpStrGroupGroupb: dict[str, CGroupBlot] = {strGroup:CGroupBlot(self, group) for strGroup, group in self.db.mpStrGroupGroup.items()}
+		self.mpDateDayb: dict[datetime.date, CDayBlot] = {date:CDayBlot(self, setMatch) for date, setMatch in self.db.mpDateSetMatch.items()}
+
+		lPage: list[CPage] = [
+			# CGroupsTestPage(self),
+			# CDaysTestPage(self),
+			CPosterPage(self),
+		]
+
+		pathOutput = self.db.pathFile.with_suffix('.pdf')
+		self.pdf.output(str(pathOutput))
+
+g_pathHere = Path(__file__).parent
+g_pathDb = g_pathHere / '2022-world-cup.xlsx'
+g_doc = CDocument(g_pathDb)
+
 

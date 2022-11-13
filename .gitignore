@@ -1,4 +1,4 @@
-poster.pdf
-testing.py
-poster.zip
+*.pdf
+*.zip
 __pycache__/*.pyc
+testing.py
