@@ -706,6 +706,7 @@ class CDayBlot(CBlot): # tag = dayb
 
 	s_dX = 2.25
 	s_dY = s_dX # square
+	
 	s_dSLineOuter = 0.02
 	s_dSLineScore = 0.01
 
