@@ -447,7 +447,7 @@ class CDaysTestPage(CPage): # gtp
 						dSMargin + row * dYGrid)
 				dayb.Draw(pos)
 
-class CPosterPage(CPage): # tag = benjyp
+class CPosterPage(CPage): # tag = posterp
 	def __init__(self, doc: 'CDocument'):
 		super().__init__(doc, 'landscape', (22, 28))
 
