@@ -11,7 +11,7 @@ TExcelRow = dict[str, str]				# tag = xlrow
 TExcelTable = list[TExcelRow]			# tag = xltable
 TExcelSheet = dict[str, TExcelTable]	# tag = xls
 
-class STAGE(IntEnum, start=0):
+class STAGE(IntEnum):
 	Group = auto()
 	Round1 = auto()
 	Round2 = auto()	# may not be used, depending on tourney size

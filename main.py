@@ -4,7 +4,7 @@ import datetime
 import fpdf
 import logging
 
-from enum import IntEnum, auto
+from enum import Enum, auto
 from dataclasses import dataclass
 from dateutil import tz
 from pathlib import Path
@@ -19,12 +19,12 @@ logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 g_pathHere = Path(__file__).parent
 g_db = CDataBase(g_pathHere / '2022-world-cup.xlsx')
 
-class JH(IntEnum, start=0):
+class JH(Enum):
 	Left = auto()
 	Center = auto()
 	Right = auto()
 
-class JV(IntEnum, start=0):
+class JV(Enum):
 	Bottom = auto()
 	Middle = auto()
 	Top = auto()
