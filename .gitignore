@@ -1,3 +1,4 @@
 poster.pdf
 testing.py
 poster.zip
+__pycache__/*.pyc

@@ -1,11 +1,8 @@
-import arrow
 import colorsys
 import copy
 import datetime
 import fpdf
 import logging
-import re
-import yaml
 
 from aenum import Enum, AutoNumberEnum
 from dataclasses import dataclass
@@ -13,182 +10,14 @@ from dateutil import tz
 from pathlib import Path
 from typing import Optional
 
+from database import *
+
 CPdf = fpdf.FPDF
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
-g_lStrGroup = ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H')
-g_setStrGroup = frozenset(g_lStrGroup)
-
-g_patAlphaNum = re.compile('([a-zA-Z]+)([0-9]+)')
-g_patNumAlpha = re.compile('([0-9]+)([a-zA-Z]+)')
-
-class STAGE(AutoNumberEnum):
-	Group = ()
-	Round1 = ()
-	Round2 = ()	# may not be used, depending on tourney size
-	Round3 = () # ditto
-	Quarters = ()
-	Semis = ()
-	Third = ()
-	Final = ()
-
-class CVenue:
-	def __init__(self, mpKV: dict[str, any]) -> None:
-		self.strName: str = mpKV['location']
-
-class CTeam:
-	def __init__(self, mpKV: dict[str, any]) -> None:
-		self.strName: str = mpKV['team']
-		self.strAbbrev: str = mpKV['abbrev']
-		self.strSeed: str = None
-	def SetSeed(self, strSeed: str) -> None:
-		self.strSeed: str = strSeed
-
-class CGroup:
-	def __init__(self, strGroup: str) -> None:
-		self.strName: str = strGroup
-		self.mpStrSeedTeam: dict[str, CTeam] = {}
-	def AddTeam(self, team: CTeam):
-		self.mpStrSeedTeam[team.strSeed] = team
-
-class CMatch:
-	def __init__(self, db: 'CDataBase', mpKV: dict[str, any]) -> None:
-		self.strName: str = '#' + str(mpKV['match'])
-		self.venue: CVenue = db.mpIdVenue[mpKV['venue']]
-		self.strHome: str = mpKV['home']
-		self.strAway: str = mpKV['away']
-		self.tStart: arrow.Arrow = arrow.get(mpKV['time'])
-
-		self.stage: STAGE = None
-		self.lStrGroup: list[str] = []
-		self.lIdFeeders = []
-
-		if matHome := g_patNumAlpha.match(self.strHome):
-			matAway = g_patNumAlpha.match(self.strAway)
-			assert matAway
-			self.stage = STAGE.Round1
-			self.lStrGroup = [matHome[2], matAway[2]]
-		elif matHome := g_patAlphaNum.match(self.strHome):
-			matAway = g_patAlphaNum.match(self.strAway)
-			assert matAway
-			assert matHome[1] == matAway[1]
-			
-			if matHome[1] in g_setStrGroup:
-				self.stage = STAGE.Group
-				self.lStrGroup = [matHome[1]]
-				self.strHome = db.mpStrSeedTeam[self.strHome].strAbbrev
-				self.strAway = db.mpStrSeedTeam[self.strAway].strAbbrev
-			elif matHome[1] == 'RU' or matHome[1] == 'L':
-				self.stage = STAGE.Third
-				self.lIdFeeders = [int(matHome[2]), int(matAway[2])]
-			else:
-				# leaving self.stage as None, but setting ids so
-				# we can set it based on feeders' stages
-				assert matHome[1] == 'W'
-				self.lIdFeeders = [int(matHome[2]), int(matAway[2])]
-		else:
-			assert False
-
-	def FTrySetStage(self, mpIdMatch: dict[int, 'CMatch'], stagePrev: STAGE, stage: STAGE):
-		assert self.stage is None
-		assert self.lIdFeeders
-
-		lStrGroup: list[str] = []
-
-		for id in self.lIdFeeders:
-			match = mpIdMatch[id]
-
-			if match.stage != stagePrev:
-				return False
-
-			lStrGroup += match.lStrGroup
-
-		if stagePrev == STAGE.Round1:
-			assert not self.lStrGroup
-			assert len(lStrGroup) == 4
-			self.lStrGroup = lStrGroup
-
-		self.stage = stage
-
-		return True
-
-class CDataBase:
-	def __init__(self) -> None:
-		
-		self.mpStrGroupGroup: dict[str, CGroup] = {strGroup:CGroup(strGroup) for strGroup in g_lStrGroup}
-
-		with open('2022-world-cup.yaml') as fd:
-			objTop: dict[str, dict[str, any]] = yaml.safe_load(fd)
-
-			self.mpIdVenue: dict[int, CGroup] = {mpKV['venue']:CVenue(mpKV) for mpKV in objTop['venues']}
-			self.mpRankTeam: dict[int, CTeam] = {mpKV['rank']:CTeam(mpKV) for mpKV in objTop['teams']}
-			self.mpStrSeedTeam: dict[str, CTeam] = {}
-			for mpKV in objTop['groups']:
-				strSeed = mpKV['seed']
-				rank = mpKV['rank']
-
-				team = self.mpRankTeam[rank]
-				team.SetSeed(strSeed)
-
-				self.mpStrSeedTeam[strSeed] = team
-
-				group = self.mpStrGroupGroup[strSeed[:1]]
-				group.AddTeam(team)
-
-			self.mpIdMatch: dict[int, CMatch] = {mpKV['match']:CMatch(self, mpKV) for mpKV in objTop['matches']}
-
-		# map dates to matches
-
-		self.mpDateSetMatch: dict[datetime.date, set[CMatch]] = {}
-
-		for match in self.mpIdMatch.values():
-			self.mpDateSetMatch.setdefault(match.tStart.date(), set()).add(match)
-
-		# allot matches to stages
-
-		self.mpStageSetMatch: dict[STAGE, set[CMatch]] = {}
-
-		for match in self.mpIdMatch.values():
-			self.mpStageSetMatch.setdefault(match.stage, set()).add(match)
-
-		stagePrev: STAGE = STAGE.Round1
-		setMatchNone = self.mpStageSetMatch[None]
-
-		while setMatchNone:
-			setMatchPrev = self.mpStageSetMatch[stagePrev]
-
-			if len(setMatchPrev) == 8:
-				assert len(setMatchNone) == 7
-				stageNext = STAGE.Quarters
-			elif len(setMatchPrev) == 4:
-				assert stagePrev == STAGE.Quarters
-				assert len(setMatchNone) == 3
-				stageNext = STAGE.Semis
-			elif len(setMatchPrev) == 2:
-				assert stagePrev == STAGE.Semis
-				assert len(setMatchNone) == 1
-				stageNext = STAGE.Final
-			else:
-				stageNext = stagePrev + 1
-
-			setMatchNext: set[CMatch] = set()
-
-			for match in setMatchNone:
-				if match.FTrySetStage(self.mpIdMatch, stagePrev, stageNext):
-					setMatchNext.add(match)
-			
-			assert setMatchNext
-
-			setMatchNone -= setMatchNext
-			self.mpStageSetMatch[stageNext] = setMatchNext
-
-			stagePrev = stageNext
-
-		del self.mpStageSetMatch[None]
-
-
-g_db = CDataBase()
+g_pathHere = Path(__file__).parent
+g_db = CDataBase(g_pathHere / '2022-world-cup.xlsx')
 
 class JH(AutoNumberEnum):
 	Left = ()
@@ -220,12 +49,12 @@ class SColor: # tag = color
 	b: int = 0
 	a: int = 255
 
-def ColorNamed(strColor: str, alpha: int = 255) -> SColor:
+def ColorFromStr(strColor: str, alpha: int = 255) -> SColor:
 	return SColor(*fpdf.html.color_as_decimal(strColor), alpha)
 
-colorWhite = ColorNamed("white")
-colorDarkgrey = ColorNamed("darkgrey")
-colorBlack = ColorNamed("black")
+colorWhite = ColorFromStr("white")
+colorDarkgrey = ColorFromStr("darkgrey")
+colorBlack = ColorFromStr("black")
 
 def ColorResaturate(color: SColor, rS: float = 1.0, dS: float = 0.0, rV: float = 1.0, dV: float = 0.0) -> SColor:
 	h, s, v = colorsys.rgb_to_hsv(color.r / 255.0, color.g / 255.0, color.b / 255.0)
@@ -438,20 +267,6 @@ class CGroupBlot(CBlot): # tag = groupb
 
 	# colors
 
-	# BB (bruceo) put these in the yaml
-
-	s_mpStrGroupColor: dict[str, SColor] = {
-		'A' : ColorNamed("#94d9f5"),
-		'B' : ColorNamed("#fee289"),
-		'C' : ColorNamed("#f79d8f"),
-		'D' : ColorNamed("#c4e1b5"),
-		'E' : ColorNamed("#b0d0ee"),
-		'F' : ColorNamed("#c0e4df"),
-		'G' : ColorNamed("#fab077"),
-		'H' : ColorNamed("#eecbef"), #(0xf2e8f2),
-	}
-	assert(g_setStrGroup == frozenset(s_mpStrGroupColor.keys()))
-
 	s_dSDarker = 0.5
 
 	s_rVLighter = 1.5
@@ -460,7 +275,7 @@ class CGroupBlot(CBlot): # tag = groupb
 	def __init__(self, pdf: CPdf, strGroup: str) -> None:
 		super().__init__(pdf)
 		self.group: CGroup = g_db.mpStrGroupGroup[strGroup]
-		self.color: SColor = self.s_mpStrGroupColor[strGroup]
+		self.color: SColor = ColorFromStr(self.group.strColor)
 		self.colorDarker = ColorResaturate(self.color, dS=self.s_dSDarker)
 		self.colorLighter = ColorResaturate(self.color, rV=self.s_rVLighter, rS=self.s_rSLighter)
 
@@ -576,7 +391,7 @@ class CMatchBlot(CBlot): # tag = dayb
 		self.dYTimeAndGap = self.dayb.dYTime + dYTimeGap
 
 	def DrawFill(self) -> None:
-		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else g_lStrGroup
+		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else g_db.lStrGroup
 		lGroupb = [self.dayb.mpStrGroupGroupb[strGroup] for strGroup in lStrGroup] 
 		if self.match.stage == STAGE.Group:
 			lColor = [groupb.color for groupb in lGroupb]
@@ -706,7 +521,7 @@ class CDayBlot(CBlot): # tag = dayb
 
 	s_dX = 2.25
 	s_dY = s_dX # square
-	
+
 	s_dSLineOuter = 0.02
 	s_dSLineScore = 0.01
 
@@ -873,7 +688,7 @@ pdf.add_font(family='Calibri', fname=r'fonts\calibri.ttf')
 pdf.add_font(family='Calibri', style='B', fname=r'fonts\calibrib.ttf')
 pdf.add_font(family='Calibri', style='I', fname=r'fonts\calibrili.ttf')
 
-mpStrGroupGroupb = {strGroup:CGroupBlot(pdf, strGroup) for strGroup in g_lStrGroup}
+mpStrGroupGroupb = {strGroup:CGroupBlot(pdf, strGroup) for strGroup in g_db.lStrGroup}
 
 def DrawTestPageGroups(pdf: CPdf):
 
@@ -888,7 +703,7 @@ def DrawTestPageGroups(pdf: CPdf):
 	for col in range(2):
 		for row in range(4):
 			try:
-				strGroup = g_lStrGroup[col * 4 + row]
+				strGroup = g_db.lStrGroup[col * 4 + row]
 			except IndexError:
 				continue
 			groupb = mpStrGroupGroupb[strGroup]
@@ -941,8 +756,8 @@ def DrawPoster(pdf: CPdf):
 	dXGroups = CGroupBlot.s_dX
 	dYGroups = (cGroup * CGroupBlot.s_dY) + ((cGroup - 1) * dYGroupsGap)
 	yGroups = (rectPage.dY - dYGroups) / 2.0
-	lGroupbLeft = [mpStrGroupGroupb[strGroup] for strGroup in g_lStrGroup[:cGroup]]
-	lGroupbRight = [mpStrGroupGroupb[strGroup] for strGroup in g_lStrGroup[cGroup:]]
+	lGroupbLeft = [mpStrGroupGroupb[strGroup] for strGroup in g_db.lStrGroup[:cGroup]]
+	lGroupbRight = [mpStrGroupGroupb[strGroup] for strGroup in g_db.lStrGroup[cGroup:]]
 
 	dateMin: datetime.date = min(g_db.mpDateSetMatch.keys())
 	dateMax: datetime.date = max(g_db.mpDateSetMatch.keys())
