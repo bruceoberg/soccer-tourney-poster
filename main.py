@@ -1,3 +1,4 @@
+import calendar
 import datetime
 import logging
 import math
@@ -324,6 +325,11 @@ class CDayBlot(CBlot): # tag = dayb
 
 	def Draw(self, pos: SPoint, datePrev: Optional[datetime.date] = None) -> None:
 
+		rectBorder = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
+		rectInside = rectBorder.Copy().Inset(self.s_dSLineOuter / 2.0)
+
+		# Date
+
 		# BB (bruceo) only include year/month sometimes
 		if datePrev and datePrev.month == self.lMatch[0].tStart.month:
 			strFormat = "D"
@@ -331,14 +337,9 @@ class CDayBlot(CBlot): # tag = dayb
 			strFormat = "MMMM D"
 		strDate = self.tStart.format(strFormat)
 
-		rectBorder = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
-		rectInside = rectBorder.Copy().Inset(self.s_dSLineOuter / 2.0)
-
-		# Date
-
 		rectDate = rectInside.Copy(dY=self.s_dYDate)
-		oltbHeading = self.Oltb(rectDate, 'Calibri', rectDate.dY, strStyle='I')
-		oltbHeading.DrawText(strDate, colorBlack)
+		oltbDate = self.Oltb(rectDate, 'Calibri', rectDate.dY, strStyle='I')
+		oltbDate.DrawText(strDate, colorBlack)
 
 		rectInside.Stretch(dYTop=rectDate.dY)
 
@@ -479,7 +480,12 @@ class CGroupSetBlot(CBlot): # tag = gsetb
 			groupb.Draw(SPoint(pos.x, yGroup))
 
 class CCalendarBlot(CBlot): # tag = calb
+
+	s_dYDay = CDayBlot.s_dYDate * 2
+
 	def __init__(self, doc: 'CDocument', lDate: list[datetime.date]) -> None:
+		super().__init__(doc.pdf)
+
 		self.doc = doc
 		self.lDate = lDate
 
@@ -492,9 +498,22 @@ class CCalendarBlot(CBlot): # tag = calb
 			self.cWeek += 1
 
 		self.dX = 7 * CDayBlot.s_dX
-		self.dY = self.cWeek * CDayBlot.s_dY
+		self.dY = self.s_dYDay + self.cWeek * CDayBlot.s_dY
 
 	def Draw(self, pos: SPoint) -> None:
+
+		# days of week
+
+		rectDay = SRect(x = pos.x, y = pos.y, dX = CDayBlot.s_dX, dY = self.s_dYDay)
+
+		for iDay in range(7):
+			strDay = calendar.day_abbr[(iDay + 6) % 7]
+			oltbDay = self.Oltb(rectDay, 'Calibri', rectDay.dY, strStyle='I')
+			oltbDay.DrawText(strDay, colorBlack, JH.Center)
+			rectDay.Shift(dX=CDayBlot.s_dX)
+
+		# days
+
 		datePrev: Optional[datetime.date] = None
 		for date in sorted(self.lDate):
 			dayb = self.doc.mpDateDayb[date]
@@ -503,7 +522,7 @@ class CCalendarBlot(CBlot): # tag = calb
 			iWeek = (date - self.dateMin).days // 7
 
 			xDay = pos.x + iDay * CDayBlot.s_dX
-			yDay = pos.y + iWeek * CDayBlot.s_dY
+			yDay = rectDay.yMax + iWeek * CDayBlot.s_dY
 
 			dayb.Draw(SPoint(xDay, yDay), datePrev)
 			datePrev = date
