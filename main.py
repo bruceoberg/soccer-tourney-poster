@@ -481,7 +481,7 @@ class CGroupSetBlot(CBlot): # tag = gsetb
 
 class CCalendarBlot(CBlot): # tag = calb
 
-	s_dYDay = CDayBlot.s_dYDate * 2
+	s_dYDayOfWeek = CDayBlot.s_dYDate * 2
 
 	def __init__(self, doc: 'CDocument', lDate: list[datetime.date]) -> None:
 		super().__init__(doc.pdf)
@@ -498,21 +498,23 @@ class CCalendarBlot(CBlot): # tag = calb
 			self.cWeek += 1
 
 		self.dX = 7 * CDayBlot.s_dX
-		self.dY = self.s_dYDay + self.cWeek * CDayBlot.s_dY
+		self.dY = self.s_dYDayOfWeek + self.cWeek * CDayBlot.s_dY
 
 	def Draw(self, pos: SPoint) -> None:
 
 		# days of week
 
-		rectDay = SRect(x = pos.x, y = pos.y, dX = CDayBlot.s_dX, dY = self.s_dYDay)
+		rectDayOfWeek = SRect(x = pos.x, y = pos.y, dX = CDayBlot.s_dX, dY = self.s_dYDayOfWeek)
 
 		for iDay in range(7):
-			strDay = calendar.day_abbr[(iDay + 6) % 7]
-			oltbDay = self.Oltb(rectDay, 'Calibri', rectDay.dY, strStyle='I')
-			oltbDay.DrawText(strDay, colorBlack, JH.Center)
-			rectDay.Shift(dX=CDayBlot.s_dX)
+			strDayOfWeek = calendar.day_abbr[(iDay + 6) % 7]
+			oltbDayOfWeek = self.Oltb(rectDayOfWeek, 'Calibri', rectDayOfWeek.dY, strStyle='I')
+			oltbDayOfWeek.DrawText(strDayOfWeek, colorBlack, JH.Center)
+			rectDayOfWeek.Shift(dX=CDayBlot.s_dX)
 
 		# days
+
+		rectDays = SRect(x = pos.x, y = pos.y, dX = self.dX, dY = self.dY).Stretch(dYTop = rectDayOfWeek.dY)
 
 		datePrev: Optional[datetime.date] = None
 		for date in sorted(self.lDate):
@@ -521,11 +523,21 @@ class CCalendarBlot(CBlot): # tag = calb
 			iDay = (date.weekday() + 1) % 7 # we want sunday as 0
 			iWeek = (date - self.dateMin).days // 7
 
-			xDay = pos.x + iDay * CDayBlot.s_dX
-			yDay = rectDay.yMax + iWeek * CDayBlot.s_dY
+			xDay = rectDays.x + iDay * CDayBlot.s_dX
+			yDay = rectDays.y + iWeek * CDayBlot.s_dY
 
 			dayb.Draw(SPoint(xDay, yDay), datePrev)
 			datePrev = date
+
+		# border and week lines
+
+		for iWeek in range(1,self.cWeek):
+			yWeekMax = rectDays.y + iWeek * CDayBlot.s_dY
+			self.pdf.set_line_width(CDayBlot.s_dSLineOuter)
+			self.pdf.set_draw_color(0) # black
+			self.pdf.line(rectDays.x, yWeekMax, rectDays.xMax, yWeekMax)
+
+		self.DrawBox(rectDays, CDayBlot.s_dSLineOuter, colorBlack)
 
 class CPosterPage(CPage): # tag = posterp
 	def __init__(self, doc: 'CDocument'):
