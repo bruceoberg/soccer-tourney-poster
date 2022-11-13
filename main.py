@@ -1,5 +1,6 @@
 import datetime
 import logging
+import math
 
 from dataclasses import dataclass
 from dateutil import tz
@@ -315,8 +316,10 @@ class CDayBlot(CBlot): # tag = dayb
 		self.doc = doc
 		self.db = doc.db
 		self.lMatch = sorted(setMatch, key=lambda match: (match.tStart, match.strHome))
+		self.tStart = self.lMatch[0].tStart
+		self.date = self.tStart.date()
 		for match in self.lMatch[1:]:
-			assert self.lMatch[0].tStart.date() == match.tStart.date()
+			assert self.date == match.tStart.date()
 		self.dYTime = CFontInstance(self.pdf, self.s_strFontTime, self.s_dYFontTime).dYCap
 
 	def Draw(self, pos: SPoint, datePrev: Optional[datetime.date] = None) -> None:
@@ -326,7 +329,7 @@ class CDayBlot(CBlot): # tag = dayb
 			strFormat = "D"
 		else:
 			strFormat = "MMMM D"
-		strDate = self.lMatch[0].tStart.format(strFormat)
+		strDate = self.tStart.format(strFormat)
 
 		rectBorder = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
 		rectInside = rectBorder.Copy().Inset(self.s_dSLineOuter / 2.0)
@@ -386,9 +389,6 @@ class CDayBlot(CBlot): # tag = dayb
 class CPage:
 	def __init__(self, doc: 'CDocument', strOrientation: str, fmt: str | tuple):
 		self.doc = doc
-
-		# unwind CDocument field so everyone doesn't have to use ".doc." everywhere.
-
 		self.db = doc.db
 		self.pdf = doc.pdf
 		self.mpStrGroupGroupb = doc.mpStrGroupGroupb
@@ -447,56 +447,101 @@ class CDaysTestPage(CPage): # gtp
 						dSMargin + row * dYGrid)
 				dayb.Draw(pos)
 
+class CGroupSetBlot(CBlot): # tag = gsetb
+
+	s_dSGridGap = CGroupBlot.s_dY / 2
+
+	def __init__(self, doc: 'CDocument', lGroupb: list[CGroupBlot], cCol: int = 0, cRow: int = 0) -> None:
+		super().__init__(doc.pdf)
+
+		self.doc = doc
+		self.lGroupb = lGroupb
+
+		if cCol == 0 and cRow == 0:
+			self.cCol = round(math.sqrt(len(lGroupb))) + 1
+			self.cRow = cCol
+		elif cCol == 0:
+			self.cCol = (len(self.lGroupb) + cRow - 1) // cRow
+			self.cRow = cRow
+		elif cRow == 0:
+			self.cCol = cCol
+			self.cRow = (len(self.lGroupb) + cCol - 1) // cCol
+		else:
+			self.cCol = cCol
+			self.cRow = cRow
+	
+		self.dX = (self.cCol * CGroupBlot.s_dX) + ((self.cCol - 1) * self.s_dSGridGap)
+		self.dY = (self.cRow * CGroupBlot.s_dY) + ((self.cRow - 1) * self.s_dSGridGap)
+
+	def Draw(self, pos: SPoint) -> None:
+		for iGroupb, groupb in enumerate(self.lGroupb):
+			yGroup = pos.y + iGroupb * (CGroupBlot.s_dY + self.s_dSGridGap)
+			groupb.Draw(SPoint(pos.x, yGroup))
+
+class CCalendarBlot(CBlot): # tag = calb
+	def __init__(self, doc: 'CDocument', lDate: list[datetime.date]) -> None:
+		self.doc = doc
+		self.lDate = lDate
+
+		self.dateMin: datetime.date = min(self.lDate)
+		self.dateMax: datetime.date = max(self.lDate)
+
+		self.cDay = (self.dateMax - self.dateMin).days + 1
+		self.cWeek = (self.cDay + 6) // 7
+		if self.dateMin.weekday() != 6: # SUNDAY
+			self.cWeek += 1
+
+		self.dX = 7 * CDayBlot.s_dX
+		self.dY = self.cWeek * CDayBlot.s_dY
+
+	def Draw(self, pos: SPoint) -> None:
+		datePrev: Optional[datetime.date] = None
+		for date in sorted(self.lDate):
+			dayb = self.doc.mpDateDayb[date]
+
+			iDay = (date.weekday() + 1) % 7 # we want sunday as 0
+			iWeek = (date - self.dateMin).days // 7
+
+			xDay = pos.x + iDay * CDayBlot.s_dX
+			yDay = pos.y + iWeek * CDayBlot.s_dY
+
+			dayb.Draw(SPoint(xDay, yDay), datePrev)
+			datePrev = date
+
 class CPosterPage(CPage): # tag = posterp
 	def __init__(self, doc: 'CDocument'):
 		super().__init__(doc, 'landscape', (22, 28))
 
-		dYGroupsGap = 1.0
-		cGroup = len(self.db.lStrGroup) // 2
-		dXGroups = CGroupBlot.s_dX
-		dYGroups = (cGroup * CGroupBlot.s_dY) + ((cGroup - 1) * dYGroupsGap)
-		yGroups = (self.rect.dY - dYGroups) / 2.0
-		lGroupbLeft = [self.mpStrGroupGroupb[strGroup] for strGroup in self.db.lStrGroup[:cGroup]]
-		lGroupbRight = [self.mpStrGroupGroupb[strGroup] for strGroup in self.db.lStrGroup[cGroup:]]
+		cGroupHalf = len(self.db.lStrGroup) // 2
+		
+		lGroupbLeft = [self.mpStrGroupGroupb[strGroup] for strGroup in self.db.lStrGroup[:cGroupHalf]]
+		gsetbLeft = CGroupSetBlot(doc, lGroupbLeft, cCol = 1)
+		
+		lGroupbRight = [self.mpStrGroupGroupb[strGroup] for strGroup in self.db.lStrGroup[cGroupHalf:]]
+		gsetbRight = CGroupSetBlot(doc, lGroupbRight, cCol = 1)
 
-		dateMin: datetime.date = min(self.db.mpDateSetMatch.keys())
-		dateMax: datetime.date = max(self.db.mpDateSetMatch.keys())
+		lDate: list[datetime.date] = list(self.doc.mpDateDayb.keys())
+		calb = CCalendarBlot(doc, lDate)
 
-		cDay = (dateMax - dateMin).days + 1
-		cWeek = (cDay + 6) // 7
-		if dateMin.weekday() != 6: # SUNDAY
-			cWeek += 1
+		dXUnused = self.rect.dX - (calb.dX + gsetbLeft.dX + gsetbRight.dX)
+		dXGap = dXUnused / 4.0 # both margins and both gaps between groups and calendar
 
-		dXCalendar = 7 * CDayBlot.s_dX
-		dYCalendar = cWeek * CDayBlot.s_dY
-		yCalendar = (self.rect.dY - dYCalendar) / 2.0
-
-		dXUnused = self.rect.dX - (dXCalendar + 2 * dXGroups)
-		dXGap = dXUnused / 4 # both margins and both gaps between groups and calendar
+		assert gsetbLeft.dY == gsetbRight.dY
+		yGroups = (self.rect.dY - gsetbLeft.dY) / 2.0
+		yCalendar = (self.rect.dY - calb.dY) / 2.0
 
 		xGroupsLeft = dXGap
-		xCalendar = xGroupsLeft + dXGroups + dXGap
-		xGroupsRight = xCalendar + dXCalendar + dXGap
 
-		for xGroups, lGroupb in ((xGroupsLeft, lGroupbLeft), (xGroupsRight, lGroupbRight)):
-			for iGroupb, groupb in enumerate(lGroupb):
-				yGroup = yGroups + iGroupb * (CGroupBlot.s_dY + dYGroupsGap)
-				groupb.Draw(SPoint(xGroups, yGroup))
-			
-		
-		datePrev: Optional[datetime.date] = None
-		for dateMatch in sorted(self.mpDateDayb):
-			dayb = self.mpDateDayb[dateMatch]
+		gsetbLeft.Draw(SPoint(xGroupsLeft, yGroups))
 
-			iDay = (dateMatch.weekday() + 1) % 7 # we want sunday as 0
-			iWeek = (dateMatch - dateMin).days // 7
+		xCalendar = xGroupsLeft + gsetbLeft.dX + dXGap
 
-			xDay = xCalendar + iDay * CDayBlot.s_dX
-			yDay = yCalendar + iWeek * CDayBlot.s_dY
+		calb.Draw(SPoint(xCalendar, yCalendar))
 
-			dayb.Draw(SPoint(xDay, yDay), datePrev)
-			datePrev = dateMatch
+		xGroupsRight = xCalendar + calb.dX + dXGap
 
+		gsetbRight.Draw(SPoint(xGroupsRight, yGroups))
+	
 class CDocument: # tag = doc
 	def __init__(self, pathDb: Path) -> None:
 		self.db = CDataBase(pathDb)
