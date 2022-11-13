@@ -3,7 +3,7 @@ import datetime
 import openpyxl
 import re
 
-from aenum import Enum, AutoNumberEnum
+from enum import IntEnum, auto
 from pathlib import Path
 from typing import Optional
 
@@ -11,15 +11,15 @@ TExcelRow = dict[str, str]				# tag = xlrow
 TExcelTable = list[TExcelRow]			# tag = xltable
 TExcelSheet = dict[str, TExcelTable]	# tag = xls
 
-class STAGE(AutoNumberEnum):
-	Group = ()
-	Round1 = ()
-	Round2 = ()	# may not be used, depending on tourney size
-	Round3 = () # ditto
-	Quarters = ()
-	Semis = ()
-	Third = ()
-	Final = ()
+class STAGE(IntEnum, start=0):
+	Group = auto()
+	Round1 = auto()
+	Round2 = auto()	# may not be used, depending on tourney size
+	Round3 = auto() # ditto
+	Quarters = auto()
+	Semis = auto()
+	Third = auto()
+	Final = auto()
 
 class CVenue:
 	def __init__(self, xlrow: TExcelRow) -> None:
@@ -29,9 +29,9 @@ class CTeam:
 	def __init__(self, xlrow: TExcelRow) -> None:
 		self.strName: str = xlrow['team']
 		self.strAbbrev: str = xlrow['abbrev']
-		self.strSeed: str = None
+		self.strSeed: Optional[str] = None
 	def SetSeed(self, strSeed: str) -> None:
-		self.strSeed: str = strSeed
+		self.strSeed = strSeed
 
 class CGroup:
 	def __init__(self, xlrow: TExcelRow) -> None:
@@ -47,7 +47,7 @@ class CMatch:
 
 	def __init__(self, db: 'CDataBase', xlrow: TExcelRow) -> None:
 		self.strName: str = '#' + str(xlrow['match'])
-		self.venue: CVenue = db.mpIdVenue[xlrow['venue']]
+		self.venue: CVenue = db.mpIdVenue[int(xlrow['venue'])]
 		self.strHome: str = xlrow['home']
 		self.strAway: str = xlrow['away']
 		self.tStart: arrow.Arrow = arrow.get(xlrow['time'])

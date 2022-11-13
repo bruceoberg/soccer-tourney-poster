@@ -4,7 +4,7 @@ import datetime
 import fpdf
 import logging
 
-from aenum import Enum, AutoNumberEnum
+from enum import IntEnum, auto
 from dataclasses import dataclass
 from dateutil import tz
 from pathlib import Path
@@ -19,15 +19,15 @@ logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 g_pathHere = Path(__file__).parent
 g_db = CDataBase(g_pathHere / '2022-world-cup.xlsx')
 
-class JH(AutoNumberEnum):
-	Left = ()
-	Center = ()
-	Right = ()
+class JH(IntEnum, start=0):
+	Left = auto()
+	Center = auto()
+	Right = auto()
 
-class JV(AutoNumberEnum):
-	Bottom = ()
-	Middle = ()
-	Top = ()
+class JV(IntEnum, start=0):
+	Bottom = auto()
+	Middle = auto()
+	Top = auto()
 
 class CFontInstance:
 	"""a sized font"""
@@ -221,8 +221,6 @@ class COneLineTextBox: # tag = oltb
 		return rectText
 
 	DrawText = RectDrawText
-
-
 
 class CBlot: # tag = blot
 	"""something drawable at a location. some blots may contain other blots."""
