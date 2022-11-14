@@ -312,12 +312,17 @@ class CDayBlot(CBlot): # tag = dayb
 
 	s_dYFontLabel = s_dYFontTime * 1.3
 
-	def __init__(self, doc: 'CDocument', setMatch: set[CMatch]) -> None:
+	def __init__(self, doc: 'CDocument', setMatch: set[CMatch] = set(), date: Optional[datetime.date] = None) -> None:
 		super().__init__(doc.pdf)
 		self.doc = doc
 		self.db = doc.db
 		self.lMatch = sorted(setMatch, key=lambda match: (match.tStart, match.strHome))
-		self.tStart = self.lMatch[0].tStart
+		if self.lMatch:
+			assert date is None
+			self.tStart = self.lMatch[0].tStart
+		else:
+			assert date is not None
+			self.tStart = arrow.get(date)
 		self.date = self.tStart.date()
 		for match in self.lMatch[1:]:
 			assert self.date == match.tStart.date()
@@ -331,7 +336,8 @@ class CDayBlot(CBlot): # tag = dayb
 		# Date
 
 		# BB (bruceo) only include year/month sometimes
-		if datePrev and datePrev.month == self.lMatch[0].tStart.month:
+
+		if datePrev and datePrev.month == self.tStart.month:
 			strFormat = "D"
 		else:
 			strFormat = "MMMM D"
@@ -340,6 +346,16 @@ class CDayBlot(CBlot): # tag = dayb
 		rectDate = rectInside.Copy(dY=self.s_dYDate)
 		oltbDate = self.Oltb(rectDate, 'Calibri', rectDate.dY, strStyle='I')
 		oltbDate.DrawText(strDate, colorBlack)
+
+		# matchless days get a bottom border and nothing else
+
+		if not self.lMatch:
+
+			self.pdf.set_line_width(self.s_dSLineOuter)
+			self.pdf.set_draw_color(0) # black
+			self.pdf.line(rectBorder.xMin, rectBorder.yMax, rectBorder.xMax, rectBorder.yMax)
+
+			return
 
 		rectInside.Stretch(dYTop=rectDate.dY)
 
@@ -487,18 +503,45 @@ class CCalendarBlot(CBlot): # tag = calb
 		super().__init__(doc.pdf)
 
 		self.doc = doc
-		self.lDate = lDate
 
-		self.dateMin: datetime.date = min(self.lDate)
-		self.dateMax: datetime.date = max(self.lDate)
+		dateMin: datetime.date = min(lDate)
+		dateMax: datetime.date = max(lDate)
 
-		self.cDay = (self.dateMax - self.dateMin).days + 1
-		self.cWeek = (self.cDay + 6) // 7
-		if self.dateMin.weekday() != 6: # SUNDAY
-			self.cWeek += 1
+		# ensure dateMin is a sunday for proper week calculations
+
+		if dateMin.weekday() != 6: # SUNDAY
+			# arrow.shift(weekday) always goes forward in time
+			dateMin = arrow.get(dateMin).shift(weeks=-1).shift(weekday=6).date()
+
+		# and always go all the way to saturday
+
+		if dateMax.weekday() != 5: # SATURDAY
+			dateMax = arrow.get(dateMax).shift(weekday=5).date()
+
+		cDay: int = (dateMax - dateMin).days + 1
+		assert cDay % 7 == 0
+		cWeek: int = cDay // 7
 
 		self.dX = 7 * CDayBlot.s_dX
-		self.dY = self.s_dYDayOfWeek + self.cWeek * CDayBlot.s_dY
+		self.dY = self.s_dYDayOfWeek + cWeek * CDayBlot.s_dY
+
+		# build a list of all day blots and their relative positions
+
+		self.lTuDPosDayb: list[tuple[SPoint, CDayBlot]] = []
+
+		for tDay in arrow.Arrow.range('day', arrow.get(dateMin), arrow.get(dateMax)):
+			date = tDay.date()
+			
+			try:
+				dayb = self.doc.mpDateDayb[date]
+			except KeyError:
+				dayb = CDayBlot(doc, date=date)
+
+			iDay = (date.weekday() + 1) % 7 # we want sunday as 0
+			iWeek = (date - dateMin).days // 7
+
+			dPosDayb = SPoint(iDay * CDayBlot.s_dX, iWeek * CDayBlot.s_dY)
+			self.lTuDPosDayb.append((dPosDayb, dayb))
 
 	def Draw(self, pos: SPoint) -> None:
 
@@ -517,25 +560,15 @@ class CCalendarBlot(CBlot): # tag = calb
 		rectDays = SRect(x = pos.x, y = pos.y, dX = self.dX, dY = self.dY).Stretch(dYTop = rectDayOfWeek.dY)
 
 		datePrev: Optional[datetime.date] = None
-		for date in sorted(self.lDate):
-			dayb = self.doc.mpDateDayb[date]
+		for dPosDayb, dayb in self.lTuDPosDayb:
 
-			iDay = (date.weekday() + 1) % 7 # we want sunday as 0
-			iWeek = (date - self.dateMin).days // 7
+			posDayb = SPoint(rectDays.x + dPosDayb.x, rectDays.y + dPosDayb.y)
 
-			xDay = rectDays.x + iDay * CDayBlot.s_dX
-			yDay = rectDays.y + iWeek * CDayBlot.s_dY
+			dayb.Draw(posDayb, datePrev)
 
-			dayb.Draw(SPoint(xDay, yDay), datePrev)
-			datePrev = date
+			datePrev = dayb.date
 
-		# border and week lines
-
-		for iWeek in range(1,self.cWeek):
-			yWeekMax = rectDays.y + iWeek * CDayBlot.s_dY
-			self.pdf.set_line_width(CDayBlot.s_dSLineOuter)
-			self.pdf.set_draw_color(0) # black
-			self.pdf.line(rectDays.x, yWeekMax, rectDays.xMax, yWeekMax)
+		# border
 
 		self.DrawBox(rectDays, CDayBlot.s_dSLineOuter, colorBlack)
 
