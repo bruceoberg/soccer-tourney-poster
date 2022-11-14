@@ -7,6 +7,8 @@ from enum import IntEnum, auto
 from pathlib import Path
 from typing import Optional
 
+from pdf import SColor, ColorFromStr, ColorResaturate
+
 TExcelRow = dict[str, str]				# tag = xlrow
 TExcelTable = list[TExcelRow]			# tag = xltable
 TExcelSheet = dict[str, TExcelTable]	# tag = xls
@@ -33,10 +35,21 @@ class CTeam:
 	def SetSeed(self, strSeed: str) -> None:
 		self.strSeed = strSeed
 
+class SColors: # tag = colors
+	s_dSDarker = 0.5
+
+	s_rVLighter = 1.5
+	s_rSLighter = 0.5
+
+	def __init__(self, strColor: str) -> None:
+		self.color: SColor = ColorFromStr(strColor)
+		self.colorDarker: SColor = ColorResaturate(self.color, dS=self.s_dSDarker)
+		self.colorLighter: SColor = ColorResaturate(self.color, rV=self.s_rVLighter, rS=self.s_rSLighter)
+
 class CGroup:
 	def __init__(self, xlrow: TExcelRow) -> None:
 		self.strName: str = xlrow['group']
-		self.strColor: str = xlrow['color']
+		self.colors: SColors = SColors(xlrow['color'])
 		self.mpStrSeedTeam: dict[str, CTeam] = {}
 	def AddTeam(self, team: CTeam):
 		self.mpStrSeedTeam[team.strSeed] = team

@@ -26,20 +26,10 @@ class CGroupBlot(CBlot): # tag = groupb
 	s_rSGroup = 5.0
 	s_rSTeamName = 6.0
 
-	# colors
-
-	s_dSDarker = 0.5
-
-	s_rVLighter = 1.5
-	s_rSLighter = 0.5
-
 	def __init__(self, doc: 'CDocument', group: CGroup) -> None:
 		super().__init__(doc.pdf)
 		self.doc = doc
 		self.group = group
-		self.color: SColor = ColorFromStr(self.group.strColor)
-		self.colorDarker = ColorResaturate(self.color, dS=self.s_dSDarker)
-		self.colorLighter = ColorResaturate(self.color, rV=self.s_rVLighter, rS=self.s_rSLighter)
 
 	def Draw(self, pos: SPoint) -> None:
 
@@ -52,13 +42,13 @@ class CGroupBlot(CBlot): # tag = groupb
 		dYTitle = rectInside.dX / self.s_rSGroup
 		rectTitle = rectInside.Copy(dY=dYTitle)
 
-		self.FillBox(rectTitle, self.color)
+		self.FillBox(rectTitle, self.group.colors.color)
 
 		dYGroupName = dYTitle * 1.3
 		oltbGroupName = self.Oltb(rectTitle, 'Consolas', dYGroupName, strStyle = 'B')
 		rectGroupName = oltbGroupName.RectDrawText(
 										self.group.strName,
-										self.colorDarker,
+										self.group.colors.colorDarker,
 										JH.Right,
 										JV.Middle)
 
@@ -83,7 +73,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		rectTeam = rectHeading.Copy(y=rectHeading.yMax, dY=dYTeam)
 
 		for i in range(len(self.group.mpStrSeedTeam)):
-			color = self.colorLighter if (i & 1) else colorWhite
+			color = self.group.colors.colorLighter if (i & 1) else colorWhite
 			self.FillBox(rectTeam, color)
 			rectTeam.Shift(dY=dYTeam)
 
@@ -131,7 +121,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		# draw border last to cover any alignment weirdness
 
 		self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
-		self.DrawBox(rectBorder, self.s_dSLineInner, self.color)
+		self.DrawBox(rectBorder, self.s_dSLineInner, self.group.colors.color)
 
 class CMatchBlot(CBlot): # tag = dayb
 	def __init__(self, dayb: 'CDayBlot', match: CMatch, rect: SRect) -> None:
@@ -156,11 +146,11 @@ class CMatchBlot(CBlot): # tag = dayb
 
 	def DrawFill(self) -> None:
 		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else self.db.lStrGroup
-		lGroupb = [self.doc.mpStrGroupGroupb[strGroup] for strGroup in lStrGroup] 
+		lGroup = [self.db.mpStrGroupGroup[strGroup] for strGroup in lStrGroup] 
 		if self.match.stage == STAGE.Group:
-			lColor = [groupb.color for groupb in lGroupb]
+			lColor = [group.colors.color for group in lGroup]
 		else:
-			lColor = [groupb.colorLighter for groupb in lGroupb]
+			lColor = [group.colors.colorLighter for group in lGroup]
 
 		@dataclass
 		class SRectColor:
@@ -199,7 +189,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			rectTime = SRect(self.rect.x, yTime, self.rect.dX, self.dayb.dYTime)
 			tStartPacific = self.match.tStart.to(tz.gettz('US/Pacific'))
 			strTime = tStartPacific.format('h:mma')
-			oltbTime = self.Oltb(rectTime, self.dayb.s_strFontTime, self.dayb.s_dYFontTime)
+			oltbTime = self.Oltb(rectTime, self.dayb.s_strFont, self.dayb.s_dYFontTime)
 			oltbTime.DrawText(strTime, colorBlack, JH.Center)
 		else:
 			yScore = self.rect.y + self.dYOuterGap
@@ -257,7 +247,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			for xLineFormMin, strLabel in ((xLineFormLeftMin, self.match.strHome), (xLineFormRightMin, self.match.strAway)):
 				rectLabelForm = SRect(xLineFormMin, yLineForm, self.dayb.s_dXLineForm, self.dayb.s_dYFontForm)
-				oltbLabelForm = self.Oltb(rectLabelForm, self.dayb.s_strFontForm, self.dayb.s_dYFontForm)
+				oltbLabelForm = self.Oltb(rectLabelForm, self.dayb.s_strFont, self.dayb.s_dYFontForm)
 				oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
 
 			# match label
@@ -293,7 +283,7 @@ class CDayBlot(CBlot): # tag = dayb
 	s_dYDate = s_dY * s_uYDate
 
 	s_uYTime = 0.075
-	s_strFontTime = 'Calibri'
+	s_strFont = 'Calibri'
 	s_dYFontTime = s_dY * s_uYTime
 	s_dYTimeGapMax = s_dYFontTime / 2.0	
 	# scores are square, so we use dS
@@ -306,8 +296,6 @@ class CDayBlot(CBlot): # tag = dayb
 	s_dSPensNudge = 0.02
 
 	s_dXLineForm = s_dSScore * 1.32
-
-	s_strFontForm = s_strFontTime
 	s_dYFontForm = s_dYFontTime
 
 	s_dYFontLabel = s_dYFontTime * 1.3
@@ -326,7 +314,7 @@ class CDayBlot(CBlot): # tag = dayb
 		self.date = self.tStart.date()
 		for match in self.lMatch[1:]:
 			assert self.date == match.tStart.date()
-		self.dYTime = CFontInstance(self.pdf, self.s_strFontTime, self.s_dYFontTime).dYCap
+		self.dYTime = CFontInstance(self.pdf, self.s_strFont, self.s_dYFontTime).dYCap
 
 	def Draw(self, pos: SPoint, datePrev: Optional[datetime.date] = None) -> None:
 
@@ -403,13 +391,119 @@ class CDayBlot(CBlot): # tag = dayb
 
 		self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
 
+class CFinalBlot(CBlot): # tag = finalb
+
+	s_dX = CDayBlot.s_dX * 3.0
+	s_dY = CDayBlot.s_dY
+
+	s_strFont = CDayBlot.s_strFont
+	s_dYFontTitle = CDayBlot.s_dYFontLabel * 1.7
+	s_dYFontDate = CDayBlot.s_dYFontLabel * 1.4
+	s_dYFontTime = s_dYFontDate
+	s_dYFontForm = s_dYFontDate
+
+	s_dYTextGap = s_dYFontTitle / 4.0
+
+	s_dSLineScore = CDayBlot.s_dSLineOuter
+
+	s_dSScore = CDayBlot.s_dSScore * 1.6
+	s_dSScoreGap = s_dSScore
+
+	s_dSPens = s_dSScore / 2.0
+	s_dSPensNudge = 0
+
+	s_dXLineForm = s_dSScore * 4
+
+	def __init__(self, doc: 'CDocument', match: CMatch) -> None:
+		super().__init__(doc.pdf)
+		self.doc = doc
+		self.match = match
+
+	def Draw(self, pos: SPoint, datePrev: Optional[datetime.date] = None) -> None:
+
+		rectAll = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
+
+		# title
+
+		rectTitle = rectAll.Copy(dY=self.s_dYFontTitle)
+		oltbTitle = self.Oltb(rectTitle, self.s_strFont, rectTitle.dY, strStyle='B')
+		oltbTitle.DrawText('FINAL', colorBlack, JH.Center)
+
+		# date
+
+		strDate = self.match.tStart.format('dddd, MMMM D')
+		rectDate = rectTitle.Copy(dY=self.s_dYFontDate).Shift(dY = rectTitle.dY)
+		oltbDate = self.Oltb(rectDate, self.s_strFont, rectDate.dY, strStyle='B')
+		oltbDate.DrawText(strDate, colorBlack, JH.Center)
+
+		# time
+
+		strTime = self.match.tStart.format('h:mma')
+		rectTime = rectDate.Copy(dY=self.s_dYFontTime).Shift(dY = rectDate.dY + self.s_dYTextGap)
+		oltbTime = self.Oltb(rectTime, self.s_strFont, rectTime.dY)
+		oltbTime.DrawText(strTime, colorBlack, JH.Center)
+
+		# dash between score boxes
+
+		rectScore = rectAll.Copy().Set(y = rectTime.yMax + 2 * self.s_dYTextGap)
+
+		dXLineGap = self.s_dSScore
+		dXLine = dXLineGap / 2.0
+		xLineMin = rectScore.x + (rectScore.dX / 2.0) - (dXLine / 2.0)
+		xLineMax = xLineMin + dXLine
+		yLine = rectScore.y + (self.s_dSScore / 2.0)
+		self.pdf.set_line_width(self.s_dSLineScore)
+		self.pdf.set_draw_color(0) # black
+		self.pdf.line(xLineMin, yLine, xLineMax, yLine)
+
+		# score boxes
+
+		xHomeBox = rectScore.x + (rectScore.dX / 2.0) - ((dXLineGap / 2.0 ) + self.s_dSScore)
+		rectHomeBox = SRect(xHomeBox, rectScore.y, self.s_dSScore, self.s_dSScore)
+		self.DrawBox(rectHomeBox, self.s_dSLineScore, colorBlack, colorWhite)
+
+		xAwayBox = rectScore.x + (rectScore.dX / 2.0) + (dXLineGap / 2.0 )
+		rectAwayBox = SRect(xAwayBox, rectScore.y, self.s_dSScore, self.s_dSScore)
+		self.DrawBox(rectAwayBox, self.s_dSLineScore, colorBlack, colorWhite)
+
+		# PK boxes
+
+		rectHomePens = SRect(rectHomeBox.xMax, rectHomeBox.yMax)
+		rectHomePens.Outset(self.s_dSPens)
+		rectHomePens.Shift(dX=-self.s_dSPensNudge, dY=-self.s_dSPensNudge)
+		self.DrawBox(rectHomePens, self.s_dSLineScore, colorBlack, colorWhite)
+
+		rectAwayPens = SRect(rectAwayBox.xMin, rectAwayBox.yMax)
+		rectAwayPens.Outset(self.s_dSPens)
+		rectAwayPens.Shift(dX=self.s_dSPensNudge, dY=-self.s_dSPensNudge)
+		self.DrawBox(rectAwayPens, self.s_dSLineScore, colorBlack, colorWhite)
+
+		# form lines
+
+		yLineForm = (rectHomeBox.yMax + rectHomePens.yMax) / 2.0
+		dXLineFormGap = ((rectHomeBox.xMin - rectScore.xMin) - self.s_dXLineForm) / 2.0
+
+		xLineFormLeftMin = rectScore.xMin + dXLineFormGap
+		xLineFormRightMin =  rectScore.xMax - (dXLineFormGap + self.s_dXLineForm)
+
+		for xLineFormMin in (xLineFormLeftMin, xLineFormRightMin):
+			xLineFormMax = xLineFormMin + self.s_dXLineForm
+			self.pdf.set_line_width(self.s_dSLineScore)
+			self.pdf.set_draw_color(0) # black
+			self.pdf.line(xLineFormMin, yLineForm, xLineFormMax, yLineForm)
+
+		# form labels
+
+		for xLineFormMin, strLabel in ((xLineFormLeftMin, self.match.strHome), (xLineFormRightMin, self.match.strAway)):
+			rectLabelForm = SRect(xLineFormMin, yLineForm, self.s_dXLineForm, self.s_dYFontForm)
+			oltbLabelForm = self.Oltb(rectLabelForm, self.s_strFont, self.s_dYFontForm)
+			oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
+
 class CPage:
 	def __init__(self, doc: 'CDocument', strOrientation: str, fmt: str | tuple):
 		self.doc = doc
 		self.db = doc.db
 		self.pdf = doc.pdf
-		self.mpStrGroupGroupb = doc.mpStrGroupGroupb
-		self.mpDateDayb = doc.mpDateDayb
 
 		self.strOrientation = strOrientation
 		self.fmt = fmt
@@ -432,7 +526,8 @@ class CGroupsTestPage(CPage): # gtp
 					strGroup = self.db.lStrGroup[col * 4 + row]
 				except IndexError:
 					continue
-				groupb = self.mpStrGroupGroupb[strGroup]
+				group = self.db.mpStrGroupGroup[strGroup]
+				groupb = CGroupBlot(doc, group)
 				pos = SPoint(
 						dSMargin + col * dXGrid,
 						dSMargin + row * dYGrid)
@@ -448,10 +543,10 @@ class CDaysTestPage(CPage): # gtp
 		dYGrid = CDayBlot.s_dY + dSMargin
 
 		# lIdMatch = (49,57)
-		# setDate: set[datetime.date] = {g_db.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
-		setDate: set[datetime.date] = set(doc.mpDateDayb.keys())
+		# setDate: set[datetime.date] = {doc.db.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
+		setDate: set[datetime.date] = set(doc.db.mpDateSetMatch.keys())
 
-		lDayb: list[CDayBlot] = [doc.mpDateDayb[date] for date in sorted(setDate)]
+		lDayb: list[CDayBlot] = [CDayBlot(doc, self.db.mpDateSetMatch[date]) for date in sorted(setDate)]
 
 		for row in range(4):
 			for col in range(7):
@@ -499,13 +594,14 @@ class CCalendarBlot(CBlot): # tag = calb
 
 	s_dYDayOfWeek = CDayBlot.s_dYDate * 2
 
-	def __init__(self, doc: 'CDocument', lDate: list[datetime.date]) -> None:
+	def __init__(self, doc: 'CDocument', lDayb: list[CDayBlot]) -> None:
 		super().__init__(doc.pdf)
 
 		self.doc = doc
 
-		dateMin: datetime.date = min(lDate)
-		dateMax: datetime.date = max(lDate)
+		mpDateDayb: dict[datetime.date, CDayBlot] = {dayb.date:dayb for dayb in lDayb}
+		dateMin: datetime.date = min(mpDateDayb)
+		dateMax: datetime.date = max(mpDateDayb)
 
 		# ensure dateMin is a sunday for proper week calculations
 
@@ -533,7 +629,7 @@ class CCalendarBlot(CBlot): # tag = calb
 			date = tDay.date()
 			
 			try:
-				dayb = self.doc.mpDateDayb[date]
+				dayb = mpDateDayb[date]
 			except KeyError:
 				dayb = CDayBlot(doc, date=date)
 
@@ -576,33 +672,53 @@ class CPosterPage(CPage): # tag = posterp
 	def __init__(self, doc: 'CDocument'):
 		super().__init__(doc, 'landscape', (22, 28))
 
+		lDaybCalendar: list[CDayBlot] = []
+		finalb: Optional[CFinalBlot] = None
+
+		for setMatch in self.db.mpDateSetMatch.values():
+			if len(setMatch) == 1:
+				match = next(iter(setMatch))
+				if match.stage == STAGE.Final:
+					finalb = CFinalBlot(doc, match)
+					continue
+
+			lDaybCalendar.append(CDayBlot(doc, setMatch))
+
 		cGroupHalf = len(self.db.lStrGroup) // 2
 		
-		lGroupbLeft = [self.mpStrGroupGroupb[strGroup] for strGroup in self.db.lStrGroup[:cGroupHalf]]
+		lGroupbLeft = [CGroupBlot(doc, self.db.mpStrGroupGroup[strGroup]) for strGroup in self.db.lStrGroup[:cGroupHalf]]
 		gsetbLeft = CGroupSetBlot(doc, lGroupbLeft, cCol = 1)
 		
-		lGroupbRight = [self.mpStrGroupGroupb[strGroup] for strGroup in self.db.lStrGroup[cGroupHalf:]]
+		lGroupbRight = [CGroupBlot(doc, self.db.mpStrGroupGroup[strGroup]) for strGroup in self.db.lStrGroup[cGroupHalf:]]
 		gsetbRight = CGroupSetBlot(doc, lGroupbRight, cCol = 1)
 
-		lDate: list[datetime.date] = list(self.doc.mpDateDayb.keys())
-		calb = CCalendarBlot(doc, lDate)
+		calb = CCalendarBlot(doc, lDaybCalendar)
 
 		dXUnused = self.rect.dX - (calb.dX + gsetbLeft.dX + gsetbRight.dX)
-		dXGap = dXUnused / 4.0 # both margins and both gaps between groups and calendar
+		dSGap = dXUnused / 4.0 # both margins and both gaps between groups and calendar. same gap vertically for calendar/final
 
 		assert gsetbLeft.dY == gsetbRight.dY
 		yGroups = (self.rect.dY - gsetbLeft.dY) / 2.0
-		yCalendar = (self.rect.dY - calb.dY) / 2.0
 
-		xGroupsLeft = dXGap
+		xGroupsLeft = dSGap
 
 		gsetbLeft.Draw(SPoint(xGroupsLeft, yGroups))
 
-		xCalendar = xGroupsLeft + gsetbLeft.dX + dXGap
+		xCalendar = xGroupsLeft + gsetbLeft.dX + dSGap
+		if finalb:
+			yCalendar = (self.rect.dY - (calb.dY + dSGap + finalb.s_dY)) / 2.0
+		else:
+			yCalendar = (self.rect.dY - calb.dY) / 2.0
 
 		calb.Draw(SPoint(xCalendar, yCalendar))
 
-		xGroupsRight = xCalendar + calb.dX + dXGap
+		if finalb:
+			xFinal = (self.rect.dX - finalb.s_dX) / 2.0
+			yFinal = yCalendar + calb.dY + dSGap
+
+			finalb.Draw(SPoint(xFinal, yFinal))
+
+		xGroupsRight = xCalendar + calb.dX + dSGap
 
 		gsetbRight.Draw(SPoint(xGroupsRight, yGroups))
 	
@@ -610,8 +726,6 @@ class CDocument: # tag = doc
 	def __init__(self, pathDb: Path) -> None:
 		self.db = CDataBase(pathDb)
 		self.pdf = CPdf()
-		self.mpStrGroupGroupb: dict[str, CGroupBlot] = {strGroup:CGroupBlot(self, group) for strGroup, group in self.db.mpStrGroupGroup.items()}
-		self.mpDateDayb: dict[datetime.date, CDayBlot] = {date:CDayBlot(self, setMatch) for date, setMatch in self.db.mpDateSetMatch.items()}
 
 		lPage: list[CPage] = [
 			# CGroupsTestPage(self),
