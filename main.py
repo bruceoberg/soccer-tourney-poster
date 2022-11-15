@@ -45,7 +45,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		self.FillBox(rectTitle, self.group.colors.color)
 
 		dYGroupName = dYTitle * 1.3
-		oltbGroupName = self.Oltb(rectTitle, 'Consolas', dYGroupName, strStyle = 'B')
+		oltbGroupName = self.Oltb(rectTitle, self.doc.fontkeyGroupName, dYGroupName)
 		rectGroupName = oltbGroupName.RectDrawText(
 										self.group.strName,
 										self.group.colors.colorDarker,
@@ -55,7 +55,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		rectGroupLabel = rectTitle.Copy(dX=rectGroupName.x - rectTitle.x)
 
 		uGroupLabel = 0.65
-		oltbGroupLabel = self.Oltb(rectGroupLabel, 'Calibri', dYTitle * uGroupLabel, dSMargin=oltbGroupName.dSMargin)
+		oltbGroupLabel = self.Oltb(rectGroupLabel, self.doc.fontkeyGroupLabel, dYTitle * uGroupLabel, dSMargin=oltbGroupName.dSMargin)
 		oltbGroupLabel.DrawText('Group', colorWhite, JH.Right) #, JV.Top)
 
 		# heading
@@ -83,11 +83,11 @@ class CGroupBlot(CBlot): # tag = groupb
 			rectTeam.y = rectHeading.y + rectHeading.dY + i * dYTeam
 			team = self.group.mpStrSeedTeam[strSeed]
 
-			oltbAbbrev = self.Oltb(rectTeam, 'Consolas', dYTeam)
+			oltbAbbrev = self.Oltb(rectTeam, self.doc.fontkeyGroupTeamAbbrev, dYTeam)
 			oltbAbbrev.DrawText(team.strAbbrev, colorBlack, JH.Right)
 
 			uTeamText = 0.75
-			oltbName = self.Oltb(rectTeam, 'Calibri', dYTeam * uTeamText, dSMargin=oltbAbbrev.dSMargin)
+			oltbName = self.Oltb(rectTeam, self.doc.fontkeyGroupTeamAbbrev, dYTeam * uTeamText, dSMargin=oltbAbbrev.dSMargin)
 			oltbName.DrawText(team.strName, colorDarkgrey, JH.Left) #, JV.Top)
 
 		# dividers for team/points/gf/ga
@@ -115,7 +115,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		)
 
 		for rectHeading, strHeading in lTuRectStr:
-			oltbHeading = self.Oltb(rectHeading, 'Calibri', rectHeading.dY)
+			oltbHeading = self.Oltb(rectHeading, self.doc.fontkeyGroupHeading, rectHeading.dY)
 			oltbHeading.DrawText(strHeading, colorWhite, JH.Center)
 
 		# draw border last to cover any alignment weirdness
@@ -189,7 +189,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			rectTime = SRect(self.rect.x, yTime, self.rect.dX, self.dayb.dYTime)
 			tStartPacific = self.match.tStart.to(tz.gettz('US/Pacific'))
 			strTime = tStartPacific.format('h:mma')
-			oltbTime = self.Oltb(rectTime, self.dayb.s_strFont, self.dayb.s_dYFontTime)
+			oltbTime = self.Oltb(rectTime, self.doc.fontkeyMatchTime, self.dayb.s_dYFontTime)
 			oltbTime.DrawText(strTime, colorBlack, JH.Center)
 		else:
 			yScore = self.rect.y + self.dYOuterGap
@@ -247,13 +247,13 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			for xLineFormMin, strLabel in ((xLineFormLeftMin, self.match.strHome), (xLineFormRightMin, self.match.strAway)):
 				rectLabelForm = SRect(xLineFormMin, yLineForm, self.dayb.s_dXLineForm, self.dayb.s_dYFontForm)
-				oltbLabelForm = self.Oltb(rectLabelForm, self.dayb.s_strFont, self.dayb.s_dYFontForm)
+				oltbLabelForm = self.Oltb(rectLabelForm, self.doc.fontkeyMatchFormLabel, self.dayb.s_dYFontForm)
 				oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
 
 			# match label
 
 			rectLabel = self.rect.Copy(y=rectHomePens.yMax, dY=self.dayb.s_dYFontLabel + self.dayb.s_dYTimeGapMax)
-			oltbLabel = self.Oltb(rectLabel, 'Calibri', self.dayb.s_dYFontLabel, strStyle='B')
+			oltbLabel = self.Oltb(rectLabel, self.doc.fontkeyMatchLabel, self.dayb.s_dYFontLabel)
 			oltbLabel.DrawText(self.match.strName, colorBlack, JH.Center)
 
 		else:
@@ -264,11 +264,11 @@ class CMatchBlot(CBlot): # tag = dayb
 			dXTeam = dXTeams / 2.0
 
 			rectHomeTeam = SRect(self.rect.x, yScore, dXTeam, self.dayb.s_dSScore)
-			oltbHomeTeam = self.Oltb(rectHomeTeam, 'Consolas', self.dayb.s_dSScore)
+			oltbHomeTeam = self.Oltb(rectHomeTeam, self.doc.fontkeyMatchTeamAbbrev, self.dayb.s_dSScore)
 			oltbHomeTeam.DrawText(self.match.strHome, colorBlack, JH.Center)
 
 			rectAwayTeam = SRect(self.rect.xMax - dXTeam, yScore, dXTeam, self.dayb.s_dSScore)
-			oltbAwayTeam = self.Oltb(rectAwayTeam, 'Consolas', self.dayb.s_dSScore)
+			oltbAwayTeam = self.Oltb(rectAwayTeam, self.doc.fontkeyMatchTeamAbbrev, self.dayb.s_dSScore)
 			oltbAwayTeam.DrawText(self.match.strAway, colorBlack, JH.Center)
 
 class CDayBlot(CBlot): # tag = dayb
@@ -283,7 +283,6 @@ class CDayBlot(CBlot): # tag = dayb
 	s_dYDate = s_dY * s_uYDate
 
 	s_uYTime = 0.075
-	s_strFont = 'Calibri'
 	s_dYFontTime = s_dY * s_uYTime
 	s_dYTimeGapMax = s_dYFontTime / 2.0	
 	# scores are square, so we use dS
@@ -314,7 +313,7 @@ class CDayBlot(CBlot): # tag = dayb
 		self.date = self.tStart.date()
 		for match in self.lMatch[1:]:
 			assert self.date == match.tStart.date()
-		self.dYTime = CFontInstance(self.pdf, self.s_strFont, self.s_dYFontTime).dYCap
+		self.dYTime = CFontInstance(self.pdf, self.doc.fontkeyDayTime, self.s_dYFontTime).dYCap
 
 	def Draw(self, pos: SPoint, datePrev: Optional[datetime.date] = None) -> None:
 
@@ -332,7 +331,7 @@ class CDayBlot(CBlot): # tag = dayb
 		strDate = self.tStart.format(strFormat)
 
 		rectDate = rectInside.Copy(dY=self.s_dYDate)
-		oltbDate = self.Oltb(rectDate, 'Calibri', rectDate.dY, strStyle='I')
+		oltbDate = self.Oltb(rectDate, self.doc.fontkeyDayDate, rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack)
 
 		# matchless days get a bottom border and nothing else
@@ -396,7 +395,6 @@ class CFinalBlot(CBlot): # tag = finalb
 	s_dX = CDayBlot.s_dX * 3.0
 	s_dY = CDayBlot.s_dY
 
-	s_strFont = CDayBlot.s_strFont
 	s_dYFontTitle = CDayBlot.s_dYFontLabel * 1.7
 	s_dYFontDate = CDayBlot.s_dYFontLabel * 1.4
 	s_dYFontTime = s_dYFontDate
@@ -426,21 +424,21 @@ class CFinalBlot(CBlot): # tag = finalb
 		# title
 
 		rectTitle = rectAll.Copy(dY=self.s_dYFontTitle)
-		oltbTitle = self.Oltb(rectTitle, self.s_strFont, rectTitle.dY, strStyle='B')
+		oltbTitle = self.Oltb(rectTitle, self.doc.fontkeyFinalTitle, rectTitle.dY)
 		oltbTitle.DrawText('FINAL', colorBlack, JH.Center)
 
 		# date
 
 		strDate = self.match.tStart.format('dddd, MMMM D')
 		rectDate = rectTitle.Copy(dY=self.s_dYFontDate).Shift(dY = rectTitle.dY)
-		oltbDate = self.Oltb(rectDate, self.s_strFont, rectDate.dY, strStyle='B')
+		oltbDate = self.Oltb(rectDate, self.doc.fontkeyFinalTitle, rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack, JH.Center)
 
 		# time
 
 		strTime = self.match.tStart.format('h:mma')
 		rectTime = rectDate.Copy(dY=self.s_dYFontTime).Shift(dY = rectDate.dY + self.s_dYTextGap)
-		oltbTime = self.Oltb(rectTime, self.s_strFont, rectTime.dY)
+		oltbTime = self.Oltb(rectTime, self.doc.fontkeyFinalTime, rectTime.dY)
 		oltbTime.DrawText(strTime, colorBlack, JH.Center)
 
 		# dash between score boxes
@@ -496,7 +494,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		for xLineFormMin, strLabel in ((xLineFormLeftMin, self.match.strHome), (xLineFormRightMin, self.match.strAway)):
 			rectLabelForm = SRect(xLineFormMin, yLineForm, self.s_dXLineForm, self.s_dYFontForm)
-			oltbLabelForm = self.Oltb(rectLabelForm, self.s_strFont, self.s_dYFontForm)
+			oltbLabelForm = self.Oltb(rectLabelForm, self.doc.fontkeyDayFormLabel, self.s_dYFontForm)
 			oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
 
 class CPage:
@@ -647,7 +645,7 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		for iDay in range(7):
 			strDayOfWeek = calendar.day_abbr[(iDay + 6) % 7]
-			oltbDayOfWeek = self.Oltb(rectDayOfWeek, 'Calibri', rectDayOfWeek.dY, strStyle='I')
+			oltbDayOfWeek = self.Oltb(rectDayOfWeek, self.doc.fontkeyCalDayOfWeek, rectDayOfWeek.dY)
 			oltbDayOfWeek.DrawText(strDayOfWeek, colorBlack, JH.Center)
 			rectDayOfWeek.Shift(dX=CDayBlot.s_dX)
 
@@ -723,9 +721,37 @@ class CPosterPage(CPage): # tag = posterp
 		gsetbRight.Draw(SPoint(xGroupsRight, yGroups))
 	
 class CDocument: # tag = doc
+	s_pathDirFonts = Path('fonts')
+
 	def __init__(self, pathDb: Path) -> None:
 		self.db = CDataBase(pathDb)
 		self.pdf = CPdf()
+
+		self.pdf.AddFont('Consolas',	'',		self.s_pathDirFonts / 'consola.ttf')
+		self.pdf.AddFont('Consolas',	'B',	self.s_pathDirFonts / 'consolab.ttf')
+		self.pdf.AddFont('Calibri',		'',		self.s_pathDirFonts / 'calibri.ttf')
+		self.pdf.AddFont('Calibri',		'B',	self.s_pathDirFonts / 'calibrib.ttf')
+		self.pdf.AddFont('Calibri', 	'I',	self.s_pathDirFonts / 'calibrili.ttf')
+
+		self.fontkeyGroupName		= SFontKey('Consolas',	'B')
+		self.fontkeyGroupLabel		= SFontKey('Calibri',	'')
+		self.fontkeyGroupHeading	= SFontKey('Calibri',	'')
+		self.fontkeyGroupTeamName	= SFontKey('Calibri',	'')
+		self.fontkeyGroupTeamAbbrev	= SFontKey('Consolas',	'')
+
+		self.fontkeyDayDate			= SFontKey('Calibri',	'I')
+		self.fontkeyDayTime			= SFontKey('Calibri',	'')
+		self.fontkeyDayFormLabel	= SFontKey('Calibri',	'')
+
+		self.fontkeyMatchTime		= SFontKey('Calibri',	'')
+		self.fontkeyMatchTeamAbbrev	= SFontKey('Consolas',	'')
+		self.fontkeyMatchFormLabel	= SFontKey('Calibri',	'')
+		self.fontkeyMatchLabel		= SFontKey('Calibri',	'B')
+
+		self.fontkeyFinalTitle		= SFontKey('Calibri',	'B')
+		self.fontkeyFinalTime		= SFontKey('Calibri',	'')
+
+		self.fontkeyCalDayOfWeek	= SFontKey('Calibri',	'I')
 
 		lPage: list[CPage] = [
 			# CGroupsTestPage(self),

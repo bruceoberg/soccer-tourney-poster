@@ -4,7 +4,16 @@ import fpdf
 
 from enum import Enum, auto
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
+
+@dataclass
+class SFontKey:
+	strFont: str
+	strStyle: str
+
+	def Str(self) -> str:
+		return self.strFont.lower() + self.strStyle
 
 class CPdf(fpdf.FPDF):
 	s_mpStrFormatWH: dict[str, tuple[float, float]] ={
@@ -68,12 +77,8 @@ class CPdf(fpdf.FPDF):
 
 		super().__init__(unit='in')
 
-		self.add_font(family='Consolas', fname=r'fonts\consola.ttf')
-		self.add_font(family='Consolas', style='B', fname=r'fonts\consolab.ttf')
-		self.add_font(family='Lucida-Console', fname=r'fonts\lucon.ttf')
-		self.add_font(family='Calibri', fname=r'fonts\calibri.ttf')
-		self.add_font(family='Calibri', style='B', fname=r'fonts\calibrib.ttf')
-		self.add_font(family='Calibri', style='I', fname=r'fonts\calibrili.ttf')
+	def AddFont(self, strFontkey: str, strStyle: str, path: Path):
+		self.add_font(family=strFontkey, style=strStyle, fname=str(path))
 
 class JH(Enum):
 	Left = auto()
@@ -87,15 +92,15 @@ class JV(Enum):
 
 class CFontInstance:
 	"""a sized font"""
-	def __init__(self, pdf: CPdf, strFont: str, dYFont: float, strStyle: str = '') -> None:
+	def __init__(self, pdf: CPdf, fontkey: SFontKey, dYFont: float) -> None:
 		self.pdf = pdf
-		self.strFont = strFont
+		self.fontkey = fontkey
 		self.dYFont = dYFont
-		self.strStyle = strStyle
 		self.dPtFont = self.dYFont * 72.0 # inches to points
 
-		self.pdf.set_font(self.strFont, self.strStyle, size=self.dPtFont)
-		self.dYCap = self.pdf.current_font['desc']['CapHeight'] * self.dYFont / 1000.0
+		font = pdf.fonts[self.fontkey.Str()]
+
+		self.dYCap = font['desc']['CapHeight'] * self.dYFont / 1000.0
 
 @dataclass
 class SColor: # tag = color
@@ -241,9 +246,9 @@ class SRect: # tag = rect
 
 class COneLineTextBox: # tag = oltb
 	"""a box with a single line of text in a particular font, sized to fit the box"""
-	def __init__(self, pdf: CPdf, rect: SRect, strFont: str, dYFont: float, strStyle: str = '', dSMargin: Optional[float] = None) -> None:
+	def __init__(self, pdf: CPdf, rect: SRect, fontkey: SFontKey, dYFont: float, dSMargin: Optional[float] = None) -> None:
 		self.pdf = pdf
-		self.fonti = CFontInstance(pdf, strFont, dYFont, strStyle)
+		self.fonti = CFontInstance(pdf, fontkey, dYFont)
 		self.rect = rect
 
 		self.dYCap = self.fonti.dYCap
@@ -251,7 +256,7 @@ class COneLineTextBox: # tag = oltb
 		self.rectMargin = self.rect.Copy().Inset(self.dSMargin)
 
 	def RectDrawText(self, strText: str, color: SColor, jh : JH = JH.Left, jv: JV = JV.Middle) -> SRect:
-		self.pdf.set_font(self.fonti.strFont, style=self.fonti.strStyle, size=self.fonti.dPtFont)
+		self.pdf.set_font(self.fonti.fontkey.strFont, style=self.fonti.fontkey.strStyle, size=self.fonti.dPtFont)
 		rectText = SRect(0, 0, self.pdf.get_string_width(strText), self.dYCap)
 
 		if jh == JH.Left:
@@ -285,22 +290,22 @@ class CBlot: # tag = blot
 
 	def DrawBox(self, rect: SRect, dSLine: float, color: SColor, colorFill: Optional[SColor] = None) -> None:
 		if colorFill is None:
-			strStyle = 'D'
+			strFillDraw = 'D'
 		else:
-			strStyle = 'FD'
+			strFillDraw = 'FD'
 			self.pdf.set_fill_color(colorFill.r, colorFill.g, colorFill.b)
 
 		self.pdf.set_line_width(dSLine)
 		self.pdf.set_draw_color(color.r, color.g, color.b)
 
-		self.pdf.rect(rect.x, rect.y, rect.dX, rect.dY, style=strStyle)
+		self.pdf.rect(rect.x, rect.y, rect.dX, rect.dY, style=strFillDraw)
 
 	def FillBox(self, rect: SRect, color: SColor) -> None:
 		self.pdf.set_fill_color(color.r, color.g, color.b)
 		self.pdf.rect(rect.x, rect.y, rect.dX, rect.dY, style='F')
 
-	def Oltb(self, rect: SRect, strFont: str, dYFont: float, strStyle: str = '', dSMargin: Optional[float] = None) ->COneLineTextBox:
-		return COneLineTextBox(self.pdf, rect, strFont, dYFont, strStyle, dSMargin)
+	def Oltb(self, rect: SRect, fontkey: SFontKey, dYFont: float, dSMargin: Optional[float] = None) ->COneLineTextBox:
+		return COneLineTextBox(self.pdf, rect, fontkey, dYFont, dSMargin)
 
 	def Draw(self, pos: SPoint) -> None:
 		pass
