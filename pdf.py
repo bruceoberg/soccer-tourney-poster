@@ -232,9 +232,8 @@ class SRect: # tag = rect
 		return self
 
 	def Inset(self, dS: float) -> 'SRect':
-		dSHalf = dS / 2.0
-		self.posMin.Shift(dSHalf, dSHalf)
-		self.posMax.Shift(-dSHalf, -dSHalf)
+		self.posMin.Shift(dS, dS)
+		self.posMax.Shift(-dS, -dS)
 		return self
 
 	def Outset(self, dS: float) -> 'SRect':
@@ -280,7 +279,7 @@ class COneLineTextBox: # tag = oltb
 		self.pdf.set_text_color(color.r, color.g, color.b)
 		self.pdf.text(rectText.x, rectText.y, strText)
 
-		return rectText
+		return rectText.Copy().Shift(dY = -rectText.dY)
 
 	DrawText = RectDrawText
 

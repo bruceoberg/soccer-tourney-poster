@@ -100,7 +100,7 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		self.pdf.set_line_width(self.s_dSLineStats)
 		self.pdf.set_draw_color(0) # black
-	
+
 		self.pdf.line(rectPoints.xMin, rectHeading.yMax, rectPoints.xMin, rectInside.yMax)
 		self.pdf.line(rectGoalsFor.xMin, rectHeading.yMax, rectGoalsFor.xMin, rectInside.yMax)
 		self.pdf.line(rectGoalsAgainst.xMin, rectHeading.yMax, rectGoalsAgainst.xMin, rectInside.yMax)
@@ -134,7 +134,7 @@ class CMatchBlot(CBlot): # tag = dayb
 		self.fElimination = match.stage != STAGE.Group
 
 		self.dYInfo = dayb.dYTime + dayb.s_dSScore
-		
+
 		if self.fElimination:
 			self.dYInfo += self.dayb.s_dYFontLabel + (self.dayb.s_dSPens / 2.0) - self.dayb.s_dSPensNudge
 
@@ -146,7 +146,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 	def DrawFill(self) -> None:
 		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else self.db.lStrGroup
-		lGroup = [self.db.mpStrGroupGroup[strGroup] for strGroup in lStrGroup] 
+		lGroup = [self.db.mpStrGroupGroup[strGroup] for strGroup in lStrGroup]
 		if self.match.stage == STAGE.Group:
 			lColor = [group.colors.color for group in lGroup]
 		else:
@@ -187,8 +187,13 @@ class CMatchBlot(CBlot): # tag = dayb
 			yScore = yTime + self.dYTimeAndGap
 
 			rectTime = SRect(self.rect.x, yTime, self.rect.dX, self.dayb.dYTime)
-			tStartPacific = self.match.tStart.to(tz.gettz(self.dayb.strTz))
-			strTime = tStartPacific.format('h:mma')
+			
+			tStart = self.match.tStart.to(tz.gettz(self.dayb.strTz))
+			
+			strTime = tStart.format('h:mma')
+			if tStart.day != self.match.tStart.day:
+				strTime += ' +1d' if tStart.utcoffset().total_seconds() > 0 else ' -1d'
+
 			oltbTime = self.Oltb(rectTime, self.doc.fontkeyMatchTime, self.dayb.s_dYFontTime)
 			oltbTime.DrawText(strTime, colorBlack, JH.Center)
 		else:
@@ -220,12 +225,12 @@ class CMatchBlot(CBlot): # tag = dayb
 			# PK boxes
 
 			rectHomePens = SRect(rectHomeBox.xMax, rectHomeBox.yMax)
-			rectHomePens.Outset(self.dayb.s_dSPens)
+			rectHomePens.Outset(self.dayb.s_dSPens / 2)
 			rectHomePens.Shift(dX=-self.dayb.s_dSPensNudge, dY=-self.dayb.s_dSPensNudge)
 			self.DrawBox(rectHomePens, self.dayb.s_dSLineScore, colorBlack, colorWhite)
 
 			rectAwayPens = SRect(rectAwayBox.xMin, rectAwayBox.yMax)
-			rectAwayPens.Outset(self.dayb.s_dSPens)
+			rectAwayPens.Outset(self.dayb.s_dSPens / 2)
 			rectAwayPens.Shift(dX=self.dayb.s_dSPensNudge, dY=-self.dayb.s_dSPensNudge)
 			self.DrawBox(rectAwayPens, self.dayb.s_dSLineScore, colorBlack, colorWhite)
 
@@ -284,7 +289,7 @@ class CDayBlot(CBlot): # tag = dayb
 
 	s_uYTime = 0.075
 	s_dYFontTime = s_dY * s_uYTime
-	s_dYTimeGapMax = s_dYFontTime / 2.0	
+	s_dYTimeGapMax = s_dYFontTime / 2.0
 	# scores are square, so we use dS
 
 	s_uSScore = 0.147
@@ -417,9 +422,14 @@ class CFinalBlot(CBlot): # tag = finalb
 
 	s_dXLineForm = s_dSScore * 4
 
-	def __init__(self, doc: 'CDocument', match: CMatch) -> None:
-		super().__init__(doc.pdf)
-		self.doc = doc
+	def __init__(self, page: 'CPage', match: CMatch) -> None:
+		self.page = page
+		self.doc = page.doc
+		self.pdf = page.doc.pdf
+		self.db = page.doc.db
+
+		super().__init__(self.pdf)
+
 		self.match = match
 
 	def Draw(self, pos: SPoint, datePrev: Optional[datetime.date] = None) -> None:
@@ -434,14 +444,19 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		# date
 
-		strDate = self.match.tStart.format('dddd, MMMM D')
+		tStart = self.match.tStart.to(tz.gettz(self.page.strTz))
+		strDate = tStart.format('dddd, MMMM D')
 		rectDate = rectTitle.Copy(dY=self.s_dYFontDate).Shift(dY = rectTitle.dY)
 		oltbDate = self.Oltb(rectDate, self.doc.fontkeyFinalTitle, rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack, JH.Center)
 
 		# time
 
-		strTime = self.match.tStart.format('h:mma')
+		strTime = tStart.format('h:mma')
+		# NOTE (bruceo) we're putting the proper date above, so no need for +/- goo
+		# if tStart.day != self.match.tStart.day:
+		#	strTime += ' +1d' if tStart.utcoffset().total_seconds() < 0 else ' -1d'
+
 		rectTime = rectDate.Copy(dY=self.s_dYFontTime).Shift(dY = rectDate.dY + self.s_dYTextGap)
 		oltbTime = self.Oltb(rectTime, self.doc.fontkeyFinalTime, rectTime.dY)
 		oltbTime.DrawText(strTime, colorBlack, JH.Center)
@@ -472,12 +487,12 @@ class CFinalBlot(CBlot): # tag = finalb
 		# PK boxes
 
 		rectHomePens = SRect(rectHomeBox.xMax, rectHomeBox.yMax)
-		rectHomePens.Outset(self.s_dSPens)
+		rectHomePens.Outset(self.s_dSPens / 2)
 		rectHomePens.Shift(dX=-self.s_dSPensNudge, dY=-self.s_dSPensNudge)
 		self.DrawBox(rectHomePens, self.s_dSLineScore, colorBlack, colorWhite)
 
 		rectAwayPens = SRect(rectAwayBox.xMin, rectAwayBox.yMax)
-		rectAwayPens.Outset(self.s_dSPens)
+		rectAwayPens.Outset(self.s_dSPens / 2)
 		rectAwayPens.Shift(dX=self.s_dSPensNudge, dY=-self.s_dSPensNudge)
 		self.DrawBox(rectAwayPens, self.s_dSLineScore, colorBlack, colorWhite)
 
@@ -503,7 +518,7 @@ class CFinalBlot(CBlot): # tag = finalb
 			oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
 
 class CPage:
-	def __init__(self, doc: 'CDocument', strOrientation: str, fmt: str | tuple, strTz: str = 'US/Pacific'):
+	def __init__(self, doc: 'CDocument', strOrientation: str, fmt: str | tuple[int, int], strTz: str = 'US/Pacific'):
 		self.doc = doc
 		self.db = doc.db
 		self.pdf = doc.pdf
@@ -585,7 +600,7 @@ class CGroupSetBlot(CBlot): # tag = gsetb
 		else:
 			self.cCol = cCol
 			self.cRow = cRow
-	
+
 		self.dX = (self.cCol * CGroupBlot.s_dX) + ((self.cCol - 1) * self.s_dSGridGap)
 		self.dY = (self.cRow * CGroupBlot.s_dY) + ((self.cRow - 1) * self.s_dSGridGap)
 
@@ -617,7 +632,8 @@ class CHeaderBlot(CBlot): # tag = headerb
 		# title
 
 		oltbTitle = self.Oltb(rectAll, self.doc.fontkeyPageHeaderTitle, self.s_dYFontTitle)
-		oltbTitle.DrawText('W.C. 2022 SCHEDULE & SCORE CARD', colorWhite, JH.Center, JV.Middle)
+		rectTitle = oltbTitle.RectDrawText('W.C. 2022 SCHEDULE & SCORE CARD', colorWhite, JH.Center, JV.Middle)
+		dSMarginSides = rectAll.yMax - rectTitle.yMax
 
 		rectDate = rectAll.Copy().Stretch(dXLeft = self.s_dY) # yes, using height as left space
 		rectTimeZone = rectAll.Copy().Stretch(dXRight = -self.s_dY) # ditto
@@ -632,17 +648,20 @@ class CHeaderBlot(CBlot): # tag = headerb
 		else:
 			strDateFmt = 'MMM D'
 		strDates = (tMin.format(strDateFmt) + ' - ' + tMax.format(strDateFmt)).upper()
-		oltbDates = self.Oltb(rectDate, self.doc.fontkeyPageHeaderTitle, self.s_dYFontSides, dSMargin = oltbTitle.dSMargin)
+		oltbDates = self.Oltb(rectDate, self.doc.fontkeyPageHeaderTitle, self.s_dYFontSides, dSMargin = dSMarginSides)
 		oltbDates.DrawText(strDates, colorWhite, JH.Left, JV.Bottom)
 
 		# time zone
 
 		tTz = tMin.to(tz.gettz(self.page.strTz))
 		strTz = tTz.format('ZZZ')
+		strTimeZone = f'TIME ZONE: {strTz}'
+
 		dT = tTz.utcoffset()
-		cHour = int(dT.total_seconds()) // (60*60)
-		strTimeZone = f'TIME ZONE: {strTz} (UTC{cHour})'
-		oltbTimeZone = self.Oltb(rectTimeZone, self.doc.fontkeyPageHeaderTitle, self.s_dYFontSides, dSMargin = oltbTitle.dSMargin)
+		if cHour := int(dT.total_seconds()) // (60*60):
+			strTimeZone += f' (UTC{cHour:+d})'
+
+		oltbTimeZone = self.Oltb(rectTimeZone, self.doc.fontkeyPageHeaderTitle, self.s_dYFontSides, dSMargin = dSMarginSides)
 		oltbTimeZone.DrawText(strTimeZone, colorWhite, JH.Right, JV.Bottom)
 
 class CFooterBlot(CBlot): # tag = headerb
@@ -727,7 +746,7 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		for tDay in arrow.Arrow.range('day', arrow.get(dateMin), arrow.get(dateMax)):
 			date = tDay.date()
-			
+
 			try:
 				dayb = mpDateDayb[date]
 			except KeyError:
@@ -769,8 +788,8 @@ class CCalendarBlot(CBlot): # tag = calb
 		self.DrawBox(rectDays, CDayBlot.s_dSLineOuter, colorBlack)
 
 class CPosterPage(CPage): # tag = posterp
-	def __init__(self, doc: 'CDocument', strTz: str = 'US/Pacific'):
-		super().__init__(doc, 'landscape', (18, 27), strTz)
+	def __init__(self, doc: 'CDocument', strTz: str = 'US/Pacific', fmt: str | tuple[int, int] = (18, 27)):
+		super().__init__(doc, 'landscape', fmt, strTz)
 
 		lDaybCalendar: list[CDayBlot] = []
 		finalb: Optional[CFinalBlot] = None
@@ -779,16 +798,16 @@ class CPosterPage(CPage): # tag = posterp
 			if len(setMatch) == 1:
 				match = next(iter(setMatch))
 				if match.stage == STAGE.Final:
-					finalb = CFinalBlot(doc, match)
+					finalb = CFinalBlot(self, match)
 					continue
 
 			lDaybCalendar.append(CDayBlot(self, setMatch))
 
 		cGroupHalf = len(self.db.lStrGroup) // 2
-		
+
 		lGroupbLeft = [CGroupBlot(doc, self.db.mpStrGroupGroup[strGroup]) for strGroup in self.db.lStrGroup[:cGroupHalf]]
 		gsetbLeft = CGroupSetBlot(doc, lGroupbLeft, cCol = 1)
-		
+
 		lGroupbRight = [CGroupBlot(doc, self.db.mpStrGroupGroup[strGroup]) for strGroup in self.db.lStrGroup[cGroupHalf:]]
 		gsetbRight = CGroupSetBlot(doc, lGroupbRight, cCol = 1)
 
@@ -805,36 +824,40 @@ class CPosterPage(CPage): # tag = posterp
 		rectInside.yMax = rectFooter.yMin
 
 		dXUnused = rectInside.dX - (calb.dX + gsetbLeft.dX + gsetbRight.dX)
-		dSGap = dXUnused / 4.0 # both margins and both gaps between groups and calendar. same gap vertically for calendar/final
+		dXGap = dXUnused / 4.0 # both margins and both gaps between groups and calendar. same gap vertically for calendar/final
+
+		if finalb:
+			dYUnused = rectInside.dY - (calb.dY + finalb.s_dY)
+			dYGap = dYUnused / 3.0
+		else:
+			dYUnused = rectInside.dY - calb.dY
+			dYGap = dYUnused / 2.0
 
 		assert gsetbLeft.dY == gsetbRight.dY
 		yGroups = rectInside.y + (rectInside.dY - gsetbLeft.dY) / 2.0
 
-		xGroupsLeft = dSGap
+		xGroupsLeft = dXGap
 
 		gsetbLeft.Draw(SPoint(xGroupsLeft, yGroups))
 
-		xCalendar = xGroupsLeft + gsetbLeft.dX + dSGap
-		if finalb:
-			yCalendar = rectInside.y + (rectInside.dY - (calb.dY + dSGap + finalb.s_dY)) / 2.0
-		else:
-			yCalendar = rectInside.y + (rectInside.dY - calb.dY) / 2.0
+		xCalendar = xGroupsLeft + gsetbLeft.dX + dXGap
+		yCalendar = rectInside.y + dYGap
 
 		calb.Draw(SPoint(xCalendar, yCalendar))
 
 		if finalb:
 			xFinal = (rectInside.dX - finalb.s_dX) / 2.0
-			yFinal = yCalendar + calb.dY + dSGap
+			yFinal = yCalendar + calb.dY + dYGap
 
 			finalb.Draw(SPoint(xFinal, yFinal))
 
-		xGroupsRight = xCalendar + calb.dX + dSGap
+		xGroupsRight = xCalendar + calb.dX + dXGap
 
 		gsetbRight.Draw(SPoint(xGroupsRight, yGroups))
 
 		headerb.Draw(rectHeader.posMin)
 		footerb.Draw(rectFooter.posMin)
-	
+
 class CDocument: # tag = doc
 	s_pathDirFonts = Path('fonts')
 
@@ -879,6 +902,9 @@ class CDocument: # tag = doc
 			CPosterPage(self, 'US/Mountain'),
 			CPosterPage(self, 'US/Central'),
 			CPosterPage(self, 'US/Eastern'),
+			CPosterPage(self, 'Europe/London', 'b2'),
+			CPosterPage(self, 'Europe/Amsterdam', 'b2'),
+			CPosterPage(self, 'Asia/Tokyo', 'b2'),
 		]
 
 		pathOutput = self.db.pathFile.with_suffix('.pdf')
@@ -887,5 +913,3 @@ class CDocument: # tag = doc
 g_pathHere = Path(__file__).parent
 g_pathDb = g_pathHere / '2022-world-cup.xlsx'
 g_doc = CDocument(g_pathDb)
-
-
