@@ -55,7 +55,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		rectGroupLabel = rectTitle.Copy(dX=rectGroupName.x - rectTitle.x)
 
 		uGroupLabel = 0.65
-		oltbGroupLabel = self.Oltb(rectGroupLabel, self.doc.fontkeyGroupLabel, dYTitle * uGroupLabel, dSMargin=oltbGroupName.dSMargin)
+		oltbGroupLabel = self.Oltb(rectGroupLabel, self.doc.fontkeyGroupLabel, dYTitle * uGroupLabel, dSMargin = oltbGroupName.dSMargin)
 		oltbGroupLabel.DrawText('Group', colorWhite, JH.Right) #, JV.Top)
 
 		# heading
@@ -87,8 +87,8 @@ class CGroupBlot(CBlot): # tag = groupb
 			oltbAbbrev.DrawText(team.strAbbrev, colorBlack, JH.Right)
 
 			uTeamText = 0.75
-			oltbName = self.Oltb(rectTeam, self.doc.fontkeyGroupTeamAbbrev, dYTeam * uTeamText, dSMargin=oltbAbbrev.dSMargin)
-			oltbName.DrawText(team.strName, colorDarkgrey, JH.Left) #, JV.Top)
+			oltbName = self.Oltb(rectTeam, self.doc.fontkeyGroupTeamName, dYTeam * uTeamText, dSMargin = oltbAbbrev.dSMargin)
+			oltbName.DrawText(team.strName, colorDarkSlateGrey, JH.Left) #, JV.Top)
 
 		# dividers for team/points/gf/ga
 
@@ -187,7 +187,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			yScore = yTime + self.dYTimeAndGap
 
 			rectTime = SRect(self.rect.x, yTime, self.rect.dX, self.dayb.dYTime)
-			tStartPacific = self.match.tStart.to(tz.gettz('US/Pacific'))
+			tStartPacific = self.match.tStart.to(tz.gettz(self.dayb.strTz))
 			strTime = tStartPacific.format('h:mma')
 			oltbTime = self.Oltb(rectTime, self.doc.fontkeyMatchTime, self.dayb.s_dYFontTime)
 			oltbTime.DrawText(strTime, colorBlack, JH.Center)
@@ -299,10 +299,15 @@ class CDayBlot(CBlot): # tag = dayb
 
 	s_dYFontLabel = s_dYFontTime * 1.3
 
-	def __init__(self, doc: 'CDocument', setMatch: set[CMatch] = set(), date: Optional[datetime.date] = None) -> None:
-		super().__init__(doc.pdf)
-		self.doc = doc
-		self.db = doc.db
+	def __init__(self, page: 'CPage', setMatch: set[CMatch] = set(), date: Optional[datetime.date] = None) -> None:
+		self.page = page
+		self.doc = page.doc
+		self.pdf = page.doc.pdf
+		self.db = page.doc.db
+		self.strTz = page.strTz
+
+		super().__init__(self.pdf)
+
 		self.lMatch = sorted(setMatch, key=lambda match: (match.tStart, match.strHome))
 		if self.lMatch:
 			assert date is None
@@ -498,14 +503,15 @@ class CFinalBlot(CBlot): # tag = finalb
 			oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
 
 class CPage:
-	def __init__(self, doc: 'CDocument', strOrientation: str, fmt: str | tuple):
+	def __init__(self, doc: 'CDocument', strOrientation: str, fmt: str | tuple, strTz: str = 'US/Pacific'):
 		self.doc = doc
 		self.db = doc.db
 		self.pdf = doc.pdf
 
 		self.strOrientation = strOrientation
 		self.fmt = fmt
-		self.rect = SRect
+		self.strTz = strTz
+
 		self.pdf.add_page(orientation=self.strOrientation, format=self.fmt)
 		self.rect = SRect(0, 0, self.pdf.w, self.pdf.h)
 
@@ -544,7 +550,7 @@ class CDaysTestPage(CPage): # gtp
 		# setDate: set[datetime.date] = {doc.db.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
 		setDate: set[datetime.date] = set(doc.db.mpDateSetMatch.keys())
 
-		lDayb: list[CDayBlot] = [CDayBlot(doc, self.db.mpDateSetMatch[date]) for date in sorted(setDate)]
+		lDayb: list[CDayBlot] = [CDayBlot(self, self.db.mpDateSetMatch[date]) for date in sorted(setDate)]
 
 		for row in range(4):
 			for col in range(7):
@@ -588,14 +594,110 @@ class CGroupSetBlot(CBlot): # tag = gsetb
 			yGroup = pos.y + iGroupb * (CGroupBlot.s_dY + self.s_dSGridGap)
 			groupb.Draw(SPoint(pos.x, yGroup))
 
+class CHeaderBlot(CBlot): # tag = headerb
+
+	s_dY = CDayBlot.s_dY * 0.6
+
+	s_dYFontTitle = s_dY / 2
+	s_dYFontSides = s_dYFontTitle / 2
+
+	def __init__(self, page: CPage) -> None:
+		super().__init__(page.pdf)
+		self.page = page
+		self.doc = page.doc
+
+	def Draw(self, pos: SPoint) -> None:
+
+		rectAll = SRect(pos.x, pos.y, self.page.rect.dX, self.s_dY)
+
+		# fill with black
+
+		self.FillBox(rectAll, colorBlack)
+
+		# title
+
+		oltbTitle = self.Oltb(rectAll, self.doc.fontkeyPageHeaderTitle, self.s_dYFontTitle)
+		oltbTitle.DrawText('W.C. 2022 SCHEDULE & SCORE CARD', colorWhite, JH.Center, JV.Middle)
+
+		rectDate = rectAll.Copy().Stretch(dXLeft = self.s_dY) # yes, using height as left space
+		rectTimeZone = rectAll.Copy().Stretch(dXRight = -self.s_dY) # ditto
+
+		# dates
+
+		tMin = arrow.get(min(self.doc.db.mpDateSetMatch))
+		tMax = arrow.get(max(self.doc.db.mpDateSetMatch))
+
+		if tMin.year != tMax.year:
+			strDateFmt = 'MMM D YYYY'
+		else:
+			strDateFmt = 'MMM D'
+		strDates = (tMin.format(strDateFmt) + ' - ' + tMax.format(strDateFmt)).upper()
+		oltbDates = self.Oltb(rectDate, self.doc.fontkeyPageHeaderTitle, self.s_dYFontSides, dSMargin = oltbTitle.dSMargin)
+		oltbDates.DrawText(strDates, colorWhite, JH.Left, JV.Bottom)
+
+		# time zone
+
+		tTz = tMin.to(tz.gettz(self.page.strTz))
+		strTz = tTz.format('ZZZ')
+		dT = tTz.utcoffset()
+		cHour = int(dT.total_seconds()) // (60*60)
+		strTimeZone = f'TIME ZONE: {strTz} (UTC{cHour})'
+		oltbTimeZone = self.Oltb(rectTimeZone, self.doc.fontkeyPageHeaderTitle, self.s_dYFontSides, dSMargin = oltbTitle.dSMargin)
+		oltbTimeZone.DrawText(strTimeZone, colorWhite, JH.Right, JV.Bottom)
+
+class CFooterBlot(CBlot): # tag = headerb
+
+	s_dY = CDayBlot.s_dY * 0.2
+
+	s_dYFont = s_dY / 4
+
+	def __init__(self, page: CPage) -> None:
+		super().__init__(page.pdf)
+		self.page = page
+		self.doc = page.doc
+
+	def Draw(self, pos: SPoint) -> None:
+
+		rectAll = SRect(pos.x, pos.y, self.page.rect.dX, self.s_dY)
+
+		# fill with black
+
+		self.FillBox(rectAll, colorBlack)
+
+		# credits
+
+		rectCredits = rectAll.Copy().Stretch(dXLeft = CHeaderBlot.s_dY, dXRight = -CHeaderBlot.s_dY) # yes, using height as left space
+
+		lStrCreditLeft: list[str] = [
+			'DESIGN/CODE BY BRUCE OBERG',
+			'BRUCE@OBERG.COM',
+			'MADE IN PYTHON WITH FPDF2',
+			'GITHUB.COM/BRUCEOBERG/SOCCER-TOURNEY-POSTER',
+		]
+
+		lStrCreditRight: list[str] = [
+			'ORIGINAL DESIGN BY BENJY TOCZYNSKI',
+			'BTOCZYNSKI@GMAIL.COM',
+		]
+
+		strSpaceDotSpace = ' \u2022 '
+
+		for lStrCredit, jh in ((lStrCreditLeft, JH.Left), (lStrCreditRight, JH.Right)):
+			strCredit = strSpaceDotSpace.join(lStrCredit)
+			oltbCredit = self.Oltb(rectCredits, self.doc.fontkeyPageHeaderTitle, self.s_dYFont)
+			oltbCredit.DrawText(strCredit, colorWhite, jh, JV.Middle)
+
 class CCalendarBlot(CBlot): # tag = calb
 
 	s_dYDayOfWeek = CDayBlot.s_dYDate * 2
 
-	def __init__(self, doc: 'CDocument', lDayb: list[CDayBlot]) -> None:
-		super().__init__(doc.pdf)
+	def __init__(self, page: 'CPage', lDayb: list[CDayBlot]) -> None:
+		self.page = page
+		self.doc = page.doc
+		self.pdf = page.doc.pdf
+		self.db = page.doc.db
 
-		self.doc = doc
+		super().__init__(self.pdf)
 
 		mpDateDayb: dict[datetime.date, CDayBlot] = {dayb.date:dayb for dayb in lDayb}
 		dateMin: datetime.date = min(mpDateDayb)
@@ -629,7 +731,7 @@ class CCalendarBlot(CBlot): # tag = calb
 			try:
 				dayb = mpDateDayb[date]
 			except KeyError:
-				dayb = CDayBlot(doc, date=date)
+				dayb = CDayBlot(self.page, date=date)
 
 			iDay = (date.weekday() + 1) % 7 # we want sunday as 0
 			iWeek = (date - dateMin).days // 7
@@ -667,8 +769,8 @@ class CCalendarBlot(CBlot): # tag = calb
 		self.DrawBox(rectDays, CDayBlot.s_dSLineOuter, colorBlack)
 
 class CPosterPage(CPage): # tag = posterp
-	def __init__(self, doc: 'CDocument'):
-		super().__init__(doc, 'landscape', (22, 28))
+	def __init__(self, doc: 'CDocument', strTz: str = 'US/Pacific'):
+		super().__init__(doc, 'landscape', (18, 27), strTz)
 
 		lDaybCalendar: list[CDayBlot] = []
 		finalb: Optional[CFinalBlot] = None
@@ -680,7 +782,7 @@ class CPosterPage(CPage): # tag = posterp
 					finalb = CFinalBlot(doc, match)
 					continue
 
-			lDaybCalendar.append(CDayBlot(doc, setMatch))
+			lDaybCalendar.append(CDayBlot(self, setMatch))
 
 		cGroupHalf = len(self.db.lStrGroup) // 2
 		
@@ -690,13 +792,23 @@ class CPosterPage(CPage): # tag = posterp
 		lGroupbRight = [CGroupBlot(doc, self.db.mpStrGroupGroup[strGroup]) for strGroup in self.db.lStrGroup[cGroupHalf:]]
 		gsetbRight = CGroupSetBlot(doc, lGroupbRight, cCol = 1)
 
-		calb = CCalendarBlot(doc, lDaybCalendar)
+		calb = CCalendarBlot(self, lDaybCalendar)
 
-		dXUnused = self.rect.dX - (calb.dX + gsetbLeft.dX + gsetbRight.dX)
+		headerb = CHeaderBlot(self)
+		rectHeader = self.rect.Copy().Set(dY=headerb.s_dY)
+
+		footerb = CFooterBlot(self)
+		rectFooter = self.rect.Copy().Stretch(dYTop = (self.rect.dY - footerb.s_dY))
+
+		rectInside = self.rect.Copy()
+		rectInside.yMin = rectHeader.yMax
+		rectInside.yMax = rectFooter.yMin
+
+		dXUnused = rectInside.dX - (calb.dX + gsetbLeft.dX + gsetbRight.dX)
 		dSGap = dXUnused / 4.0 # both margins and both gaps between groups and calendar. same gap vertically for calendar/final
 
 		assert gsetbLeft.dY == gsetbRight.dY
-		yGroups = (self.rect.dY - gsetbLeft.dY) / 2.0
+		yGroups = rectInside.y + (rectInside.dY - gsetbLeft.dY) / 2.0
 
 		xGroupsLeft = dSGap
 
@@ -704,14 +816,14 @@ class CPosterPage(CPage): # tag = posterp
 
 		xCalendar = xGroupsLeft + gsetbLeft.dX + dSGap
 		if finalb:
-			yCalendar = (self.rect.dY - (calb.dY + dSGap + finalb.s_dY)) / 2.0
+			yCalendar = rectInside.y + (rectInside.dY - (calb.dY + dSGap + finalb.s_dY)) / 2.0
 		else:
-			yCalendar = (self.rect.dY - calb.dY) / 2.0
+			yCalendar = rectInside.y + (rectInside.dY - calb.dY) / 2.0
 
 		calb.Draw(SPoint(xCalendar, yCalendar))
 
 		if finalb:
-			xFinal = (self.rect.dX - finalb.s_dX) / 2.0
+			xFinal = (rectInside.dX - finalb.s_dX) / 2.0
 			yFinal = yCalendar + calb.dY + dSGap
 
 			finalb.Draw(SPoint(xFinal, yFinal))
@@ -719,6 +831,9 @@ class CPosterPage(CPage): # tag = posterp
 		xGroupsRight = xCalendar + calb.dX + dSGap
 
 		gsetbRight.Draw(SPoint(xGroupsRight, yGroups))
+
+		headerb.Draw(rectHeader.posMin)
+		footerb.Draw(rectFooter.posMin)
 	
 class CDocument: # tag = doc
 	s_pathDirFonts = Path('fonts')
@@ -727,11 +842,13 @@ class CDocument: # tag = doc
 		self.db = CDataBase(pathDb)
 		self.pdf = CPdf()
 
-		self.pdf.AddFont('Consolas',	'',		self.s_pathDirFonts / 'consola.ttf')
-		self.pdf.AddFont('Consolas',	'B',	self.s_pathDirFonts / 'consolab.ttf')
-		self.pdf.AddFont('Calibri',		'',		self.s_pathDirFonts / 'calibri.ttf')
-		self.pdf.AddFont('Calibri',		'B',	self.s_pathDirFonts / 'calibrib.ttf')
-		self.pdf.AddFont('Calibri', 	'I',	self.s_pathDirFonts / 'calibrili.ttf')
+		self.pdf.AddFont('Consolas',		'',		self.s_pathDirFonts / 'consola.ttf')
+		self.pdf.AddFont('Consolas',		'B',	self.s_pathDirFonts / 'consolab.ttf')
+		self.pdf.AddFont('Calibri',			'',		self.s_pathDirFonts / 'calibri.ttf')
+		self.pdf.AddFont('Calibri',			'B',	self.s_pathDirFonts / 'calibrib.ttf')
+		self.pdf.AddFont('Calibri', 		'I',	self.s_pathDirFonts / 'calibrili.ttf')
+
+		self.pdf.AddFont('TradeGothicCn20', 'B',	self.s_pathDirFonts / 'TradeGothicLTStd-BdCn20.otf')
 
 		self.fontkeyGroupName		= SFontKey('Consolas',	'B')
 		self.fontkeyGroupLabel		= SFontKey('Calibri',	'')
@@ -751,12 +868,17 @@ class CDocument: # tag = doc
 		self.fontkeyFinalTitle		= SFontKey('Calibri',	'B')
 		self.fontkeyFinalTime		= SFontKey('Calibri',	'')
 
+		self.fontkeyPageHeaderTitle	= SFontKey('TradeGothicCn20', 'B')
+
 		self.fontkeyCalDayOfWeek	= SFontKey('Calibri',	'I')
 
 		lPage: list[CPage] = [
 			# CGroupsTestPage(self),
 			# CDaysTestPage(self),
-			CPosterPage(self),
+			CPosterPage(self, 'US/Pacific'),
+			CPosterPage(self, 'US/Mountain'),
+			CPosterPage(self, 'US/Central'),
+			CPosterPage(self, 'US/Eastern'),
 		]
 
 		pathOutput = self.db.pathFile.with_suffix('.pdf')

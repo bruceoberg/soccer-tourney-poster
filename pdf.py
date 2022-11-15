@@ -17,11 +17,11 @@ class SFontKey:
 
 class CPdf(fpdf.FPDF):
 	s_mpStrFormatWH: dict[str, tuple[float, float]] ={
-		"a0": (2383.94, 3370.39),
-		"a1": (1683.78, 2383.94),
-		"a2": (1190.55, 1683.78),
-		"a3": (841.89, 1190.55),
-		"a4": (595.28, 841.89),
+		'a0': (2383.94, 3370.39),
+		'a1': (1683.78, 2383.94),
+		'a2': (1190.55, 1683.78),
+		'a3': (841.89, 1190.55),
+		'a4': (595.28, 841.89),
 		# fpdf.PAGE_FORMATS is wrong about a5.
 		# they list the short side as 420.94pt.
 		#	(their long side is correctly listed as 595.28pt)
@@ -33,43 +33,43 @@ class CPdf(fpdf.FPDF):
 		#	the original source was checked added in 2008.
 		# probably doesn't matter, since the conversion rounds
 		#	to the correct size in mm
-		"a5": (419.53, 595.28),
-		"a6": (297.64, 419.53),
-		"a7": (209.76, 297.64),
-		"a8": (147.40, 209.76),
-		"b0": (2834.65, 4008.19),
-		"b1": (2004.09, 2834.65),
-		"b2": (1417.32, 2004.09),
-		"b3": (1000.63, 1417.32),
-		"b4": (708.66, 1000.63),
-		"b5": (498.90, 708.66),
-		"b6": (354.33, 498.90),
-		"b7": (249.45, 354.33),
-		"b8": (175.75, 249.45),
-		"b9": (124.72, 175.75),
-		"b10": (87.87, 124.72),
-		"c2": (1298.27, 1836.85),
-		"c3": (918.43, 1298.27),
-		"c4": (649.13, 918.43),
-		"c5": (459.21, 649.13),
-		"c6": (323.15, 459.21),
-		"d0": (2185.51, 3089.76),
-		"letter": (612.00, 792.00),
-		"legal": (612.00, 1008.00),
-		"ledger": (792.00, 1224.00),
-		"tabloid": (792.00, 1224.00),
-		"executive": (521.86, 756.00),
-		"ansi c": (1224.57, 1584.57),
-		"ansi d": (1584.57, 2449.13),
-		"ansi e": (2449.13, 3169.13),
-		"sra0": (2551.18, 3628.35),
-		"sra1": (1814.17, 2551.18),
-		"sra2": (1275.59, 1814.17),
-		"sra3": (907.09, 1275.59),
-		"sra4": (637.80, 907.09),
-		"ra0": (2437.80, 3458.27),
-		"ra1": (1729.13, 2437.80),
-		"ra2": (1218.90, 1729.13),
+		'a5': (419.53, 595.28),
+		'a6': (297.64, 419.53),
+		'a7': (209.76, 297.64),
+		'a8': (147.40, 209.76),
+		'b0': (2834.65, 4008.19),
+		'b1': (2004.09, 2834.65),
+		'b2': (1417.32, 2004.09),
+		'b3': (1000.63, 1417.32),
+		'b4': (708.66, 1000.63),
+		'b5': (498.90, 708.66),
+		'b6': (354.33, 498.90),
+		'b7': (249.45, 354.33),
+		'b8': (175.75, 249.45),
+		'b9': (124.72, 175.75),
+		'b10': (87.87, 124.72),
+		'c2': (1298.27, 1836.85),
+		'c3': (918.43, 1298.27),
+		'c4': (649.13, 918.43),
+		'c5': (459.21, 649.13),
+		'c6': (323.15, 459.21),
+		'd0': (2185.51, 3089.76),
+		'letter': (612.00, 792.00),
+		'legal': (612.00, 1008.00),
+		'ledger': (792.00, 1224.00),
+		'tabloid': (792.00, 1224.00),
+		'executive': (521.86, 756.00),
+		'ansi c': (1224.57, 1584.57),
+		'ansi d': (1584.57, 2449.13),
+		'ansi e': (2449.13, 3169.13),
+		'sra0': (2551.18, 3628.35),
+		'sra1': (1814.17, 2551.18),
+		'sra2': (1275.59, 1814.17),
+		'sra3': (907.09, 1275.59),
+		'sra4': (637.80, 907.09),
+		'ra0': (2437.80, 3458.27),
+		'ra1': (1729.13, 2437.80),
+		'ra2': (1218.90, 1729.13),
 	}
 
 	def __init__(self):
@@ -112,9 +112,11 @@ class SColor: # tag = color
 def ColorFromStr(strColor: str, alpha: int = 255) -> SColor:
 	return SColor(*fpdf.html.color_as_decimal(strColor), alpha)
 
-colorWhite = ColorFromStr("white")
-colorDarkgrey = ColorFromStr("darkgrey")
-colorBlack = ColorFromStr("black")
+colorWhite = ColorFromStr('white')
+colorGrey = ColorFromStr('grey')
+colorDarkgrey = ColorFromStr('darkgrey')	# NOTE (bruceo) lighter than grey!
+colorDarkSlateGrey = ColorFromStr('darkslategrey')
+colorBlack = ColorFromStr('black')
 
 def ColorResaturate(color: SColor, rS: float = 1.0, dS: float = 0.0, rV: float = 1.0, dV: float = 0.0) -> SColor:
 	h, s, v = colorsys.rgb_to_hsv(color.r / 255.0, color.g / 255.0, color.b / 255.0)
