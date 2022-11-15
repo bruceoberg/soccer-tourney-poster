@@ -80,6 +80,22 @@ class CPdf(fpdf.FPDF):
 	def AddFont(self, strFontkey: str, strStyle: str, path: Path):
 		self.add_font(family=strFontkey, style=strStyle, fname=str(path))
 
+	def TuDxDyFromOrientationFmt(self, strOrientation: str, fmt: Optional[str | tuple[float, float]]) -> tuple[float, float] | None:
+		if fmt is None:
+			return None
+
+		tuDxDyPt: tuple[float, float] = fpdf.fpdf.get_page_format(fmt, self.k)
+		dXPt, dYPt = tuDxDyPt
+
+		# replicating FPDF._set_orientation()
+
+		strOrientation = strOrientation.lower()
+		if strOrientation in ("p", "portrait"):
+			return (dXPt / self.k, dYPt / self.k)
+
+		assert strOrientation in ("l", "landscape")
+		return (dYPt / self.k, dXPt / self.k)
+
 class JH(Enum):
 	Left = auto()
 	Center = auto()

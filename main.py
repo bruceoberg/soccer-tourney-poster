@@ -518,7 +518,17 @@ class CFinalBlot(CBlot): # tag = finalb
 			oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
 
 class CPage:
-	def __init__(self, doc: 'CDocument', strOrientation: str, fmt: str | tuple[int, int], strTz: str = 'US/Pacific'):
+
+	s_dSLineCropMarks = 0.008
+	s_colorCropMarks = colorGrey
+
+	def __init__(
+			self,
+			doc: 'CDocument',
+			strOrientation: str,
+			fmt: str | tuple[float, float],
+			strTz: str = 'US/Pacific',
+			fmtCrop: Optional[str | tuple[float, float]] = None):
 		self.doc = doc
 		self.db = doc.db
 		self.pdf = doc.pdf
@@ -529,6 +539,49 @@ class CPage:
 
 		self.pdf.add_page(orientation=self.strOrientation, format=self.fmt)
 		self.rect = SRect(0, 0, self.pdf.w, self.pdf.h)
+
+		if tuDxDyCrop := self.pdf.TuDxDyFromOrientationFmt(strOrientation, fmtCrop):
+			dX = min(self.rect.dX, tuDxDyCrop[0])
+			dY = min(self.rect.dY, tuDxDyCrop[1])
+			dXCropPerEdge = (self.rect.dX - dX) / 2
+			dYCropPerEdge = (self.rect.dY - dY) / 2
+			dXCropMarkPerEdge = dXCropPerEdge / 2
+			dYCropMarkPerEdge = dYCropPerEdge / 2
+			
+			self.rectInside = self.rect.Copy().Stretch(
+												dXLeft = dXCropPerEdge,
+												dYTop = dYCropPerEdge,
+												dXRight = -dXCropPerEdge,
+												dYBottom = -dYCropPerEdge)
+
+
+			self.rectCropMarks = self.rect.Copy().Stretch(
+													dXLeft = dXCropMarkPerEdge,
+													dYTop = dYCropMarkPerEdge,
+													dXRight = -dXCropMarkPerEdge,
+													dYBottom = -dYCropMarkPerEdge)
+		else:
+			self.rectInside = self.rect
+			self.rectCropMarks = self.rect
+
+	def DrawCropLines(self) -> None:
+		if self.rectInside is self.rect:
+			return
+
+		self.pdf.set_line_width(self.s_dSLineCropMarks)
+		self.pdf.set_draw_color(self.s_colorCropMarks.r, self.s_colorCropMarks.g, self.s_colorCropMarks.b)
+
+		self.pdf.line(self.rect.xMin, 			self.rectInside.yMin,		self.rectCropMarks.xMin,	self.rectInside.yMin) 		# top
+		self.pdf.line(self.rectCropMarks.xMax,	self.rectInside.yMin,		self.rect.xMax,				self.rectInside.yMin)
+
+		self.pdf.line(self.rect.xMin,			self.rectInside.yMax,		self.rectCropMarks.xMin,	self.rectInside.yMax) 		# bottom
+		self.pdf.line(self.rectCropMarks.xMax,	self.rectInside.yMax,		self.rect.xMax,				self.rectInside.yMax)
+
+		self.pdf.line(self.rectInside.xMin,		self.rect.yMin, 			self.rectInside.xMin,		self.rectCropMarks.yMin)	# left
+		self.pdf.line(self.rectInside.xMin,		self.rectCropMarks.yMax,	self.rectInside.xMin,		self.rect.yMax)
+
+		self.pdf.line(self.rectInside.xMax,		self.rect.yMin, 			self.rectInside.xMax,		self.rectCropMarks.yMin)	# right
+		self.pdf.line(self.rectInside.xMax,		self.rectCropMarks.yMax,	self.rectInside.xMax,		self.rect.yMax)
 
 class CGroupsTestPage(CPage): # gtp
 	def __init__(self, doc: 'CDocument'):
@@ -623,11 +676,13 @@ class CHeaderBlot(CBlot): # tag = headerb
 
 	def Draw(self, pos: SPoint) -> None:
 
-		rectAll = SRect(pos.x, pos.y, self.page.rect.dX, self.s_dY)
+		rectAll = SRect(pos.x, pos.y, self.page.rectInside.dX, self.s_dY)
 
-		# fill with black
+		# fill with black, and bleed to crop marks above and to the sides
 
-		self.FillBox(rectAll, colorBlack)
+		rectBox = self.page.rectCropMarks.Copy()
+		rectBox.yMax = rectAll.yMax
+		self.FillBox(rectBox, colorBlack)
 
 		# title
 
@@ -677,11 +732,13 @@ class CFooterBlot(CBlot): # tag = headerb
 
 	def Draw(self, pos: SPoint) -> None:
 
-		rectAll = SRect(pos.x, pos.y, self.page.rect.dX, self.s_dY)
+		rectAll = SRect(pos.x, pos.y, self.page.rectInside.dX, self.s_dY)
 
-		# fill with black
+		# fill with black, and bleed to crop marks below and to the sides
 
-		self.FillBox(rectAll, colorBlack)
+		rectBox = self.page.rectCropMarks.Copy()
+		rectBox.yMin = rectAll.yMin
+		self.FillBox(rectBox, colorBlack)
 
 		# credits
 
@@ -788,8 +845,14 @@ class CCalendarBlot(CBlot): # tag = calb
 		self.DrawBox(rectDays, CDayBlot.s_dSLineOuter, colorBlack)
 
 class CPosterPage(CPage): # tag = posterp
-	def __init__(self, doc: 'CDocument', strTz: str = 'US/Pacific', fmt: str | tuple[int, int] = (18, 27)):
-		super().__init__(doc, 'landscape', fmt, strTz)
+	def __init__(
+			self,
+			doc: 'CDocument',
+			strTz: str = 'US/Pacific',
+			fmt: str | tuple[float, float] = (18, 27),
+			fmtCrop: Optional[str | tuple[float, float]] = None):
+
+		super().__init__(doc, 'landscape', fmt, strTz, fmtCrop)
 
 		lDaybCalendar: list[CDayBlot] = []
 		finalb: Optional[CFinalBlot] = None
@@ -814,12 +877,12 @@ class CPosterPage(CPage): # tag = posterp
 		calb = CCalendarBlot(self, lDaybCalendar)
 
 		headerb = CHeaderBlot(self)
-		rectHeader = self.rect.Copy().Set(dY=headerb.s_dY)
+		rectHeader = self.rectInside.Copy().Set(dY=headerb.s_dY)
 
 		footerb = CFooterBlot(self)
-		rectFooter = self.rect.Copy().Stretch(dYTop = (self.rect.dY - footerb.s_dY))
+		rectFooter = self.rectInside.Copy().Stretch(dYTop = (self.rectInside.dY - footerb.s_dY))
 
-		rectInside = self.rect.Copy()
+		rectInside = self.rectInside.Copy()
 		rectInside.yMin = rectHeader.yMax
 		rectInside.yMax = rectFooter.yMin
 
@@ -857,6 +920,8 @@ class CPosterPage(CPage): # tag = posterp
 
 		headerb.Draw(rectHeader.posMin)
 		footerb.Draw(rectFooter.posMin)
+
+		self.DrawCropLines()
 
 class CDocument: # tag = doc
 	s_pathDirFonts = Path('fonts')
@@ -898,13 +963,13 @@ class CDocument: # tag = doc
 		lPage: list[CPage] = [
 			# CGroupsTestPage(self),
 			# CDaysTestPage(self),
-			CPosterPage(self, 'US/Pacific'),
-			CPosterPage(self, 'US/Mountain'),
-			CPosterPage(self, 'US/Central'),
-			CPosterPage(self, 'US/Eastern'),
-			CPosterPage(self, 'Europe/London', 'b2'),
-			CPosterPage(self, 'Europe/Amsterdam', 'b2'),
-			CPosterPage(self, 'Asia/Tokyo', 'b2'),
+			CPosterPage(self, 'US/Pacific', fmt=(22, 28), fmtCrop=(18, 27)),
+			# CPosterPage(self, 'US/Mountain'),
+			# CPosterPage(self, 'US/Central'),
+			# CPosterPage(self, 'US/Eastern'),
+			# CPosterPage(self, 'Europe/London', 'b2'),
+			# CPosterPage(self, 'Europe/Amsterdam', 'b2'),
+			# CPosterPage(self, 'Asia/Tokyo', 'b2'),
 		]
 
 		pathOutput = self.db.pathFile.with_suffix('.pdf')
