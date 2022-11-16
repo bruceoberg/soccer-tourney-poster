@@ -545,8 +545,7 @@ class CPage:
 			dY = min(self.rect.dY, tuDxDyCrop[1])
 			dXCropPerEdge = (self.rect.dX - dX) / 2
 			dYCropPerEdge = (self.rect.dY - dY) / 2
-			dXCropMarkPerEdge = dXCropPerEdge / 2
-			dYCropMarkPerEdge = dYCropPerEdge / 2
+			dSCropMarkPerEdge = min(dXCropPerEdge / 2, dYCropPerEdge / 2)
 			
 			self.rectInside = self.rect.Copy().Stretch(
 												dXLeft = dXCropPerEdge,
@@ -555,11 +554,7 @@ class CPage:
 												dYBottom = -dYCropPerEdge)
 
 
-			self.rectCropMarks = self.rect.Copy().Stretch(
-													dXLeft = dXCropMarkPerEdge,
-													dYTop = dYCropMarkPerEdge,
-													dXRight = -dXCropMarkPerEdge,
-													dYBottom = -dYCropMarkPerEdge)
+			self.rectCropMarks = self.rectInside.Copy().Outset(dSCropMarkPerEdge)
 		else:
 			self.rectInside = self.rect
 			self.rectCropMarks = self.rect
@@ -899,7 +894,7 @@ class CPosterPage(CPage): # tag = posterp
 		assert gsetbLeft.dY == gsetbRight.dY
 		yGroups = rectInside.y + (rectInside.dY - gsetbLeft.dY) / 2.0
 
-		xGroupsLeft = dXGap
+		xGroupsLeft = rectInside.x + dXGap
 
 		gsetbLeft.Draw(SPoint(xGroupsLeft, yGroups))
 
