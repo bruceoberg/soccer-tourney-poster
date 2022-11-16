@@ -323,7 +323,7 @@ class CDayBlot(CBlot): # tag = dayb
 		self.date = self.tStart.date()
 		for match in self.lMatch[1:]:
 			assert self.date == match.tStart.date()
-		self.dYTime = CFontInstance(self.pdf, self.doc.fontkeyDayTime, self.s_dYFontTime).dYCap
+		self.dYTime = CFontInstance(self.pdf, self.doc.fontkeyMatchTime, self.s_dYFontTime).dYCap
 
 	def Draw(self, pos: SPoint, datePrev: Optional[datetime.date] = None) -> None:
 
@@ -406,7 +406,7 @@ class CFinalBlot(CBlot): # tag = finalb
 	s_dY = CDayBlot.s_dY
 
 	s_dYFontTitle = CDayBlot.s_dYFontLabel * 1.7
-	s_dYFontDate = CDayBlot.s_dYFontLabel * 1.4
+	s_dYFontDate = s_dYFontTitle * 0.66
 	s_dYFontTime = s_dYFontDate
 	s_dYFontForm = s_dYFontDate
 
@@ -446,8 +446,8 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		tStart = self.match.tStart.to(tz.gettz(self.page.strTz))
 		strDate = tStart.format('dddd, MMMM D')
-		rectDate = rectTitle.Copy(dY=self.s_dYFontDate).Shift(dY = rectTitle.dY)
-		oltbDate = self.Oltb(rectDate, self.doc.fontkeyFinalTitle, rectDate.dY)
+		rectDate = rectTitle.Copy(dY = self.s_dYFontDate).Shift(dY = rectTitle.dY + self.s_dYTextGap)
+		oltbDate = self.Oltb(rectDate, self.doc.fontkeyFinalDate, rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack, JH.Center)
 
 		# time
@@ -513,8 +513,8 @@ class CFinalBlot(CBlot): # tag = finalb
 		# form labels
 
 		for xLineFormMin, strLabel in ((xLineFormLeftMin, self.match.strHome), (xLineFormRightMin, self.match.strAway)):
-			rectLabelForm = SRect(xLineFormMin, yLineForm, self.s_dXLineForm, self.s_dYFontForm)
-			oltbLabelForm = self.Oltb(rectLabelForm, self.doc.fontkeyDayFormLabel, self.s_dYFontForm)
+			rectLabelForm = SRect(xLineFormMin, yLineForm + self.s_dYTextGap / 2, self.s_dXLineForm, self.s_dYFontForm)
+			oltbLabelForm = self.Oltb(rectLabelForm, self.doc.fontkeyFinalFormLabel, self.s_dYFontForm)
 			oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
 
 class CPage:
@@ -925,35 +925,60 @@ class CDocument: # tag = doc
 		self.db = CDataBase(pathDb)
 		self.pdf = CPdf()
 
-		self.pdf.AddFont('Consolas',		'',		self.s_pathDirFonts / 'consola.ttf')
-		self.pdf.AddFont('Consolas',		'B',	self.s_pathDirFonts / 'consolab.ttf')
-		self.pdf.AddFont('Calibri',			'',		self.s_pathDirFonts / 'calibri.ttf')
-		self.pdf.AddFont('Calibri',			'B',	self.s_pathDirFonts / 'calibrib.ttf')
-		self.pdf.AddFont('Calibri', 		'I',	self.s_pathDirFonts / 'calibrili.ttf')
+		self.pdf.AddFont('Consolas',			'',		self.s_pathDirFonts / 'consola.ttf')
+		# self.pdf.AddFont('Consolas',			'B',	self.s_pathDirFonts / 'consolab.ttf')
+		# self.pdf.AddFont('Calibri',				'',		self.s_pathDirFonts / 'calibri.ttf')
+		# self.pdf.AddFont('Calibri',				'B',	self.s_pathDirFonts / 'calibrib.ttf')
+		# self.pdf.AddFont('Calibri', 			'I',	self.s_pathDirFonts / 'calibrili.ttf')
 
-		self.pdf.AddFont('TradeGothicCn20', 'B',	self.s_pathDirFonts / 'TradeGothicLTStd-BdCn20.otf')
+		# self.fontkeyGroupName		= SFontKey('Consolas',	'B')
+		# self.fontkeyGroupLabel		= SFontKey('Calibri',	'')
+		# self.fontkeyGroupHeading	= SFontKey('Calibri',	'')
+		# self.fontkeyGroupTeamName	= SFontKey('Calibri',	'')
+		# self.fontkeyGroupTeamAbbrev	= SFontKey('Consolas',	'')
+		# self.fontkeyDayDate			= SFontKey('Calibri',	'I')
+		# self.fontkeyDayTime			= SFontKey('Calibri',	'')
+		# self.fontkeyDayFormLabel	= SFontKey('Calibri',	'')
+		# self.fontkeyMatchTime		= SFontKey('Calibri',	'')
+		# self.fontkeyMatchTeamAbbrev	= SFontKey('Consolas',	'')
+		# self.fontkeyMatchFormLabel	= SFontKey('Calibri',	'')
+		# self.fontkeyMatchLabel		= SFontKey('Calibri',	'B')
+		# self.fontkeyFinalTitle		= SFontKey('Calibri',	'B')
+		# self.fontkeyFinalTime		= SFontKey('Calibri',	'')
+		# self.fontkeyPageHeaderTitle	= SFontKey('TradeGothicCn20', 'B')
+		# self.fontkeyCalDayOfWeek	= SFontKey('Calibri',	'I')
 
-		self.fontkeyGroupName		= SFontKey('Consolas',	'B')
-		self.fontkeyGroupLabel		= SFontKey('Calibri',	'')
-		self.fontkeyGroupHeading	= SFontKey('Calibri',	'')
-		self.fontkeyGroupTeamName	= SFontKey('Calibri',	'')
-		self.fontkeyGroupTeamAbbrev	= SFontKey('Consolas',	'')
+		self.pdf.AddFont('TradeGothic', 		'',		self.s_pathDirFonts / 'TradeGothicLTStd.otf')
+		self.pdf.AddFont('TradeGothic',			'B',	self.s_pathDirFonts / 'TradeGothicLTStd-Bold.otf')
+		self.pdf.AddFont('TradeGothicLight',	'',		self.s_pathDirFonts / 'TradeGothicLTStd-Light.otf')
+		self.pdf.AddFont('TradeGothicLight',	'I',	self.s_pathDirFonts / 'TradeGothicLTStd-LightObl.otf')
+		self.pdf.AddFont('TradeGothicCn18', 	'',		self.s_pathDirFonts / 'TradeGothicLTStd-Cn18.otf')
+		self.pdf.AddFont('TradeGothicCn20', 	'B',	self.s_pathDirFonts / 'TradeGothicLTStd-BdCn20.otf')
+		self.pdf.AddFont('TradeGothicExtended',	'',		self.s_pathDirFonts / 'TradeGothicLTStd-Extended.otf')
+		self.pdf.AddFont('TradeGothicExtended',	'B',	self.s_pathDirFonts / 'TradeGothicLTStd-BoldExt.otf')
+		self.pdf.AddFont('TradeGothicBd2',		'B',	self.s_pathDirFonts / 'TradeGothicLTStd-Bd2.otf')
 
-		self.fontkeyDayDate			= SFontKey('Calibri',	'I')
-		self.fontkeyDayTime			= SFontKey('Calibri',	'')
-		self.fontkeyDayFormLabel	= SFontKey('Calibri',	'')
+		self.fontkeyGroupName		= SFontKey('Consolas',				'')
+		self.fontkeyGroupLabel		= SFontKey('TradeGothic',			'')
+		self.fontkeyGroupHeading	= SFontKey('TradeGothicCn18',		'')
+		self.fontkeyGroupTeamName	= SFontKey('TradeGothicCn18',		'')
+		self.fontkeyGroupTeamAbbrev	= SFontKey('Consolas',				'')
 
-		self.fontkeyMatchTime		= SFontKey('Calibri',	'')
-		self.fontkeyMatchTeamAbbrev	= SFontKey('Consolas',	'')
-		self.fontkeyMatchFormLabel	= SFontKey('Calibri',	'')
-		self.fontkeyMatchLabel		= SFontKey('Calibri',	'B')
+		self.fontkeyDayDate			= SFontKey('TradeGothicLight',		'I')
 
-		self.fontkeyFinalTitle		= SFontKey('Calibri',	'B')
-		self.fontkeyFinalTime		= SFontKey('Calibri',	'')
+		self.fontkeyMatchTime		= SFontKey('TradeGothicLight',		'')
+		self.fontkeyMatchTeamAbbrev	= SFontKey('Consolas',				'')
+		self.fontkeyMatchFormLabel	= SFontKey('TradeGothicLight',		'')
+		self.fontkeyMatchLabel		= SFontKey('TradeGothic',			'B')
 
-		self.fontkeyPageHeaderTitle	= SFontKey('TradeGothicCn20', 'B')
+		self.fontkeyFinalTitle		= SFontKey('TradeGothicBd2',		'B')
+		self.fontkeyFinalDate		= SFontKey('TradeGothicBd2',		'B')
+		self.fontkeyFinalTime		= SFontKey('TradeGothicLight',		'')
+		self.fontkeyFinalFormLabel	= SFontKey('TradeGothicLight',		'')
 
-		self.fontkeyCalDayOfWeek	= SFontKey('Calibri',	'I')
+		self.fontkeyPageHeaderTitle	= SFontKey('TradeGothicCn20',		'B')
+
+		self.fontkeyCalDayOfWeek	= SFontKey('TradeGothicLight',		'I')
 
 		lPage: list[CPage] = [
 			# CGroupsTestPage(self),
