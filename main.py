@@ -482,17 +482,8 @@ class CElimBlot(CDayBlot): # tag = elimb
 		# draw border last to cover any alignment weirdness
 
 		if self.page.pagea.fMainBorders and self.page.pagea.fEliminationBorders:
-		    # "darkslategray": "#2f4f4f", (47)
-			# "lightgrey": "#d3d3d3", (211)
-			# (211 - 47) / 3 = 41
-			mpStageColorBorder: dict[STAGE, SColor] = {
-				STAGE.Round1: ColorFromStr("#585858"),		# 47 + 41 = 88 (0x58)
-				STAGE.Quarters: ColorFromStr("#818181"),	# 88 + 41 = 129 (0x81)
-				STAGE.Semis: ColorFromStr("#aaaaaa"),		# 129 + 41 = 170 (0xaa)
-			}
-
 			try:
-				colorBorder = mpStageColorBorder[matchb.match.stage]
+				colorBorder = self.page.mpStageColorBorder[matchb.match.stage]
 			except KeyError:
 				pass
 			else:
@@ -663,6 +654,16 @@ class CPage:
 		else:
 			self.rectInside = self.rect
 			self.rectCropMarks = self.rect
+
+		# "darkslategray": "#2f4f4f", (47)
+		# "lightgrey": "#d3d3d3", (211)
+		# (211 - 47) / 3 = 41
+		
+		self.mpStageColorBorder: dict[STAGE, SColor] = {
+			STAGE.Round1: ColorFromStr("#585858"),		# 47 + 41 = 88 (0x58)
+			STAGE.Quarters: ColorFromStr("#818181"),	# 88 + 41 = 129 (0x81)
+			STAGE.Semis: ColorFromStr("#aaaaaa"),		# 129 + 41 = 170 (0xaa)
+		}
 
 	def DrawCropLines(self) -> None:
 		if self.rectInside is self.rect:
@@ -967,7 +968,7 @@ class CCalendarBlot(CBlot): # tag = calb
 		xRightMax = rectTitleText.xMax
 
 		self.pdf.set_line_width(CGroupBlot.s_dSLineStats)
-		self.pdf.set_draw_color(colorLightGrey.r, colorLightGrey.g, colorLightGrey.b)
+		self.pdf.set_draw_color(0) # black
 
 		self.pdf.line(xLeftMin, yTitleTextMiddle, xLeftMax, yTitleTextMiddle)
 		self.pdf.line(xRightMin, yTitleTextMiddle, xRightMax, yTitleTextMiddle)
@@ -1099,7 +1100,11 @@ class CBracketBlot(CBlot): # tag = bracketb
 			oltbStageText = self.Oltb(rectStageText, self.doc.fontkeyElimStage, rectStageText.dY)
 			rectStageTextDrawn = oltbStageText.RectDrawText(strStage.upper(), colorLightGrey, JH.Center)
 
-			if stage != STAGE.Third:
+			try:
+				colorBorder = self.page.mpStageColorBorder[stage]
+			except KeyError:
+				pass
+			else:
 
 				yStageTextMiddle = rectStageTextDrawn.yMin + rectStageTextDrawn.dY / 2 # middle of text
 				dSStageGap = (rectStageGlobal.yMin - yStageTextMiddle) / 2
@@ -1111,7 +1116,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 				xRightMax = rectStageText.xMax - (CElimBlot.s_dX / 2)
 
 				self.pdf.set_line_width(CGroupBlot.s_dSLineStats)
-				self.pdf.set_draw_color(colorLightGrey.r, colorLightGrey.g, colorLightGrey.b)
+				self.pdf.set_draw_color(colorBorder.r, colorBorder.g, colorBorder.b)
 
 				self.pdf.line(xLeftMin, yStageTextMiddle, xLeftMax, yStageTextMiddle)
 				self.pdf.line(xRightMin, yStageTextMiddle, xRightMax, yStageTextMiddle)
