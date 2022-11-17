@@ -267,13 +267,16 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			# form labels
 
-			for xLineFormMin, strLabel in ((xLineFormLeftMin, self.match.strHome), (xLineFormRightMin, self.match.strAway)):
-				rectLabelForm = SRect(xLineFormMin, yLineForm, self.dayb.s_dXLineForm, self.dayb.s_dYFontForm)
-				oltbLabelForm = self.Oltb(rectLabelForm, self.doc.fontkeyMatchFormLabel, self.dayb.s_dYFontForm)
-				oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
+			if self.dayb.page.pagea.fMatchNumbers or self.match.stage == STAGE.Round1:
 
-			if self.match.stage not in (STAGE.Third, STAGE.Final):
-				# match label
+				for xLineFormMin, strLabel in ((xLineFormLeftMin, self.match.strHome), (xLineFormRightMin, self.match.strAway)):
+					rectLabelForm = SRect(xLineFormMin, yLineForm, self.dayb.s_dXLineForm, self.dayb.s_dYFontForm)
+					oltbLabelForm = self.Oltb(rectLabelForm, self.doc.fontkeyMatchFormLabel, self.dayb.s_dYFontForm)
+					oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
+
+			# match label
+
+			if self.dayb.page.pagea.fMatchNumbers:
 
 				if isinstance(self.dayb, CElimBlot):
 					fontkeyLabel = self.doc.fontkeyElimLabel
@@ -455,8 +458,12 @@ class CElimBlot(CDayBlot): # tag = elimb
 		# tweak match positioning to account for our date on top
 
 		dYAdjust = self.s_dYDate / 2
+
+		if not self.page.pagea.fMatchNumbers:
+			dYAdjust += self.s_dYFontLabel / 2
+
 		matchb.dYOuterGap += dYAdjust
-		matchb.dYTimeAndGap += dYAdjust
+		matchb.dYTimeAndGap += dYAdjust / 2
 
 		matchb.DrawFill()
 
@@ -617,6 +624,7 @@ class SPageArgs: # tag - pagea
 	fmtCrop: Optional[str | tuple[float, float]] = (18, 27)
 	fMainBorders: bool = True
 	fEliminationBorders: bool = False
+	fMatchNumbers: bool = True
 
 class CPage:
 
@@ -1328,8 +1336,9 @@ class CDocument: # tag = doc
 		lPage: list[CPage] = [
 			# CGroupsTestPage(self),
 			# CDaysTestPage(self),
-			CHybridPage(self, strTz='US/Pacific', fMainBorders = False),
-			CHybridPage(self, strTz='US/Pacific', fEliminationBorders = True),
+			#CHybridPage(self, strTz='US/Pacific', fMainBorders = False),
+			CHybridPage(self, strTz='US/Pacific', fEliminationBorders = True, fMatchNumbers = True),
+			CHybridPage(self, strTz='US/Pacific', fEliminationBorders = True, fMatchNumbers = False),
 			# CPosterPage(self, strTz='US/Pacific'),
 			# CPosterPage(self, strTz='US/Mountain'),
 			# CPosterPage(self, strTz='US/Central'),
