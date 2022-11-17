@@ -267,8 +267,13 @@ class CMatchBlot(CBlot): # tag = dayb
 			if self.match.stage not in (STAGE.Third, STAGE.Final):
 				# match label
 
+				if isinstance(self.dayb, CElimBlot):
+					fontkeyLabel = self.doc.fontkeyElimLabel
+				else:
+					fontkeyLabel = self.doc.fontkeyMatchLabel
+
 				rectLabel = self.rect.Copy(y=rectHomePens.yMax, dY=self.dayb.s_dYFontLabel + self.dayb.s_dYTimeGapMax)
-				oltbLabel = self.Oltb(rectLabel, self.doc.fontkeyMatchLabel, self.dayb.s_dYFontLabel)
+				oltbLabel = self.Oltb(rectLabel, fontkeyLabel, self.dayb.s_dYFontLabel)
 				oltbLabel.DrawText(self.match.strName, colorBlack, JH.Center)
 
 		else:
@@ -1239,6 +1244,9 @@ class CDocument: # tag = doc
 			self.fontkeyMatchTeamAbbrev	= SFontKey('Consolas',	'')
 			self.fontkeyMatchFormLabel	= SFontKey('Calibri',	'')
 			self.fontkeyMatchLabel		= SFontKey('Calibri',	'B')
+			self.fontkeyElimDate		= SFontKey('Calibri',	'')
+			self.fontkeyElimStage		= SFontKey('Calibri',	'B')
+			self.fontkeyElimLabel		= SFontKey('Calibri',	'')
 			self.fontkeyFinalTitle		= SFontKey('Calibri',	'B')
 			self.fontkeyFinalDate		= SFontKey('Calibri',	'B')
 			self.fontkeyFinalTime		= SFontKey('Calibri',	'')
@@ -1272,6 +1280,7 @@ class CDocument: # tag = doc
 
 			self.fontkeyElimDate		= SFontKey('TradeGothic',			'')
 			self.fontkeyElimStage		= SFontKey('TradeGothicBd2',		'B')
+			self.fontkeyElimLabel		= SFontKey('TradeGothic',			'')
 
 			self.fontkeyFinalTitle		= SFontKey('TradeGothicBd2',		'B')
 			self.fontkeyFinalDate		= SFontKey('TradeGothicBd2',		'B')
