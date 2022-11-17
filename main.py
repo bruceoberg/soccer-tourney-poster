@@ -759,7 +759,7 @@ class CHeaderBlot(CBlot): # tag = headerb
 			strDateFmt = 'MMM D YYYY'
 		else:
 			strDateFmt = 'MMM D'
-		strDates = (tMin.format(strDateFmt) + ' - ' + tMax.format(strDateFmt)).upper()
+		strDates = (f'{tMin.format(strDateFmt)} \u2013 {tMax.format(strDateFmt)}, Qatar').upper()
 		oltbDates = self.Oltb(rectDate, self.doc.fontkeyPageHeaderTitle, self.s_dYFontSides, dSMargin = dSMarginSides)
 		oltbDates.DrawText(strDates, colorWhite, JH.Left, JV.Bottom)
 
@@ -963,17 +963,23 @@ class CBracketBlot(CBlot): # tag = bracketb
 		mpColX: dict[int, float] = {col : col * dXGrid for col in range(self.cCol)}
 
 		mpStageRowY: dict[tuple[STAGE, int], float] = {}
+		yElimbGridMax = (self.dY - CElimBlot.s_dY) / 2
+		dYElimbGridPerStage = yElimbGridMax / (len(lStage) - 1)
 
-		for stage, cRowStage in mpStageCRow.items():
+		for iStage, (stage, cRowStage) in enumerate(mpStageCRow.items()):
 			if cRowStage >= self.cRow:
 				dYStageMin = 0
 				dYGridStage = dYGrid
 			else:
-				dYGridBlots = cRowStage * CElimBlot.s_dY
-				dYGridUnused = self.dY - dYGridBlots
-				dYMarginGap = dYGridUnused / (cRowStage + 1)
-				dYStageMin = dYMarginGap
-				dYGridStage = dYMarginGap + CElimBlot.s_dY
+				dYStageMin = iStage * dYElimbGridPerStage
+
+				if cRowStage > 1:
+					dYGridBlots = cRowStage * CElimBlot.s_dY
+					dYGridUnused = self.dY - (dYGridBlots + 2 * dYStageMin)
+					dYMarginGap = dYGridUnused / (cRowStage - 1)
+					dYGridStage = dYMarginGap + CElimBlot.s_dY
+				else:
+					dYGridStage = 0
 
 			for row in range(cRowStage):
 				mpStageRowY[(stage, row)] = dYStageMin + row * dYGridStage
