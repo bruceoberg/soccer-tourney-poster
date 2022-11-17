@@ -60,6 +60,7 @@ class CMatch:
 	s_patNumAlpha = re.compile('([0-9]+)([a-zA-Z]+)')
 
 	def __init__(self, db: 'CDataBase', xlrow: TExcelRow) -> None:
+		self.db = db
 		self.id = int(xlrow['match'])
 		self.strName: str = '#' + str(xlrow['match'])
 		self.venue: CVenue = db.mpIdVenue[int(xlrow['venue'])]
@@ -123,7 +124,8 @@ class CMatch:
 			self.lStrGroup = lStrGroup
 		elif stagePrev > STAGE.Round1:
 			assert not self.lStrGroup
-			self.lStrGroup = lStrGroup
+			# revert sorting if we have everything
+			self.lStrGroup = lStrGroup if len(lStrGroup) < len(self.db.lStrGroup) else self.db.lStrGroup
 
 		self.stage = stage
 

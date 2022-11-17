@@ -1113,8 +1113,8 @@ class CDocument: # tag = doc
 		lPage: list[CPage] = [
 			# CGroupsTestPage(self),
 			# CDaysTestPage(self),
-			# CHybridPage(self, 'US/Pacific', fmt=(22, 28), fmtCrop=(18, 27)),
-			CPosterPage(self, 'US/Pacific', fmt=(22, 28), fmtCrop=(18, 27)),
+			CHybridPage(self, 'US/Pacific', fmt=(22, 28), fmtCrop=(18, 27)),
+			# CPosterPage(self, 'US/Pacific', fmt=(22, 28), fmtCrop=(18, 27)),
 			# CPosterPage(self, 'US/Mountain'),
 			# CPosterPage(self, 'US/Central'),
 			# CPosterPage(self, 'US/Eastern'),
