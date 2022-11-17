@@ -1,4 +1,5 @@
 import arrow
+import copy
 import datetime
 import openpyxl
 import re
@@ -245,8 +246,8 @@ class CDataBase:
 	def SetMatchLeft(self) -> set[CMatch]:
 		""" return matches that are on the left side of the elimination bracket. """
 
-		setIdLeft: set[int] = set()
-		setIdVisit: set[int] = set(self.matchFinal.lIdFeeders[:1])
+		setIdLeft: set[int] = set(self.matchFinal.lIdFeeders[:1])
+		setIdVisit: set[int] = copy.copy(setIdLeft)
 
 		while setIdVisit:
 			match = self.mpIdMatch[setIdVisit.pop()]
