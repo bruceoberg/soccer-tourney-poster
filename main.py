@@ -146,6 +146,10 @@ class CMatchBlot(CBlot): # tag = dayb
 		self.dYTimeAndGap = self.dayb.dYTime + dYTimeGap
 
 	def DrawFill(self) -> None:
+
+		if self.match.stage in (STAGE.Third, STAGE.Final):
+			return
+
 		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else self.db.lStrGroup
 		lGroup = [self.db.mpStrGroupGroup[strGroup] for strGroup in lStrGroup]
 		if self.match.stage == STAGE.Group:
@@ -256,11 +260,12 @@ class CMatchBlot(CBlot): # tag = dayb
 				oltbLabelForm = self.Oltb(rectLabelForm, self.doc.fontkeyMatchFormLabel, self.dayb.s_dYFontForm)
 				oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
 
-			# match label
+			if self.match.stage not in (STAGE.Third, STAGE.Final):
+				# match label
 
-			rectLabel = self.rect.Copy(y=rectHomePens.yMax, dY=self.dayb.s_dYFontLabel + self.dayb.s_dYTimeGapMax)
-			oltbLabel = self.Oltb(rectLabel, self.doc.fontkeyMatchLabel, self.dayb.s_dYFontLabel)
-			oltbLabel.DrawText(self.match.strName, colorBlack, JH.Center)
+				rectLabel = self.rect.Copy(y=rectHomePens.yMax, dY=self.dayb.s_dYFontLabel + self.dayb.s_dYTimeGapMax)
+				oltbLabel = self.Oltb(rectLabel, self.doc.fontkeyMatchLabel, self.dayb.s_dYFontLabel)
+				oltbLabel.DrawText(self.match.strName, colorBlack, JH.Center)
 
 		else:
 
@@ -400,6 +405,53 @@ class CDayBlot(CBlot): # tag = dayb
 		# draw border last to cover any alignment weirdness
 
 		self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
+
+class CElimBlot(CDayBlot): # tag = elimb
+
+	s_dY = (CDayBlot.s_dY / 2) + (CDayBlot.s_dYTimeGapMax * 2)
+
+	s_dYDate = CDayBlot.s_dYFontTime
+
+	def __init__(self, page: 'CPage', match: CMatch) -> None:
+		self.page = page
+		self.doc = page.doc
+		self.pdf = page.doc.pdf
+		self.db = page.doc.db
+		self.strTz = page.strTz
+
+		super().__init__(page, set([match]))
+
+		self.stage = match.stage
+		assert len(self.lMatch) == 1
+		self.match = self.lMatch[0]
+
+	def Draw(self, pos: SPoint) -> None:
+
+		rectAll = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
+
+		# lay out match in our rect
+
+		matchb = CMatchBlot(self, self.match, rectAll)
+
+		# tweak match positioning to account for our date on top
+
+		dYAdjust = self.s_dYDate / 2
+		matchb.dYOuterGap += dYAdjust
+		matchb.dYTimeAndGap += dYAdjust
+
+		matchb.DrawFill()
+
+		# Date
+
+		strFormat = "ddd, MMM D"
+		strDate = self.tStart.format(strFormat)
+		rectDate = rectAll.Copy(dY = self.s_dYDate).Shift(dY = (matchb.dYOuterGap - self.s_dYDate) / 2)
+		oltbDate = self.Oltb(rectDate, self.doc.fontkeyElimDate, rectDate.dY)
+		oltbDate.DrawText(strDate, colorBlack, JH.Center)
+
+		# info
+
+		matchb.DrawInfo()
 
 class CFinalBlot(CBlot): # tag = finalb
 
@@ -845,12 +897,8 @@ class CCalendarBlot(CBlot): # tag = calb
 
 class CBracketBlot(CBlot): # tag = bracketb
 
-	s_dYDayOfWeek = CDayBlot.s_dYDate * 2
-
-	s_dYDayb = CDayBlot.s_dY
-
-	s_dXStageGap = CDayBlot.s_dX / 8
-	s_dYStageGap = CDayBlot.s_dY / 8
+	s_dXStageGap = CElimBlot.s_dX / 8
+	s_dYStageGap = CElimBlot.s_dY / 8
 
 	def __init__(self, page: 'CPage', setMatch: set[CMatch]) -> None:
 		self.page = page
@@ -861,11 +909,35 @@ class CBracketBlot(CBlot): # tag = bracketb
 		super().__init__(self.pdf)
 
 		lStage: list[STAGE] = list(sorted(set([match.stage for match in setMatch])))
+		mpStageCRow: dict[STAGE, int] = {stage:len(self.db.mpStageSetMatch[stage].intersection(setMatch)) // 2 for stage in lStage}
 
-		self.cCol: int = (len(lStage) * 2)
-		self.cRow: int = max([len(self.db.mpStageSetMatch[stage]) for stage in lStage]) // 4
+		self.cCol: int = len(lStage) * 2
+		self.cRow: int = max(mpStageCRow.values())
 
-		self.mpRowColDayb: dict[tuple[int, int], CDayBlot] = {}
+		self.dX = self.cCol * CElimBlot.s_dX + (self.cCol - 1) * self.s_dXStageGap
+		self.dY = self.cRow * CElimBlot.s_dY + (self.cRow - 1) * self.s_dYStageGap
+
+		# figure out offsets for bracket layout
+
+		dXGrid = CElimBlot.s_dX + self.s_dXStageGap
+		dYGrid = CElimBlot.s_dY + self.s_dYStageGap
+
+		mpColX: dict[int, float] = {col : col * dXGrid for col in range(self.cCol)}
+
+		mpStageRowY: dict[tuple[STAGE, int], float] = {}
+
+		for stage, cRowStage in mpStageCRow.items():
+			dYGridStage = dYGrid * (self.cRow / cRowStage)
+			dYGridGap = dYGridStage - CElimBlot.s_dY
+			dYGappedRows = (cRowStage * CElimBlot.s_dY) + ((cRowStage - 1) * dYGridGap)
+			dYStageMin = (self.dY - dYGappedRows) / 2
+
+			for row in range(cRowStage):
+				mpStageRowY[(stage, row)] = dYStageMin + row * dYGridStage
+
+		# allot blots to rows and columns
+
+		self.lTuXYElimb: list[tuple[float, float, CElimBlot]] = []
 
 		for colLeft, stage in enumerate(lStage):
 			setMatch = self.db.mpStageSetMatch[stage]
@@ -873,23 +945,25 @@ class CBracketBlot(CBlot): # tag = bracketb
 			setMatchRight = setMatch - setMatchLeft
 			tuTuColSetMatchCol = ((colLeft, setMatchLeft), (self.cCol-(1+colLeft), setMatchRight))
 			for col, setMatchCol in tuTuColSetMatchCol:
-				setDateCol = set([matchCol.tStart.date() for matchCol in setMatchCol])
-				for row, date in enumerate(sorted(setDateCol)):
-					setMatchDate = self.db.mpDateSetMatch[date].intersection(setMatchCol)
-					self.mpRowColDayb[(row, col)] = CDayBlot(self.page, setMatchDate)
+				x = mpColX[col]
+				for row, matchCol in enumerate(sorted(setMatchCol, key=lambda match: match.id)):
+					y = mpStageRowY[(stage, row)]
+					self.lTuXYElimb.append((x, y, CElimBlot(self.page, matchCol)))
 
-		self.dX = self.cCol * CDayBlot.s_dX + (self.cCol - 1) * self.s_dXStageGap
-		self.dY = self.cRow * self.s_dYDayb + (self.cRow - 1) * self.s_dYStageGap
+		elimbThird = CElimBlot(self.page, self.db.matchThird)
+
+		xThird = (self.dX - elimbThird.s_dX) / 2
+		yThird = (self.dY - elimbThird.s_dY)
+
+		self.lTuXYElimb.append((xThird, yThird, elimbThird))
 
 	def Draw(self, pos: SPoint) -> None:
 
-		for (row, col), dayb in self.mpRowColDayb.items():
+		for x, y, elimb in self.lTuXYElimb:
 
-			posDayb = SPoint(pos.x, pos.y)
-			posDayb.Shift(dX=col * (CDayBlot.s_dX + self.s_dXStageGap))
-			posDayb.Shift(dY=row * (self.s_dYDayb + self.s_dYStageGap))
+			posDayb = SPoint(pos.x + x, pos.y + y)
 
-			dayb.Draw(posDayb)
+			elimb.Draw(posDayb)
 
 class CPosterPage(CPage): # tag = posterp
 	def __init__(
@@ -1100,6 +1174,8 @@ class CDocument: # tag = doc
 			self.fontkeyMatchTeamAbbrev	= SFontKey('Consolas',				'')
 			self.fontkeyMatchFormLabel	= SFontKey('TradeGothicLight',		'')
 			self.fontkeyMatchLabel		= SFontKey('TradeGothic',			'B')
+
+			self.fontkeyElimDate		= SFontKey('TradeGothic',			'')
 
 			self.fontkeyFinalTitle		= SFontKey('TradeGothicBd2',		'B')
 			self.fontkeyFinalDate		= SFontKey('TradeGothicBd2',		'B')
