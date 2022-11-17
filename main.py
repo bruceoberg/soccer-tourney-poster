@@ -93,11 +93,13 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		# dividers for team/points/gf/ga
 
-		dXStats = (rectInside.dX - rectTeam.dX) / 3.0
+		dXRank = (rectInside.dX - rectTeam.dX) / 7.0
+		dXStats = dXRank * 2
 
 		rectPoints = rectHeading.Copy(x=rectTeam.xMax, dX=dXStats)
 		rectGoalsFor = rectHeading.Copy(x=rectPoints.xMax, dX=dXStats)
 		rectGoalsAgainst = rectHeading.Copy(x=rectGoalsFor.xMax, dX=dXStats)
+		rectRank = rectHeading.Copy(x=rectGoalsAgainst.xMax, dX=dXRank)
 
 		self.pdf.set_line_width(self.s_dSLineStats)
 		self.pdf.set_draw_color(0) # black
@@ -105,6 +107,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		self.pdf.line(rectPoints.xMin, rectHeading.yMax, rectPoints.xMin, rectInside.yMax)
 		self.pdf.line(rectGoalsFor.xMin, rectHeading.yMax, rectGoalsFor.xMin, rectInside.yMax)
 		self.pdf.line(rectGoalsAgainst.xMin, rectHeading.yMax, rectGoalsAgainst.xMin, rectInside.yMax)
+		self.pdf.line(rectRank.xMin, rectHeading.yMax, rectRank.xMin, rectInside.yMax)
 
 		# heading labels
 
@@ -113,6 +116,7 @@ class CGroupBlot(CBlot): # tag = groupb
 			(rectPoints,		"PTS"),
 			(rectGoalsFor,		"GF"),
 			(rectGoalsAgainst,	"GA"),
+			(rectRank,			"\u00bb"), # RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
 		)
 
 		for rectHeading, strHeading in lTuRectStr:
