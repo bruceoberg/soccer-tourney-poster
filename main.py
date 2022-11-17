@@ -423,7 +423,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 	s_dXLineForm = s_dSScore * 4
 
-	def __init__(self, page: 'CPage', match: CMatch) -> None:
+	def __init__(self, page: 'CPage') -> None:
 		self.page = page
 		self.doc = page.doc
 		self.pdf = page.doc.pdf
@@ -431,7 +431,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		super().__init__(self.pdf)
 
-		self.match = match
+		self.match = self.db.matchFinal
 
 	def Draw(self, pos: SPoint, datePrev: Optional[datetime.date] = None) -> None:
 
@@ -763,7 +763,7 @@ class CCalendarBlot(CBlot): # tag = calb
 
 	s_dYDayOfWeek = CDayBlot.s_dYDate * 2
 
-	def __init__(self, page: 'CPage', lDayb: list[CDayBlot]) -> None:
+	def __init__(self, page: 'CPage', setMatch: set[CMatch]) -> None:
 		self.page = page
 		self.doc = page.doc
 		self.pdf = page.doc.pdf
@@ -771,9 +771,10 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		super().__init__(self.pdf)
 
-		mpDateDayb: dict[datetime.date, CDayBlot] = {dayb.date:dayb for dayb in lDayb}
-		dateMin: datetime.date = min(mpDateDayb)
-		dateMax: datetime.date = max(mpDateDayb)
+		setDate: set[datetime.date] = {match.tStart.date() for match in setMatch}
+
+		dateMin: datetime.date = min(setDate)
+		dateMax: datetime.date = max(setDate)
 
 		# ensure dateMin is a sunday for proper week calculations
 
@@ -801,9 +802,11 @@ class CCalendarBlot(CBlot): # tag = calb
 			date = tDay.date()
 
 			try:
-				dayb = mpDateDayb[date]
+				setMatch = self.db.mpDateSetMatch[date]
 			except KeyError:
 				dayb = CDayBlot(self.page, date=date)
+			else:
+				dayb = CDayBlot(self.page, setMatch)
 
 			iDay = (date.weekday() + 1) % 7 # we want sunday as 0
 			iWeek = (date - dateMin).days // 7
@@ -840,6 +843,52 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		self.DrawBox(rectDays, CDayBlot.s_dSLineOuter, colorBlack)
 
+class CBracketBlot(CBlot): # tag = bracketb
+
+	s_dYDayOfWeek = CDayBlot.s_dYDate * 2
+
+	s_dYDayb = CDayBlot.s_dY / 2
+
+	s_dXStageGap = CDayBlot.s_dX / 8
+	s_dYStageGap = CDayBlot.s_dY / 8
+
+	def __init__(self, page: 'CPage', setMatch: set[CMatch]) -> None:
+		self.page = page
+		self.doc = page.doc
+		self.pdf = page.doc.pdf
+		self.db = page.doc.db
+
+		super().__init__(self.pdf)
+
+		lStage: list[STAGE] = list(sorted([match.stage for match in setMatch]))
+
+		self.cCol = (len(lStage) * 2) - 1
+		self.cRow = max([len(self.db.mpStageSetMatch[stage]) for stage in lStage]) // 2
+
+		self.mpRowColDayb: dict[tuple[int, int], CDayBlot]
+
+		for colLeft, stage in enumerate(lStage):
+			setMatch = self.db.mpStageSetMatch[stage]
+			setMatchLeft = setMatch.intersection(self.db.setMatchLeft)
+			setMatchRight = setMatch - setMatchLeft
+			tuTuColSetMatchCol = ((colLeft, setMatchLeft), (self.cCol-(1+colLeft), setMatchRight))
+			for col, setMatchCol in tuTuColSetMatchCol:
+				for row, match in enumerate(sorted(setMatchCol, key = lambda match: match.tStart)):
+					self.mpRowColDayb[(row, col)] = CDayBlot(self.page, set([match]))
+
+		self.dX = self.cCol * CDayBlot.s_dX + (self.cCol - 1) * self.s_dXStageGap
+		self.dY = self.cRow * self.s_dYDayb + (self.cRow - 1) * self.s_dYStageGap
+
+	def Draw(self, pos: SPoint) -> None:
+
+		for (row, col), dayb in self.mpRowColDayb.items():
+
+			posDayb = SPoint(pos.x, pos.y)
+			posDayb.Shift(dX=col * (CDayBlot.s_dX + self.s_dXStageGap))
+			posDayb.Shift(dY=row * (self.s_dYDayb + self.s_dYStageGap))
+
+			dayb.Draw(posDayb)
+
 class CPosterPage(CPage): # tag = posterp
 	def __init__(
 			self,
@@ -850,18 +899,6 @@ class CPosterPage(CPage): # tag = posterp
 
 		super().__init__(doc, 'landscape', fmt, strTz, fmtCrop)
 
-		lDaybCalendar: list[CDayBlot] = []
-		finalb: Optional[CFinalBlot] = None
-
-		for setMatch in self.db.mpDateSetMatch.values():
-			if len(setMatch) == 1:
-				match = next(iter(setMatch))
-				if match.stage == STAGE.Final:
-					finalb = CFinalBlot(self, match)
-					continue
-
-			lDaybCalendar.append(CDayBlot(self, setMatch))
-
 		cGroupHalf = len(self.db.lStrGroup) // 2
 
 		lGroupbLeft = [CGroupBlot(doc, self.db.mpStrGroupGroup[strGroup]) for strGroup in self.db.lStrGroup[:cGroupHalf]]
@@ -870,7 +907,8 @@ class CPosterPage(CPage): # tag = posterp
 		lGroupbRight = [CGroupBlot(doc, self.db.mpStrGroupGroup[strGroup]) for strGroup in self.db.lStrGroup[cGroupHalf:]]
 		gsetbRight = CGroupSetBlot(doc, lGroupbRight, cCol = 1)
 
-		calb = CCalendarBlot(self, lDaybCalendar)
+		calb = CCalendarBlot(self, self.db.setMatchGroup | self.db.setMatchElimination)
+		finalb = CFinalBlot(self)
 
 		headerb = CHeaderBlot(self)
 		rectHeader = self.rectInside.Copy().Set(dY=headerb.s_dY)
@@ -907,6 +945,87 @@ class CPosterPage(CPage): # tag = posterp
 		if finalb:
 			xFinal = (rectInside.dX - finalb.s_dX) / 2.0
 			yFinal = yCalendar + calb.dY + dYGap
+
+			finalb.Draw(SPoint(xFinal, yFinal))
+
+		xGroupsRight = xCalendar + calb.dX + dXGap
+
+		gsetbRight.Draw(SPoint(xGroupsRight, yGroups))
+
+		headerb.Draw(rectHeader.posMin)
+		footerb.Draw(rectFooter.posMin)
+
+		self.DrawCropLines()
+
+class CHybridPage(CPage): # tag = hybridp
+	def __init__(
+			self,
+			doc: 'CDocument',
+			strTz: str = 'US/Pacific',
+			fmt: str | tuple[float, float] = (18, 27),
+			fmtCrop: Optional[str | tuple[float, float]] = None):
+
+		super().__init__(doc, 'landscape', fmt, strTz, fmtCrop)
+
+		setMatchCalendar: set[CMatch] = self.db.mpStageSetMatch[STAGE.Group]
+		lSetMatchBracket: list[set[CMatch]] = [setMatch for stage, setMatch in self.db.mpStageSetMatch.items() if stage != STAGE.Group]
+		setMatchBracket: set[CMatch] = set().union(*lSetMatchBracket)
+
+		assert len(self.db.lStrGroup) % 2 == 0
+		cGroupHalf = len(self.db.lStrGroup) // 2
+		lStrGroupLeft = self.db.lStrGroup[:cGroupHalf]
+		lStrGroupRight = self.db.lStrGroup[cGroupHalf:]
+
+		lGroupbLeft = [CGroupBlot(doc, self.db.mpStrGroupGroup[strGroup]) for strGroup in lStrGroupLeft]
+		gsetbLeft = CGroupSetBlot(doc, lGroupbLeft, cCol = 1)
+
+		lGroupbRight = [CGroupBlot(doc, self.db.mpStrGroupGroup[strGroup]) for strGroup in lStrGroupRight]
+		gsetbRight = CGroupSetBlot(doc, lGroupbRight, cCol = 1)
+
+		calb = CCalendarBlot(self, setMatchCalendar)
+
+		bracketb = CBracketBlot(self, setMatchBracket)
+
+		headerb = CHeaderBlot(self)
+		rectHeader = self.rectInside.Copy().Set(dY=headerb.s_dY)
+
+		footerb = CFooterBlot(self)
+		rectFooter = self.rectInside.Copy().Stretch(dYTop = (self.rectInside.dY - footerb.s_dY))
+
+		rectInside = self.rectInside.Copy()
+		rectInside.yMin = rectHeader.yMax
+		rectInside.yMax = rectFooter.yMin
+
+		dXUnused = rectInside.dX - (calb.dX + gsetbLeft.dX + gsetbRight.dX)
+		dXGap = dXUnused / 4.0 # both margins and both gaps between groups and calendar. same gap vertically for calendar/final
+
+		if finalb:
+			dYUnused = rectInside.dY - (calb.dY + bracketb.dY + finalb.s_dY)
+			dYGap = dYUnused / 4.0
+		else:
+			dYUnused = rectInside.dY - (calb.dY + bracketb.dY)
+			dYGap = dYUnused / 3.0
+
+		assert gsetbLeft.dY == gsetbRight.dY
+		yGroups = rectInside.y + (rectInside.dY - gsetbLeft.dY) / 2.0
+
+		xGroupsLeft = rectInside.x + dXGap
+
+		gsetbLeft.Draw(SPoint(xGroupsLeft, yGroups))
+
+		xCalendar = xGroupsLeft + gsetbLeft.dX + dXGap
+		yCalendar = rectInside.y + dYGap
+
+		calb.Draw(SPoint(xCalendar, yCalendar))
+
+		xBracket = rectInside.x + (rectInside.dX - bracketb.dX) / 2
+		yBracket = yCalendar + calb.dY + dYGap
+
+		bracketb.Draw(SPoint(xBracket, yBracket))
+
+		if finalb:
+			xFinal = rectInside.x + (rectInside.dX - finalb.s_dX) / 2.0
+			yFinal = yBracket + bracketb.dY + dYGap
 
 			finalb.Draw(SPoint(xFinal, yFinal))
 
@@ -1000,6 +1119,7 @@ class CDocument: # tag = doc
 		lPage: list[CPage] = [
 			# CGroupsTestPage(self),
 			# CDaysTestPage(self),
+			# CHybridPage(self, 'US/Pacific', fmt=(22, 28), fmtCrop=(18, 27)),
 			CPosterPage(self, 'US/Pacific', fmt=(22, 28), fmtCrop=(18, 27)),
 			# CPosterPage(self, 'US/Mountain'),
 			# CPosterPage(self, 'US/Central'),

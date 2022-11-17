@@ -59,6 +59,7 @@ class CMatch:
 	s_patNumAlpha = re.compile('([0-9]+)([a-zA-Z]+)')
 
 	def __init__(self, db: 'CDataBase', xlrow: TExcelRow) -> None:
+		self.id = int(xlrow['match'])
 		self.strName: str = '#' + str(xlrow['match'])
 		self.venue: CVenue = db.mpIdVenue[int(xlrow['venue'])]
 		self.strHome: str = xlrow['home']
@@ -67,7 +68,7 @@ class CMatch:
 
 		self.stage: Optional[STAGE] = None
 		self.lStrGroup: list[str] = []
-		self.lIdFeeders = []
+		self.lIdFeeders: list[int] = []
 
 		if matHome := self.s_patNumAlpha.match(self.strHome):
 			matAway = self.s_patNumAlpha.match(self.strAway)
@@ -99,6 +100,9 @@ class CMatch:
 		assert self.stage is None
 		assert self.lIdFeeders
 
+		# no ordered sets in python, and we want to preserve order in this case
+
+		setStrGroup: set[str] = set()
 		lStrGroup: list[str] = []
 
 		for id in self.lIdFeeders:
@@ -107,11 +111,17 @@ class CMatch:
 			if match.stage != stagePrev:
 				return False
 
-			lStrGroup += match.lStrGroup
+			for strGroup in match.lStrGroup:
+				if strGroup not in setStrGroup:
+					setStrGroup.add(strGroup)
+					lStrGroup += strGroup
 
 		if stagePrev == STAGE.Round1:
 			assert not self.lStrGroup
 			assert len(lStrGroup) == 4
+			self.lStrGroup = lStrGroup
+		elif stagePrev > STAGE.Round1:
+			assert not self.lStrGroup
 			self.lStrGroup = lStrGroup
 
 		self.stage = stage
@@ -141,6 +151,21 @@ class CDataBase:
 
 		self.mpDateSetMatch: dict[datetime.date, set[CMatch]] = self.MpDateSetMatch()
 		self.mpStageSetMatch: dict[STAGE, set[CMatch]] = self.MpStageSetMatch()
+
+		setMatchFinal = self.mpStageSetMatch[STAGE.Final]
+		assert len(setMatchFinal) == 1
+		self.matchFinal = next(iter(setMatchFinal))
+		del self.mpStageSetMatch[STAGE.Final]
+		
+		setMatchThird = self.mpStageSetMatch[STAGE.Third]
+		assert len(setMatchThird) == 1
+		self.matchThird = next(iter(setMatchThird))
+		del self.mpStageSetMatch[STAGE.Third]
+		
+		self.setMatchGroup: set[CMatch] = self.mpStageSetMatch[STAGE.Group]
+		self.setMatchElimination: set[CMatch] = set().union(*[setMatch for stage, setMatch in self.mpStageSetMatch.items() if stage != STAGE.Group])
+		
+		self.setMatchLeft: set[CMatch] = self.SetMatchLeft()
 
 	def MpStrSeedTeam(self, xls: TExcelSheet) -> dict[str, CTeam]:
 		""" load seeds and hook them up to groups. """
@@ -216,6 +241,23 @@ class CDataBase:
 			stagePrev = stageNext
 
 		return mpStageSetMatch
+
+	def SetMatchLeft(self) -> set[CMatch]:
+		""" return matches that are on the left side of the elimination bracket. """
+
+		setIdLeft: set[int] = set()
+		setIdVisit: set[int] = set(self.matchFinal.lIdFeeders[:1])
+
+		while setIdVisit:
+			match = self.mpIdMatch[setIdVisit.pop()]
+
+			# NOTE (bruceo) setIdFeeders will be empty for group and round1 matches
+
+			setIdFeeders: set[int] = set(match.lIdFeeders)
+			setIdLeft |= setIdFeeders
+			setIdVisit |= setIdFeeders
+
+		return {self.mpIdMatch[id] for id in setIdLeft}
 
 	def XlsLoad(self) -> TExcelSheet:
 		wb = openpyxl.load_workbook(filename = str(self.pathFile))
