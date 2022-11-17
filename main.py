@@ -927,10 +927,15 @@ class CBracketBlot(CBlot): # tag = bracketb
 		mpStageRowY: dict[tuple[STAGE, int], float] = {}
 
 		for stage, cRowStage in mpStageCRow.items():
-			dYGridStage = dYGrid * (self.cRow / cRowStage)
-			dYGridGap = dYGridStage - CElimBlot.s_dY
-			dYGappedRows = (cRowStage * CElimBlot.s_dY) + ((cRowStage - 1) * dYGridGap)
-			dYStageMin = (self.dY - dYGappedRows) / 2
+			if cRowStage >= self.cRow:
+				dYStageMin = 0
+				dYGridStage = dYGrid
+			else:
+				dYGridBlots = cRowStage * CElimBlot.s_dY
+				dYGridUnused = self.dY - dYGridBlots
+				dYMarginGap = dYGridUnused / (cRowStage + 1)
+				dYStageMin = dYMarginGap
+				dYGridStage = dYMarginGap + CElimBlot.s_dY
 
 			for row in range(cRowStage):
 				mpStageRowY[(stage, row)] = dYStageMin + row * dYGridStage
