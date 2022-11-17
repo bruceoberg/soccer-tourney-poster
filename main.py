@@ -1042,6 +1042,10 @@ class CBracketBlot(CBlot): # tag = bracketb
 
 			rectStageGlobal = rectStageLocal.Copy().Shift(dX = pos.x, dY = pos.y)
 			rectStageText = SRect(rectStageGlobal.x, rectStageGlobal.y - (self.s_dYFontStage * 2), rectStageGlobal.dX, self.s_dYFontStage)
+			
+			if stage == STAGE.Third:
+				rectStageText.Shift(dY = self.s_dYFontStage)
+
 			oltbStageText = self.Oltb(rectStageText, self.doc.fontkeyElimStage, rectStageText.dY)
 			rectStageTextDrawn = oltbStageText.RectDrawText(strStage.upper(), colorLightGrey, JH.Center)
 
