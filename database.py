@@ -15,6 +15,7 @@ TExcelTable = list[TExcelRow]			# tag = xltable
 TExcelSheet = dict[str, TExcelTable]	# tag = xls
 
 class STAGE(IntEnum):
+	# BB (bruceo) rename Round1 etc to Round64 Round32 etc
 	Group = auto()
 	Round1 = auto()
 	Round2 = auto()	# may not be used, depending on tourney size

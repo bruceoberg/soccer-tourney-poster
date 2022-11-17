@@ -815,6 +815,8 @@ class CCalendarBlot(CBlot): # tag = calb
 
 	s_dYDayOfWeek = CDayBlot.s_dYDate * 2
 
+	s_dYFontTitle = CDayBlot.s_dYFontTime
+
 	def __init__(self, page: 'CPage', setMatch: set[CMatch]) -> None:
 		self.page = page
 		self.doc = page.doc
@@ -895,10 +897,37 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		self.DrawBox(rectDays, CDayBlot.s_dSLineOuter, colorBlack)
 
+		# heading
+
+		rectAll = SRect(x = pos.x, y = pos.y, dX = self.dX, dY = self.dY)
+		rectTitleText = SRect(rectAll.x, rectAll.y - (self.s_dYFontTitle * 2), rectAll.dX, self.s_dYFontTitle)
+		oltbTitleText = self.Oltb(rectTitleText, self.doc.fontkeyElimStage, rectTitleText.dY)
+		rectTitleTextDrawn = oltbTitleText.RectDrawText('GROUP STAGE', colorLightGrey, JH.Center)
+
+		yTitleTextMiddle = rectTitleTextDrawn.yMin + rectTitleTextDrawn.dY / 2 # middle of text
+		dSTitleGap = (rectAll.yMin - yTitleTextMiddle) / 2
+
+		xLeftMin = rectTitleText.xMin
+		xLeftMax = rectTitleTextDrawn.xMin - dSTitleGap
+
+		xRightMin = rectTitleTextDrawn.xMax + dSTitleGap
+		xRightMax = rectTitleText.xMax
+
+		self.pdf.set_line_width(CGroupBlot.s_dSLineStats)
+		self.pdf.set_draw_color(colorLightGrey.r, colorLightGrey.g, colorLightGrey.b)
+
+		self.pdf.line(xLeftMin, yTitleTextMiddle, xLeftMax, yTitleTextMiddle)
+		self.pdf.line(xRightMin, yTitleTextMiddle, xRightMax, yTitleTextMiddle)
+
+		# self.pdf.line(xLeftMin, yTitleTextMiddle, xLeftMin, yTitleTextMiddle + dSTitleGap)
+		# self.pdf.line(xRightMax, yTitleTextMiddle, xRightMax, yTitleTextMiddle + dSTitleGap)
+
 class CBracketBlot(CBlot): # tag = bracketb
 
 	s_dXStageGap = CElimBlot.s_dX / 8
 	s_dYStageGap = CElimBlot.s_dY / 8
+
+	s_dYFontStage = CElimBlot.s_dYDate
 
 	def __init__(self, page: 'CPage', setMatch: set[CMatch]) -> None:
 		self.page = page
@@ -943,6 +972,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 		# allot blots to rows and columns
 
 		self.lTuXYElimb: list[tuple[float, float, CElimBlot]] = []
+		mpStageLRect: dict[STAGE, list[SRect]] = {}
 
 		for colLeft, stage in enumerate(lStage):
 			setMatch = self.db.mpStageSetMatch[stage]
@@ -953,7 +983,10 @@ class CBracketBlot(CBlot): # tag = bracketb
 				x = mpColX[col]
 				for row, matchCol in enumerate(sorted(setMatchCol, key=lambda match: match.id)):
 					y = mpStageRowY[(stage, row)]
-					self.lTuXYElimb.append((x, y, CElimBlot(self.page, matchCol)))
+					elimb = CElimBlot(self.page, matchCol)
+					self.lTuXYElimb.append((x, y, elimb))
+					rectElimb = SRect(x, y, elimb.s_dX, elimb.s_dY)
+					mpStageLRect.setdefault(stage, []).append(rectElimb)
 
 		elimbThird = CElimBlot(self.page, self.db.matchThird)
 
@@ -962,6 +995,32 @@ class CBracketBlot(CBlot): # tag = bracketb
 
 		self.lTuXYElimb.append((xThird, yThird, elimbThird))
 
+		rectElimbThird = SRect(xThird, yThird, elimbThird.s_dX, elimbThird.s_dY)
+		mpStageLRect.setdefault(STAGE.Third, []).append(rectElimbThird)
+
+		self.mpStageTuRectStr: dict[STAGE, tuple[SRect, str]] = {}
+
+		# BB (bruceo) put these in the db
+
+		mpStageStrName: dict[STAGE, str] = {
+			STAGE.Round1: 'Round of Sixteen',
+			STAGE.Quarters: 'Quarter-Finals',
+			STAGE.Semis: 'Semi-Finals',
+			STAGE.Third: 'Third Place',
+		}
+
+		for stage, lRect in mpStageLRect.items():
+			rectStage = lRect[0]
+			strStage = mpStageStrName[stage]
+			for rect in lRect[1:]:
+				# BB (bruceo) put this in SRect
+				rectStage.xMin = min(rectStage.xMin, rect.xMin)
+				rectStage.yMin = min(rectStage.yMin, rect.yMin)
+				rectStage.xMax = max(rectStage.xMax, rect.xMax)
+				rectStage.yMax = max(rectStage.yMax, rect.yMax)
+			
+			self.mpStageTuRectStr[stage] = (rectStage, strStage)
+
 	def Draw(self, pos: SPoint) -> None:
 
 		for x, y, elimb in self.lTuXYElimb:
@@ -969,6 +1028,33 @@ class CBracketBlot(CBlot): # tag = bracketb
 			posDayb = SPoint(pos.x + x, pos.y + y)
 
 			elimb.Draw(posDayb)
+
+		for stage, (rectStageLocal, strStage) in self.mpStageTuRectStr.items():
+
+			rectStageGlobal = rectStageLocal.Copy().Shift(dX = pos.x, dY = pos.y)
+			rectStageText = SRect(rectStageGlobal.x, rectStageGlobal.y - (self.s_dYFontStage * 2), rectStageGlobal.dX, self.s_dYFontStage)
+			oltbStageText = self.Oltb(rectStageText, self.doc.fontkeyElimStage, rectStageText.dY)
+			rectStageTextDrawn = oltbStageText.RectDrawText(strStage.upper(), colorLightGrey, JH.Center)
+
+			if stage != STAGE.Third:
+
+				yStageTextMiddle = rectStageTextDrawn.yMin + rectStageTextDrawn.dY / 2 # middle of text
+				dSStageGap = (rectStageGlobal.yMin - yStageTextMiddle) / 2
+	
+				xLeftMin = rectStageText.xMin + CElimBlot.s_dX / 2
+				xLeftMax = rectStageTextDrawn.xMin - dSStageGap
+
+				xRightMin = rectStageTextDrawn.xMax + dSStageGap
+				xRightMax = rectStageText.xMax - (CElimBlot.s_dX / 2)
+
+				self.pdf.set_line_width(CGroupBlot.s_dSLineStats)
+				self.pdf.set_draw_color(colorLightGrey.r, colorLightGrey.g, colorLightGrey.b)
+
+				self.pdf.line(xLeftMin, yStageTextMiddle, xLeftMax, yStageTextMiddle)
+				self.pdf.line(xRightMin, yStageTextMiddle, xRightMax, yStageTextMiddle)
+
+				self.pdf.line(xLeftMin, yStageTextMiddle, xLeftMin, yStageTextMiddle + dSStageGap)
+				self.pdf.line(xRightMax, yStageTextMiddle, xRightMax, yStageTextMiddle + dSStageGap)
 
 class CPosterPage(CPage): # tag = posterp
 	def __init__(
@@ -1181,6 +1267,7 @@ class CDocument: # tag = doc
 			self.fontkeyMatchLabel		= SFontKey('TradeGothic',			'B')
 
 			self.fontkeyElimDate		= SFontKey('TradeGothic',			'')
+			self.fontkeyElimStage		= SFontKey('TradeGothicBd2',		'B')
 
 			self.fontkeyFinalTitle		= SFontKey('TradeGothicBd2',		'B')
 			self.fontkeyFinalDate		= SFontKey('TradeGothicBd2',		'B')

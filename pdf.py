@@ -130,6 +130,7 @@ def ColorFromStr(strColor: str, alpha: int = 255) -> SColor:
 
 colorWhite = ColorFromStr('white')
 colorGrey = ColorFromStr('grey')
+colorLightGrey = ColorFromStr('lightgrey')
 colorDarkgrey = ColorFromStr('darkgrey')	# NOTE (bruceo) lighter than grey!
 colorDarkSlateGrey = ColorFromStr('darkslategrey')
 colorBlack = ColorFromStr('black')
