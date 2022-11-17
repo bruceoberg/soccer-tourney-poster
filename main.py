@@ -27,9 +27,15 @@ class CGroupBlot(CBlot): # tag = groupb
 	s_rSGroup = 5.0
 	s_rSTeamName = 6.0
 
-	def __init__(self, doc: 'CDocument', group: CGroup) -> None:
-		super().__init__(doc.pdf)
-		self.doc = doc
+	def __init__(self, page: 'CPage', group: CGroup) -> None:
+		self.page = page
+		self.doc = self.page.doc
+		self.pdf = self.doc.pdf
+		self.db = self.doc.db
+		self.strTz = page.strTz
+
+		super().__init__(self.pdf)
+
 		self.group = group
 
 	def Draw(self, pos: SPoint) -> None:
@@ -125,8 +131,10 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		# draw border last to cover any alignment weirdness
 
-		self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
-		self.DrawBox(rectBorder, self.s_dSLineInner, self.group.colors.color)
+		if self.page.pagea.fMainBorders:
+
+			self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
+			self.DrawBox(rectBorder, self.s_dSLineInner, self.group.colors.color)
 
 class CMatchBlot(CBlot): # tag = dayb
 	def __init__(self, dayb: 'CDayBlot', match: CMatch, rect: SRect) -> None:
@@ -321,9 +329,9 @@ class CDayBlot(CBlot): # tag = dayb
 
 	def __init__(self, page: 'CPage', setMatch: set[CMatch] = set(), date: Optional[datetime.date] = None) -> None:
 		self.page = page
-		self.doc = page.doc
-		self.pdf = page.doc.pdf
-		self.db = page.doc.db
+		self.doc = self.page.doc
+		self.pdf = self.doc.pdf
+		self.db = self.doc.db
 		self.strTz = page.strTz
 
 		super().__init__(self.pdf)
@@ -363,9 +371,10 @@ class CDayBlot(CBlot): # tag = dayb
 
 		if not self.lMatch:
 
-			self.pdf.set_line_width(self.s_dSLineOuter)
-			self.pdf.set_draw_color(0) # black
-			self.pdf.line(rectBorder.xMin, rectBorder.yMax, rectBorder.xMax, rectBorder.yMax)
+			if self.page.pagea.fMainBorders:
+				self.pdf.set_line_width(self.s_dSLineOuter)
+				self.pdf.set_draw_color(0) # black
+				self.pdf.line(rectBorder.xMin, rectBorder.yMax, rectBorder.xMax, rectBorder.yMax)
 
 			return
 
@@ -413,7 +422,8 @@ class CDayBlot(CBlot): # tag = dayb
 
 		# draw border last to cover any alignment weirdness
 
-		self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
+		if self.page.pagea.fMainBorders:
+			self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
 
 class CElimBlot(CDayBlot): # tag = elimb
 
@@ -461,6 +471,25 @@ class CElimBlot(CDayBlot): # tag = elimb
 		# info
 
 		matchb.DrawInfo()
+
+		# draw border last to cover any alignment weirdness
+
+		if self.page.pagea.fMainBorders and self.page.pagea.fEliminationBorders:
+		    # "darkslategray": "#2f4f4f", (47)
+			# "lightgrey": "#d3d3d3", (211)
+			# (211 - 47) / 3 = 41
+			mpStageColorBorder: dict[STAGE, SColor] = {
+				STAGE.Round1: ColorFromStr("#585858"),		# 47 + 41 = 88 (0x58)
+				STAGE.Quarters: ColorFromStr("#818181"),	# 88 + 41 = 129 (0x81)
+				STAGE.Semis: ColorFromStr("#aaaaaa"),		# 129 + 41 = 170 (0xaa)
+			}
+
+			try:
+				colorBorder = mpStageColorBorder[matchb.match.stage]
+			except KeyError:
+				pass
+			else:
+				self.DrawBox(rectAll, self.s_dSLineOuter, colorBorder)
 
 class CFinalBlot(CBlot): # tag = finalb
 
@@ -579,30 +608,36 @@ class CFinalBlot(CBlot): # tag = finalb
 			oltbLabelForm = self.Oltb(rectLabelForm, self.doc.fontkeyFinalFormLabel, self.s_dYFontForm)
 			oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
 
+@dataclass
+class SPageArgs: # tag - pagea
+	doc: 'CDocument'
+	strOrientation: str = 'landscape'
+	fmt: str | tuple[float, float] = (22, 28)
+	strTz: str = 'US/Pacific'
+	fmtCrop: Optional[str | tuple[float, float]] = (18, 27)
+	fMainBorders: bool = True
+	fEliminationBorders: bool = False
+
 class CPage:
 
 	s_dSLineCropMarks = 0.008
 	s_colorCropMarks = colorGrey
 
-	def __init__(
-			self,
-			doc: 'CDocument',
-			strOrientation: str,
-			fmt: str | tuple[float, float],
-			strTz: str = 'US/Pacific',
-			fmtCrop: Optional[str | tuple[float, float]] = None):
-		self.doc = doc
-		self.db = doc.db
-		self.pdf = doc.pdf
+	def __init__(self, *args, **kwargs):
+		self.pagea = SPageArgs(*args, **kwargs)
+		self.doc = self.pagea.doc
+		self.db = self.doc.db
+		self.pdf = self.doc.pdf
 
-		self.strOrientation = strOrientation
-		self.fmt = fmt
-		self.strTz = strTz
+		self.strOrientation = self.pagea.strOrientation
+		self.fmt = self.pagea.fmt
+		self.fmtCrop = self.pagea.fmtCrop
+		self.strTz = self.pagea.strTz
 
 		self.pdf.add_page(orientation=self.strOrientation, format=self.fmt)
 		self.rect = SRect(0, 0, self.pdf.w, self.pdf.h)
 
-		if tuDxDyCrop := self.pdf.TuDxDyFromOrientationFmt(strOrientation, fmtCrop):
+		if tuDxDyCrop := self.pdf.TuDxDyFromOrientationFmt(self.strOrientation, self.fmtCrop):
 			dX = min(self.rect.dX, tuDxDyCrop[0])
 			dY = min(self.rect.dY, tuDxDyCrop[1])
 			dXCropPerEdge = (self.rect.dX - dX) / 2
@@ -641,8 +676,8 @@ class CPage:
 		self.pdf.line(self.rectInside.xMax,		self.rectCropMarks.yMax,	self.rectInside.xMax,		self.rect.yMax)
 
 class CGroupsTestPage(CPage): # gtp
-	def __init__(self, doc: 'CDocument'):
-		super().__init__(doc, 'portrait', 'c3')
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
 
 		dSMargin = 0.5
 
@@ -656,15 +691,15 @@ class CGroupsTestPage(CPage): # gtp
 				except IndexError:
 					continue
 				group = self.db.mpStrGroupGroup[strGroup]
-				groupb = CGroupBlot(doc, group)
+				groupb = CGroupBlot(self, group)
 				pos = SPoint(
 						dSMargin + col * dXGrid,
 						dSMargin + row * dYGrid)
 				groupb.Draw(pos)
 
 class CDaysTestPage(CPage): # gtp
-	def __init__(self, doc: 'CDocument'):
-		super().__init__(doc, 'landscape', 'c3')
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
 
 		dSMargin = 0.25
 
@@ -904,7 +939,8 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		# border
 
-		self.DrawBox(rectDays, CDayBlot.s_dSLineOuter, colorBlack)
+		if self.page.pagea.fMainBorders:
+			self.DrawBox(rectDays, CDayBlot.s_dSLineOuter, colorBlack)
 
 		# heading
 
@@ -1076,21 +1112,15 @@ class CBracketBlot(CBlot): # tag = bracketb
 				self.pdf.line(xRightMax, yStageTextMiddle, xRightMax, yStageTextMiddle + dSStageGap)
 
 class CPosterPage(CPage): # tag = posterp
-	def __init__(
-			self,
-			doc: 'CDocument',
-			strTz: str = 'US/Pacific',
-			fmt: str | tuple[float, float] = (18, 27),
-			fmtCrop: Optional[str | tuple[float, float]] = None):
-
-		super().__init__(doc, 'landscape', fmt, strTz, fmtCrop)
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
 
 		cGroupHalf = len(self.db.lStrGroup) // 2
 
-		lGroupbLeft = [CGroupBlot(doc, self.db.mpStrGroupGroup[strGroup]) for strGroup in self.db.lStrGroup[:cGroupHalf]]
+		lGroupbLeft = [CGroupBlot(self, self.db.mpStrGroupGroup[strGroup]) for strGroup in self.db.lStrGroup[:cGroupHalf]]
 		gsetbLeft = CGroupSetBlot(doc, lGroupbLeft, cCol = 1)
 
-		lGroupbRight = [CGroupBlot(doc, self.db.mpStrGroupGroup[strGroup]) for strGroup in self.db.lStrGroup[cGroupHalf:]]
+		lGroupbRight = [CGroupBlot(self, self.db.mpStrGroupGroup[strGroup]) for strGroup in self.db.lStrGroup[cGroupHalf:]]
 		gsetbRight = CGroupSetBlot(doc, lGroupbRight, cCol = 1)
 
 		calb = CCalendarBlot(self, self.db.setMatchGroup | self.db.setMatchElimination)
@@ -1139,14 +1169,8 @@ class CPosterPage(CPage): # tag = posterp
 		self.DrawCropLines()
 
 class CHybridPage(CPage): # tag = hybridp
-	def __init__(
-			self,
-			doc: 'CDocument',
-			strTz: str = 'US/Pacific',
-			fmt: str | tuple[float, float] = (18, 27),
-			fmtCrop: Optional[str | tuple[float, float]] = None):
-
-		super().__init__(doc, 'landscape', fmt, strTz, fmtCrop)
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
 
 		setMatchCalendar: set[CMatch] = self.db.mpStageSetMatch[STAGE.Group]
 		lSetMatchBracket: list[set[CMatch]] = [setMatch for stage, setMatch in self.db.mpStageSetMatch.items() if stage != STAGE.Group]
@@ -1157,11 +1181,11 @@ class CHybridPage(CPage): # tag = hybridp
 		lStrGroupLeft = self.db.lStrGroup[:cGroupHalf]
 		lStrGroupRight = self.db.lStrGroup[cGroupHalf:]
 
-		lGroupbLeft = [CGroupBlot(doc, self.db.mpStrGroupGroup[strGroup]) for strGroup in lStrGroupLeft]
-		gsetbLeft = CGroupSetBlot(doc, lGroupbLeft, cCol = 1)
+		lGroupbLeft = [CGroupBlot(self, self.db.mpStrGroupGroup[strGroup]) for strGroup in lStrGroupLeft]
+		gsetbLeft = CGroupSetBlot(self.doc, lGroupbLeft, cCol = 1)
 
-		lGroupbRight = [CGroupBlot(doc, self.db.mpStrGroupGroup[strGroup]) for strGroup in lStrGroupRight]
-		gsetbRight = CGroupSetBlot(doc, lGroupbRight, cCol = 1)
+		lGroupbRight = [CGroupBlot(self, self.db.mpStrGroupGroup[strGroup]) for strGroup in lStrGroupRight]
+		gsetbRight = CGroupSetBlot(self.doc, lGroupbRight, cCol = 1)
 
 		calb = CCalendarBlot(self, setMatchCalendar)
 
@@ -1304,14 +1328,15 @@ class CDocument: # tag = doc
 		lPage: list[CPage] = [
 			# CGroupsTestPage(self),
 			# CDaysTestPage(self),
-			CHybridPage(self, 'US/Pacific', fmt=(22, 28), fmtCrop=(18, 27)),
-			# CPosterPage(self, 'US/Pacific', fmt=(22, 28), fmtCrop=(18, 27)),
-			# CPosterPage(self, 'US/Mountain'),
-			# CPosterPage(self, 'US/Central'),
-			# CPosterPage(self, 'US/Eastern'),
-			# CPosterPage(self, 'Europe/London', 'b2'),
-			# CPosterPage(self, 'Europe/Amsterdam', 'b2'),
-			# CPosterPage(self, 'Asia/Tokyo', 'b2'),
+			CHybridPage(self, strTz='US/Pacific', fMainBorders = False),
+			CHybridPage(self, strTz='US/Pacific', fEliminationBorders = True),
+			# CPosterPage(self, strTz='US/Pacific'),
+			# CPosterPage(self, strTz='US/Mountain'),
+			# CPosterPage(self, strTz='US/Central'),
+			# CPosterPage(self, strTz='US/Eastern'),
+			# CPosterPage(self, strTz='Europe/London', fmt='b2'),
+			# CPosterPage(self, strTz='Europe/Amsterdam', fmt='b2'),
+			# CPosterPage(self, strTz='Asia/Tokyo', fmt='b2'),
 		]
 
 		pathOutput = self.db.pathFile.with_suffix('.pdf')
