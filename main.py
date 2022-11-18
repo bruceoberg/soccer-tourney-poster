@@ -267,11 +267,36 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			# form labels
 
-			if self.dayb.page.pagea.fMatchNumbers or self.match.stage == STAGE.Round1:
+			# round 1 gets them otherwise honor pref
 
-				for xLineFormMin, strLabel in ((xLineFormLeftMin, self.match.strHome), (xLineFormRightMin, self.match.strAway)):
-					rectLabelForm = SRect(xLineFormMin, yLineForm, self.dayb.s_dXLineForm, self.dayb.s_dYFontForm)
-					oltbLabelForm = self.Oltb(rectLabelForm, self.doc.fontkeyMatchFormLabel, self.dayb.s_dYFontForm)
+			fDrawFormLabels = self.dayb.page.pagea.fMatchNumbers or self.match.stage == STAGE.Round1
+
+			# elimination hint pref can turn them back on
+
+			if fDrawFormLabels:
+				strHome = self.match.strHome
+				strAway = self.match.strAway
+				dYFontForm = self.dayb.s_dYFontForm
+			elif (
+					self.dayb.page.pagea.fEliminationHints and
+					isinstance(self.dayb, CElimBlot) and
+					self.match.stage > STAGE.Round1 and 
+					self.match.stage < STAGE.Third
+			     ):
+				assert len(self.match.lIdFeeders) == 2
+				matchFeedLeft = self.db.mpIdMatch[self.match.lIdFeeders[0]]
+				matchFeedRight = self.db.mpIdMatch[self.match.lIdFeeders[1]]
+
+				fDrawFormLabels = True
+				strHome = ''.join(sorted(matchFeedLeft.lStrGroup))
+				strAway = ''.join(sorted(matchFeedRight.lStrGroup))
+				dYFontForm = self.dayb.s_dYFontForm * 0.8
+
+			if fDrawFormLabels:
+
+				for xLineFormMin, strLabel in ((xLineFormLeftMin, strHome), (xLineFormRightMin, strAway)):
+					rectLabelForm = SRect(xLineFormMin, yLineForm, self.dayb.s_dXLineForm, dYFontForm)
+					oltbLabelForm = self.Oltb(rectLabelForm, self.doc.fontkeyMatchFormLabel, dYFontForm)
 					oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
 
 			# match label
@@ -528,7 +553,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		super().__init__(self.pdf)
 
-		self.match = self.db.matchFinal
+		self.match: CMatch = self.db.matchFinal
 
 	def Draw(self, pos: SPoint, datePrev: Optional[datetime.date] = None) -> None:
 
@@ -625,9 +650,10 @@ class SPageArgs: # tag - pagea
 	fmtCrop: Optional[str | tuple[float, float]] = (18, 27)
 	strVariant: str = ''
 	fMainBorders: bool = True
-	fEliminationBorders: bool = False
-	fMatchNumbers: bool = True
+	fEliminationBorders: bool = True
+	fMatchNumbers: bool = False
 	fGroupHints: bool = False
+	fEliminationHints: bool = True
 
 class CPage:
 
@@ -1358,16 +1384,15 @@ class CDocument: # tag = doc
 			# CGroupsTestPage(self),
 			# CDaysTestPage(self),
 			#CHybridPage(self, strTz='US/Pacific', fMainBorders = False),
-			CHybridPage(self, strTz='US/Pacific', strVariant = 'v1'),
-			CHybridPage(self, strTz='US/Pacific', strVariant = '(no borders/no match #s)', fMainBorders = False, fMatchNumbers = False),
-			CHybridPage(self, strTz='US/Pacific', strVariant = '(more borders/no match #s)', fEliminationBorders = True, fMatchNumbers = False),
-			# CPosterPage(self, strTz='US/Pacific'),
-			# CPosterPage(self, strTz='US/Mountain'),
-			# CPosterPage(self, strTz='US/Central'),
-			# CPosterPage(self, strTz='US/Eastern'),
-			# CPosterPage(self, strTz='Europe/London', fmt='b2'),
-			# CPosterPage(self, strTz='Europe/Amsterdam', fmt='b2'),
-			# CPosterPage(self, strTz='Asia/Tokyo', fmt='b2'),
+			CHybridPage(self, strTz='US/Pacific', strVariant = 'v1', fEliminationBorders = False, fMatchNumbers = True, fEliminationHints=False),
+			# CHybridPage(self, strTz='US/Pacific', fmt=(18, 27), fmtCrop=None),
+			CHybridPage(self, strTz='US/Pacific'),
+			CHybridPage(self, strTz='US/Mountain'),
+			CHybridPage(self, strTz='US/Central'),
+			CHybridPage(self, strTz='US/Eastern'),
+			CHybridPage(self, strTz='Europe/London', fmt='a1'),
+			CHybridPage(self, strTz='Europe/Amsterdam', fmt='a1'),
+			CHybridPage(self, strTz='Asia/Tokyo', fmt='a1'),
 		]
 
 		pathOutput = self.db.pathFile.with_suffix('.pdf')
