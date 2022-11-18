@@ -610,10 +610,11 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		# form labels
 
-		for xLineFormMin, strLabel in ((xLineFormLeftMin, self.match.strHome), (xLineFormRightMin, self.match.strAway)):
-			rectLabelForm = SRect(xLineFormMin, yLineForm + self.s_dYTextGap / 2, self.s_dXLineForm, self.s_dYFontForm)
-			oltbLabelForm = self.Oltb(rectLabelForm, self.doc.fontkeyFinalFormLabel, self.s_dYFontForm)
-			oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
+		if self.page.pagea.fMatchNumbers:
+			for xLineFormMin, strLabel in ((xLineFormLeftMin, self.match.strHome), (xLineFormRightMin, self.match.strAway)):
+				rectLabelForm = SRect(xLineFormMin, yLineForm + self.s_dYTextGap / 2, self.s_dXLineForm, self.s_dYFontForm)
+				oltbLabelForm = self.Oltb(rectLabelForm, self.doc.fontkeyFinalFormLabel, self.s_dYFontForm)
+				oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
 
 @dataclass
 class SPageArgs: # tag - pagea
