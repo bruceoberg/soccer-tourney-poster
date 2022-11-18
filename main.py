@@ -302,6 +302,15 @@ class CMatchBlot(CBlot): # tag = dayb
 			oltbAwayTeam = self.Oltb(rectAwayTeam, self.doc.fontkeyMatchTeamAbbrev, self.dayb.s_dSScore)
 			oltbAwayTeam.DrawText(self.match.strAway, colorBlack, JH.Center)
 
+			# group name, subtly
+
+			if self.dayb.page.pagea.fGroupHints and self.dYTimeAndGap:
+				strGroup = self.match.lStrGroup[0]
+				colorGroup = self.db.mpStrGroupGroup[strGroup].colors.colorDarker
+				# oltbGroup = self.Oltb(rectTime, self.doc.fontkeyGroupName, self.dayb.s_dYFontTime
+				oltbGroup = self.Oltb(self.rect, self.doc.fontkeyGroupName, self.dayb.s_dYFontTime, dSMargin = oltbAwayTeam.dSMargin)
+				oltbGroup.DrawText(strGroup, colorGroup, JH.Right, JV.Top)
+
 class CDayBlot(CBlot): # tag = dayb
 
 	s_dX = 2.25
@@ -613,9 +622,11 @@ class SPageArgs: # tag - pagea
 	fmt: str | tuple[float, float] = (22, 28)
 	strTz: str = 'US/Pacific'
 	fmtCrop: Optional[str | tuple[float, float]] = (18, 27)
+	strVariant: str = ''
 	fMainBorders: bool = True
 	fEliminationBorders: bool = False
 	fMatchNumbers: bool = True
+	fGroupHints: bool = False
 
 class CPage:
 
@@ -852,6 +863,10 @@ class CFooterBlot(CBlot): # tag = headerb
 			'GITHUB.COM/BRUCEOBERG/SOCCER-TOURNEY-POSTER',
 		]
 
+		lStrCreditCenter: list[str] = [
+			self.page.pagea.strVariant,
+		]
+
 		lStrCreditRight: list[str] = [
 			'ORIGINAL DESIGN BY BENJY TOCZYNSKI',
 			'BTOCZYNSKI@GMAIL.COM',
@@ -859,7 +874,7 @@ class CFooterBlot(CBlot): # tag = headerb
 
 		strSpaceDotSpace = ' \u2022 '
 
-		for lStrCredit, jh in ((lStrCreditLeft, JH.Left), (lStrCreditRight, JH.Right)):
+		for lStrCredit, jh in ((lStrCreditLeft, JH.Left), (lStrCreditCenter, JH.Center), (lStrCreditRight, JH.Right)):
 			strCredit = strSpaceDotSpace.join(lStrCredit)
 			oltbCredit = self.Oltb(rectCredits, self.doc.fontkeyPageHeaderTitle, self.s_dYFont)
 			oltbCredit.DrawText(strCredit, colorWhite, jh, JV.Middle)
@@ -1342,8 +1357,9 @@ class CDocument: # tag = doc
 			# CGroupsTestPage(self),
 			# CDaysTestPage(self),
 			#CHybridPage(self, strTz='US/Pacific', fMainBorders = False),
-			CHybridPage(self, strTz='US/Pacific', fEliminationBorders = True, fMatchNumbers = True),
-			CHybridPage(self, strTz='US/Pacific', fEliminationBorders = True, fMatchNumbers = False),
+			CHybridPage(self, strTz='US/Pacific', strVariant = 'v1'),
+			CHybridPage(self, strTz='US/Pacific', strVariant = '(no borders/no match #s)', fMainBorders = False, fMatchNumbers = False),
+			CHybridPage(self, strTz='US/Pacific', strVariant = '(more borders/no match #s)', fEliminationBorders = True, fMatchNumbers = False),
 			# CPosterPage(self, strTz='US/Pacific'),
 			# CPosterPage(self, strTz='US/Mountain'),
 			# CPosterPage(self, strTz='US/Central'),
