@@ -7,10 +7,14 @@ import platform
 from dataclasses import dataclass
 from dateutil import tz
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Type
 
 from database import *
 from pdf import *
+
+g_pathHere = Path(__file__).parent
+g_pathDb = g_pathHere / '2022-world-cup.xlsx'
+g_db = CDataBase(g_pathDb)
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
@@ -128,6 +132,35 @@ class CGroupBlot(CBlot): # tag = groupb
 		for rectHeading, strHeading in lTuRectStr:
 			oltbHeading = self.Oltb(rectHeading, self.doc.fontkeyGroupHeading, rectHeading.dY)
 			oltbHeading.DrawText(strHeading, colorWhite, JH.Center)
+
+		if self.page.pagea.fGroupDots:
+			cDotDown = 3
+			cDotPtsAcross = 3
+			cDotGoalsAcross = 5
+			dSDot = dXStats / (2 * cDotGoalsAcross + 1)
+			dYTeamDotUnused = dYTeam - (cDotDown * dSDot)
+			dYTeamDotGap = dYTeamDotUnused / (cDotDown + 1)
+			dYTeamDotGrid = dSDot + dYTeamDotGap
+			dYTeamDotMin = dYTeamDotGap
+
+			for iTeam in range(len(self.group.mpStrSeedTeam)):
+				yTeam = rectHeading.yMax + iTeam * dYTeam
+
+				for xStat, cDotAcross in ((rectPoints.xMin, cDotPtsAcross), (rectGoalsFor.xMin, cDotGoalsAcross), (rectGoalsAgainst.xMin, cDotGoalsAcross)):
+					dXStatDotUnused = dXStats - (cDotAcross * dSDot)
+					dXStatDotGap = dXStatDotUnused / (cDotAcross + 1)
+					dXStatDotGrid = dSDot + dXStatDotGap
+					dXStatDotMin = dXStatDotGap
+
+					for col in range(cDotAcross):
+						for row in range(cDotDown):
+							xDot = xStat + dXStatDotMin + dXStatDotGrid * col
+							yDot = yTeam + dYTeamDotMin + dYTeamDotGrid * row
+
+							with self.pdf.local_context(fill_opacity=0.05):
+								self.pdf.set_fill_color(0) # black
+								self.pdf.rect(xDot, yDot, dSDot, dSDot, style='F')
+
 
 		# draw border last to cover any alignment weirdness
 
@@ -517,7 +550,7 @@ class CElimBlot(CDayBlot): # tag = elimb
 
 		if self.page.pagea.fMainBorders and self.page.pagea.fEliminationBorders:
 			try:
-				colorBorder = self.page.mpStageColorBorder[matchb.match.stage]
+				colorBorder = self.page.s_mpStageColorBorder[matchb.match.stage]
 			except KeyError:
 				pass
 			else:
@@ -643,7 +676,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 @dataclass
 class SPageArgs: # tag - pagea
-	doc: 'CDocument'
+	clsPage: Type['CPage']
 	strOrientation: str = 'landscape'
 	fmt: str | tuple[float, float] = (22, 28)
 	strTz: str = 'US/Pacific'
@@ -654,15 +687,27 @@ class SPageArgs: # tag - pagea
 	fMatchNumbers: bool = False
 	fGroupHints: bool = False
 	fEliminationHints: bool = True
+	fGroupDots: bool = True
 
 class CPage:
 
 	s_dSLineCropMarks = 0.008
 	s_colorCropMarks = colorGrey
 
-	def __init__(self, *args, **kwargs):
-		self.pagea = SPageArgs(*args, **kwargs)
-		self.doc = self.pagea.doc
+	# "darkslategray": "#2f4f4f", (47)
+	# "lightgrey": "#d3d3d3", (211)
+	# (211 - 47) / 3 = 41
+	
+	s_mpStageColorBorder: dict[STAGE, SColor] = {
+		STAGE.Round1: ColorFromStr("#585858"),		# 47 + 41 = 88 (0x58)
+		STAGE.Quarters: ColorFromStr("#818181"),	# 88 + 41 = 129 (0x81)
+		STAGE.Semis: ColorFromStr("#aaaaaa"),		# 129 + 41 = 170 (0xaa)
+	}
+
+	def __init__(self, doc: 'CDocument', pagea: SPageArgs):
+		self.doc = doc
+		self.pagea = pagea
+
 		self.db = self.doc.db
 		self.pdf = self.doc.pdf
 
@@ -693,16 +738,6 @@ class CPage:
 			self.rectInside = self.rect
 			self.rectCropMarks = self.rect
 
-		# "darkslategray": "#2f4f4f", (47)
-		# "lightgrey": "#d3d3d3", (211)
-		# (211 - 47) / 3 = 41
-		
-		self.mpStageColorBorder: dict[STAGE, SColor] = {
-			STAGE.Round1: ColorFromStr("#585858"),		# 47 + 41 = 88 (0x58)
-			STAGE.Quarters: ColorFromStr("#818181"),	# 88 + 41 = 129 (0x81)
-			STAGE.Semis: ColorFromStr("#aaaaaa"),		# 129 + 41 = 170 (0xaa)
-		}
-
 	def DrawCropLines(self) -> None:
 		if self.rectInside is self.rect:
 			return
@@ -723,8 +758,8 @@ class CPage:
 		self.pdf.line(self.rectInside.xMax,		self.rectCropMarks.yMax,	self.rectInside.xMax,		self.rect.yMax)
 
 class CGroupsTestPage(CPage): # gtp
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
+	def __init__(self, doc: 'CDocument', pagea: SPageArgs):
+		super().__init__(doc, pagea)
 
 		dSMargin = 0.5
 
@@ -745,8 +780,8 @@ class CGroupsTestPage(CPage): # gtp
 				groupb.Draw(pos)
 
 class CDaysTestPage(CPage): # gtp
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
+	def __init__(self, doc: 'CDocument', pagea: SPageArgs):
+		super().__init__(doc, pagea)
 
 		dSMargin = 0.25
 
@@ -1143,7 +1178,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 			rectStageTextDrawn = oltbStageText.RectDrawText(strStage.upper(), colorLightGrey, JH.Center)
 
 			try:
-				colorBorder = self.page.mpStageColorBorder[stage]
+				colorBorder = self.page.s_mpStageColorBorder[stage]
 			except KeyError:
 				pass
 			else:
@@ -1167,8 +1202,8 @@ class CBracketBlot(CBlot): # tag = bracketb
 				self.pdf.line(xRightMax, yStageTextMiddle, xRightMax, yStageTextMiddle + dSStageGap)
 
 class CPosterPage(CPage): # tag = posterp
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
+	def __init__(self, doc: 'CDocument', pagea: SPageArgs):
+		super().__init__(doc, pagea)
 
 		cGroupHalf = len(self.db.lStrGroup) // 2
 
@@ -1224,8 +1259,8 @@ class CPosterPage(CPage): # tag = posterp
 		self.DrawCropLines()
 
 class CHybridPage(CPage): # tag = hybridp
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
+	def __init__(self, doc: 'CDocument', pagea: SPageArgs):
+		super().__init__(doc, pagea)
 
 		setMatchCalendar: set[CMatch] = self.db.mpStageSetMatch[STAGE.Group]
 		lSetMatchBracket: list[set[CMatch]] = [setMatch for stage, setMatch in self.db.mpStageSetMatch.items() if stage != STAGE.Group]
@@ -1298,15 +1333,16 @@ class CHybridPage(CPage): # tag = hybridp
 class CDocument: # tag = doc
 	s_pathDirFonts = Path('fonts')
 
-	def __init__(self, pathDb: Path) -> None:
-		self.db = CDataBase(pathDb)
+	def __init__(self, db: CDataBase, lPagea: list[SPageArgs], strDestDir: str = '', strFileSuffix: str = '') -> None:
+		self.db = db
+		self.lPagea = lPagea
 		self.pdf = CPdf()
 
 		strSubject = 'soccer tournament score sheet and schedule'
-		lStrKeywords = strSubject.split() + pathDb.stem.split('-')
+		lStrKeywords = strSubject.split() + self.db.pathFile.stem.split('-')
 		strKeywords = ' '.join(lStrKeywords)
 
-		self.pdf.set_title(pathDb.stem)
+		self.pdf.set_title(self.db.pathFile.stem)
 		self.pdf.set_author('bruce oberg')
 		self.pdf.set_subject(strSubject)
 		self.pdf.set_keywords(strKeywords)
@@ -1380,24 +1416,35 @@ class CDocument: # tag = doc
 
 			self.fontkeyCalDayOfWeek	= SFontKey('TradeGothicLight',		'I')
 
-		lPage: list[CPage] = [
-			# CGroupsTestPage(self),
-			# CDaysTestPage(self),
-			#CHybridPage(self, strTz='US/Pacific', fMainBorders = False),
-			CHybridPage(self, strTz='US/Pacific', strVariant = 'v1', fEliminationBorders = False, fMatchNumbers = True, fEliminationHints=False),
-			# CHybridPage(self, strTz='US/Pacific', fmt=(18, 27), fmtCrop=None),
-			CHybridPage(self, strTz='US/Pacific'),
-			CHybridPage(self, strTz='US/Mountain'),
-			CHybridPage(self, strTz='US/Central'),
-			CHybridPage(self, strTz='US/Eastern'),
-			CHybridPage(self, strTz='Europe/London', fmt='a1'),
-			CHybridPage(self, strTz='Europe/Amsterdam', fmt='a1'),
-			CHybridPage(self, strTz='Asia/Tokyo', fmt='a1'),
-		]
+		for pagea in lPagea:
+			pagea.clsPage(self, pagea)
 
-		pathOutput = self.db.pathFile.with_suffix('.pdf')
+		pathDirOutput = g_pathHere / strDestDir if strDestDir else g_pathHere
+		strFile = self.db.pathFile.stem + '-' + strFileSuffix if strFileSuffix else self.db.pathFile.stem
+		pathOutput = (pathDirOutput / strFile).with_suffix('.pdf')
+
 		self.pdf.output(str(pathOutput))
 
-g_pathHere = Path(__file__).parent
-g_pathDb = g_pathHere / '2022-world-cup.xlsx'
-g_doc = CDocument(g_pathDb)
+
+if True:
+	lPagea: list[SPageArgs] = [
+		# SPageArgs(CGroupsTestPage),
+		# SPageArgs(CDaysTestPage),
+		# SPageArgs(CPosterPage, strTz='US/Pacific', strVariant = 'alpha'),
+		# SPageArgs(CHybridPage, strTz='US/Pacific', strVariant = 'borderless', fMainBorders = False),
+		# SPageArgs(CHybridPage, strTz='US/Pacific', strVariant = 'beta', fEliminationBorders = False, fMatchNumbers = True, fEliminationHints=False, fGroupDots = True),
+		SPageArgs(CHybridPage, strTz='US/Pacific', fmt=(18, 27), fmtCrop=None),
+		# SPageArgs(CHybridPage, strTz='US/Pacific'),
+		# SPageArgs(CHybridPage, strTz='US/Mountain'),
+		# SPageArgs(CHybridPage, strTz='US/Central'),
+		# SPageArgs(CHybridPage, strTz='US/Eastern'),
+		# SPageArgs(CHybridPage, strTz='Europe/London', fmt='a1'),
+		# SPageArgs(CHybridPage, strTz='Europe/Amsterdam', fmt='a1'),
+		# SPageArgs(CHybridPage, strTz='Asia/Tokyo', fmt='a1'),
+	]
+
+	doc = CDocument(g_db, lPagea = lPagea)
+
+else:
+
+	pass
