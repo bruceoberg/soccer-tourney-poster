@@ -1437,17 +1437,20 @@ class CDocument: # tag = doc
 if True:
 
 	docaDefault = SDocumentArgs(
+		strDestDir = 'playground',
 		tuPagea = (
 			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None),
 		))
 
 	docaTests = SDocumentArgs(
+		strDestDir = 'playground',
 		tuPagea = (
 			SPageArgs(CGroupsTestPage),
 			SPageArgs(CDaysTestPage),
 		))
 
 	docaDesigns = SDocumentArgs(
+		strDestDir = 'playground',
 		strFileSuffix = 'designs',
 		tuPagea = (
 			SPageArgs(CPosterPage, fmt=(18, 27), fmtCrop=None, strVariant = 'alpha', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
@@ -1457,6 +1460,7 @@ if True:
 		))
 
 	docaZones = SDocumentArgs(
+		strDestDir = 'playground',
 		strFileSuffix = 'zones',
 		tuPagea = (
 			SPageArgs(CHybridPage, strTz='US/Pacific'),
@@ -1474,7 +1478,7 @@ if True:
 		tTz = arrow.utcnow().to(tz.gettz(pagea.strTz))
 		strTz = tTz.format('ZZZ') # GMT, PST, etc
 
-		lDocaZones.append(SDocumentArgs(strDestDir = 'zones', strFileSuffix = strTz.lower(), tuPagea=(pagea,)))
+		lDocaZones.append(SDocumentArgs(strDestDir = 'playground', strFileSuffix = strTz.lower(), tuPagea=(pagea,)))
 
 	llDocaTodo = [
 		[

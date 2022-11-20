@@ -1,5 +1,4 @@
-*.pdf
 *.zip
 __pycache__/*.pyc
-testing.py
+playground/
 ~*.*
