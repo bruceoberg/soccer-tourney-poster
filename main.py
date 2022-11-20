@@ -7,7 +7,7 @@ import platform
 from dataclasses import dataclass
 from dateutil import tz
 from pathlib import Path
-from typing import Optional, Type
+from typing import Optional, Type, Iterable
 
 from database import *
 from pdf import *
@@ -600,7 +600,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		# date
 
-		tStart = self.match.tStart.to(tz.gettz(self.page.strTz))
+		tStart = self.match.tStart
 		strDate = tStart.format('dddd, MMMM D')
 		rectDate = rectTitle.Copy(dY = self.s_dYFontDate).Shift(dY = rectTitle.dY + self.s_dYTextGap)
 		oltbDate = self.Oltb(rectDate, self.doc.fontkeyFinalDate, rectDate.dY)
@@ -608,10 +608,10 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		# time
 
+		tStart = self.match.tStart.to(tz.gettz(self.page.strTz))
 		strTime = tStart.format('h:mma')
-		# NOTE (bruceo) we're putting the proper date above, so no need for +/- goo
-		# if tStart.day != self.match.tStart.day:
-		#	strTime += ' +1d' if tStart.utcoffset().total_seconds() < 0 else ' -1d'
+		if tStart.day != self.match.tStart.day:
+			strTime += ' +1d' if tStart.utcoffset().total_seconds() < 0 else ' -1d'
 
 		rectTime = rectDate.Copy(dY=self.s_dYFontTime).Shift(dY = rectDate.dY + self.s_dYTextGap)
 		oltbTime = self.Oltb(rectTime, self.doc.fontkeyFinalTime, rectTime.dY)
@@ -1330,12 +1330,18 @@ class CHybridPage(CPage): # tag = hybridp
 
 		self.DrawCropLines()
 
+@dataclass
+class SDocumentArgs: # tag = doca
+	tuPagea: tuple[SPageArgs, ...]
+	strDestDir: str = ''
+	strFileSuffix: str = ''
+
 class CDocument: # tag = doc
 	s_pathDirFonts = Path('fonts')
 
-	def __init__(self, db: CDataBase, lPagea: list[SPageArgs], strDestDir: str = '', strFileSuffix: str = '') -> None:
+	def __init__(self, db: CDataBase, doca: SDocumentArgs) -> None:
 		self.db = db
-		self.lPagea = lPagea
+		self.doca = doca
 		self.pdf = CPdf()
 
 		strSubject = 'soccer tournament score sheet and schedule'
@@ -1416,34 +1422,73 @@ class CDocument: # tag = doc
 
 			self.fontkeyCalDayOfWeek	= SFontKey('TradeGothicLight',		'I')
 
-		for pagea in lPagea:
+		for pagea in self.doca.tuPagea:
 			pagea.clsPage(self, pagea)
 
-		pathDirOutput = g_pathHere / strDestDir if strDestDir else g_pathHere
-		strFile = self.db.pathFile.stem + '-' + strFileSuffix if strFileSuffix else self.db.pathFile.stem
+		pathDirOutput = g_pathHere / self.doca.strDestDir if self.doca.strDestDir else g_pathHere
+		strFile = self.db.pathFile.stem + '-' + self.doca.strFileSuffix if self.doca.strFileSuffix else self.db.pathFile.stem
+
+		pathDirOutput.mkdir(parents=True, exist_ok=True) 
 		pathOutput = (pathDirOutput / strFile).with_suffix('.pdf')
 
 		self.pdf.output(str(pathOutput))
 
 
 if True:
-	lPagea: list[SPageArgs] = [
-		# SPageArgs(CGroupsTestPage),
-		# SPageArgs(CDaysTestPage),
-		# SPageArgs(CPosterPage, strTz='US/Pacific', strVariant = 'alpha'),
-		# SPageArgs(CHybridPage, strTz='US/Pacific', strVariant = 'borderless', fMainBorders = False),
-		# SPageArgs(CHybridPage, strTz='US/Pacific', strVariant = 'beta', fEliminationBorders = False, fMatchNumbers = True, fEliminationHints=False, fGroupDots = True),
-		SPageArgs(CHybridPage, strTz='US/Pacific', fmt=(18, 27), fmtCrop=None),
-		# SPageArgs(CHybridPage, strTz='US/Pacific'),
-		# SPageArgs(CHybridPage, strTz='US/Mountain'),
-		# SPageArgs(CHybridPage, strTz='US/Central'),
-		# SPageArgs(CHybridPage, strTz='US/Eastern'),
-		# SPageArgs(CHybridPage, strTz='Europe/London', fmt='a1'),
-		# SPageArgs(CHybridPage, strTz='Europe/Amsterdam', fmt='a1'),
-		# SPageArgs(CHybridPage, strTz='Asia/Tokyo', fmt='a1'),
+
+	docaDefault = SDocumentArgs(
+		tuPagea = (
+			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None),
+		))
+
+	docaTests = SDocumentArgs(
+		tuPagea = (
+			SPageArgs(CGroupsTestPage),
+			SPageArgs(CDaysTestPage),
+		))
+
+	docaDesigns = SDocumentArgs(
+		strFileSuffix = 'designs',
+		tuPagea = (
+			SPageArgs(CPosterPage, fmt=(18, 27), fmtCrop=None, strVariant = 'alpha', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
+			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None, strVariant = 'beta', fEliminationBorders = False, fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
+			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None, strVariant = 'borderless', fMainBorders = False),
+			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None, strVariant = 'gold master'),
+		))
+
+	docaZones = SDocumentArgs(
+		strFileSuffix = 'zones',
+		tuPagea = (
+			SPageArgs(CHybridPage, strTz='US/Pacific'),
+			SPageArgs(CHybridPage, strTz='US/Mountain'),
+			SPageArgs(CHybridPage, strTz='US/Central'),
+			SPageArgs(CHybridPage, strTz='US/Eastern'),
+			SPageArgs(CHybridPage, strTz='Europe/London', fmt='a1'),
+			SPageArgs(CHybridPage, strTz='Europe/Amsterdam', fmt='a1'),
+			SPageArgs(CHybridPage, strTz='Asia/Tokyo', fmt='a1'),
+		))
+
+	lDocaZones: list[SDocumentArgs] = []
+
+	for pagea in docaZones.tuPagea:
+		tTz = arrow.utcnow().to(tz.gettz(pagea.strTz))
+		strTz = tTz.format('ZZZ') # GMT, PST, etc
+
+		lDocaZones.append(SDocumentArgs(strDestDir = 'zones', strFileSuffix = strTz.lower(), tuPagea=(pagea,)))
+
+	llDocaTodo = [
+		[
+			# docaDefault,
+			# docaTests,
+			# docaDesigns,
+			# docaZones,
+		],
+		lDocaZones,
 	]
 
-	doc = CDocument(g_db, lPagea = lPagea)
+	for lDoca in llDocaTodo:
+		for doca in lDoca:
+			doc = CDocument(g_db, doca)
 
 else:
 
