@@ -1,4 +1,3 @@
-import calendar
 import datetime
 import logging
 import math
@@ -99,7 +98,8 @@ class CGroupBlot(CBlot): # tag = groupb
 
 			uTeamText = 0.75
 			oltbName = self.Oltb(rectTeam, self.doc.fontkeyGroupTeamName, dYTeam * uTeamText, dSMargin = oltbAbbrev.dSMargin)
-			oltbName.DrawText(team.strName, colorDarkSlateGrey, JH.Left) #, JV.Top)
+			strTeam = self.page.StrTranslation('team.' + team.strAbbrev.lower())
+			oltbName.DrawText(strTeam, colorDarkSlateGrey, JH.Left) #, JV.Top)
 
 		# dividers for team/points/gf/ga
 
@@ -237,9 +237,9 @@ class CMatchBlot(CBlot): # tag = dayb
 			yScore = yTime + self.dYTimeAndGap
 
 			rectTime = SRect(self.rect.x, yTime, self.rect.dX, self.dayb.dYTime)
-			
+
 			tStart = self.match.tStart.to(tz.gettz(self.dayb.strTz))
-			
+
 			strTime = tStart.format('h:mma')
 			if tStart.day != self.match.tStart.day:
 				strTime += ' +1d' if tStart.utcoffset().total_seconds() > 0 else ' -1d'
@@ -313,7 +313,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			elif (
 					self.dayb.page.pagea.fEliminationHints and
 					isinstance(self.dayb, CElimBlot) and
-					self.match.stage > STAGE.Round1 and 
+					self.match.stage > STAGE.Round1 and
 					self.match.stage < STAGE.Third
 			     ):
 				assert len(self.match.lIdFeeders) == 2
@@ -365,7 +365,6 @@ class CMatchBlot(CBlot): # tag = dayb
 			if self.dayb.page.pagea.fGroupHints and self.dYTimeAndGap:
 				strGroup = self.match.lStrGroup[0]
 				colorGroup = self.db.mpStrGroupGroup[strGroup].colors.colorDarker
-				# oltbGroup = self.Oltb(rectTime, self.doc.fontkeyGroupName, self.dayb.s_dYFontTime
 				oltbGroup = self.Oltb(self.rect, self.doc.fontkeyGroupName, self.dayb.s_dYFontTime, dSMargin = oltbAwayTeam.dSMargin)
 				oltbGroup.DrawText(strGroup, colorGroup, JH.Right, JV.Top)
 
@@ -596,7 +595,8 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		rectTitle = rectAll.Copy(dY=self.s_dYFontTitle)
 		oltbTitle = self.Oltb(rectTitle, self.doc.fontkeyFinalTitle, rectTitle.dY)
-		oltbTitle.DrawText('FINAL', colorBlack, JH.Center)
+		strTitle = self.page.StrTranslation('stage.final').upper()
+		oltbTitle.DrawText(strTitle, colorBlack, JH.Center)
 
 		# date
 
@@ -676,11 +676,19 @@ class CFinalBlot(CBlot): # tag = finalb
 
 @dataclass
 class SPageArgs: # tag - pagea
+	
+	# NOTE (bruceo) strLocale is a two letter ISO 639 language code, or
+	# one combined with a two letter ISO 3166-1 alpha-2 country code (e.g. en-gb vs en-us)
+	#	https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+	# more importantly, it's a code honored by arrow
+	#	https://arrow.readthedocs.io/en/latest/api-guide.html#module-arrow.locales
+
 	clsPage: Type['CPage']
 	strOrientation: str = 'landscape'
 	fmt: str | tuple[float, float] = (22, 28)
 	strTz: str = 'US/Pacific'
 	fmtCrop: Optional[str | tuple[float, float]] = (18, 27)
+	strLocale: str = 'en'
 	strVariant: str = ''
 	fMainBorders: bool = True
 	fEliminationBorders: bool = True
@@ -697,7 +705,7 @@ class CPage:
 	# "darkslategray": "#2f4f4f", (47)
 	# "lightgrey": "#d3d3d3", (211)
 	# (211 - 47) / 3 = 41
-	
+
 	s_mpStageColorBorder: dict[STAGE, SColor] = {
 		STAGE.Round1: ColorFromStr("#585858"),		# 47 + 41 = 88 (0x58)
 		STAGE.Quarters: ColorFromStr("#818181"),	# 88 + 41 = 129 (0x81)
@@ -715,6 +723,7 @@ class CPage:
 		self.fmt = self.pagea.fmt
 		self.fmtCrop = self.pagea.fmtCrop
 		self.strTz = self.pagea.strTz
+		self.strLocale = self.pagea.strLocale
 
 		self.pdf.add_page(orientation=self.strOrientation, format=self.fmt)
 		self.rect = SRect(0, 0, self.pdf.w, self.pdf.h)
@@ -725,7 +734,7 @@ class CPage:
 			dXCropPerEdge = (self.rect.dX - dX) / 2
 			dYCropPerEdge = (self.rect.dY - dY) / 2
 			dSCropMarkPerEdge = min(dXCropPerEdge / 2, dYCropPerEdge / 2)
-			
+
 			self.rectInside = self.rect.Copy().Stretch(
 												dXLeft = dXCropPerEdge,
 												dYTop = dYCropPerEdge,
@@ -737,6 +746,17 @@ class CPage:
 		else:
 			self.rectInside = self.rect
 			self.rectCropMarks = self.rect
+
+	def StrTranslation(self, strKey: str) -> str:
+		mpStrLocaleStrText = self.db.mpStrKeyStrLocaleStrText[strKey]
+
+		try:
+			if strText := mpStrLocaleStrText[self.strLocale]:
+				return strText
+		except KeyError:
+			pass
+
+		return mpStrLocaleStrText['en']
 
 	def DrawCropLines(self) -> None:
 		if self.rectInside is self.rect:
@@ -861,7 +881,8 @@ class CHeaderBlot(CBlot): # tag = headerb
 		# title
 
 		oltbTitle = self.Oltb(rectAll, self.doc.fontkeyPageHeaderTitle, self.s_dYFontTitle)
-		rectTitle = oltbTitle.RectDrawText('W.C. 2022 SCHEDULE & SCORE CARD', colorWhite, JH.Center, JV.Middle)
+		strTitle = self.page.StrTranslation('tournament.title').upper()
+		rectTitle = oltbTitle.RectDrawText(strTitle, colorWhite, JH.Center, JV.Middle)
 		dSMarginSides = rectAll.yMax - rectTitle.yMax
 
 		rectDate = rectAll.Copy().Stretch(dXLeft = self.s_dY) # yes, using height as left space
@@ -873,22 +894,29 @@ class CHeaderBlot(CBlot): # tag = headerb
 		tMax = arrow.get(max(self.doc.db.mpDateSetMatch))
 
 		if tMin.year != tMax.year:
-			strDateFmt = 'MMM D YYYY'
+			strDateFmt = self.page.StrTranslation('format.page.date.with-year')
 		else:
-			strDateFmt = 'MMM D'
-		strDates = (f'{tMin.format(strDateFmt)} \u2013 {tMax.format(strDateFmt)}, Qatar').upper()
+			strDateFmt = self.page.StrTranslation('format.page.date.no-year')
+		strDateFirst = tMin.format(strDateFmt)
+		strDateSecond = tMax.format(strDateFmt)
+		strLocation = self.page.StrTranslation('tournament.location')
+		strFormatDates = self.page.StrTranslation('format.page.date-range')
+		strDates = strFormatDates.format(first=strDateFirst, second=strDateSecond, location=strLocation).upper()
 		oltbDates = self.Oltb(rectDate, self.doc.fontkeyPageHeaderTitle, self.s_dYFontSides, dSMargin = dSMarginSides)
 		oltbDates.DrawText(strDates, colorWhite, JH.Left, JV.Bottom)
 
 		# time zone
 
 		tTz = tMin.to(tz.gettz(self.page.strTz))
-		strTz = tTz.format('ZZZ')
-		strTimeZone = f'TIME ZONE: {strTz}'
+		strTz = tTz.format('ZZZ', locale=self.page.strLocale)
 
 		dT = tTz.utcoffset()
 		if cHour := int(dT.total_seconds()) // (60*60):
-			strTimeZone += f' (UTC{cHour:+d})'
+			strTz += f' (UTC{cHour:+d})'
+
+		strLabelTimeZone = self.page.StrTranslation('page.timezone.label')
+		strFormatTimeZone = self.page.StrTranslation('format.page.timezone')
+		strTimeZone = strFormatTimeZone.format(label=strLabelTimeZone, timezone=strTz)
 
 		oltbTimeZone = self.Oltb(rectTimeZone, self.doc.fontkeyPageHeaderTitle, self.s_dYFontSides, dSMargin = dSMarginSides)
 		oltbTimeZone.DrawText(strTimeZone, colorWhite, JH.Right, JV.Bottom)
@@ -986,7 +1014,7 @@ class CCalendarBlot(CBlot): # tag = calb
 			date = tDay.date()
 
 			setMatchDate = self.db.mpDateSetMatch.get(date, set()).intersection(setMatch)
-			
+
 			if setMatchDate:
 				dayb = CDayBlot(self.page, setMatchDate)
 			else:
@@ -1005,7 +1033,7 @@ class CCalendarBlot(CBlot): # tag = calb
 		rectDayOfWeek = SRect(x = pos.x, y = pos.y, dX = CDayBlot.s_dX, dY = self.s_dYDayOfWeek)
 
 		for iDay in range(7):
-			strDayOfWeek = calendar.day_abbr[(iDay + 6) % 7]
+			strDayOfWeek = arrow.get(2021, 1, 1 + ((iDay + 6) % 7)).format('ddd')
 			oltbDayOfWeek = self.Oltb(rectDayOfWeek, self.doc.fontkeyCalDayOfWeek, rectDayOfWeek.dY)
 			oltbDayOfWeek.DrawText(strDayOfWeek, colorBlack, JH.Center)
 			rectDayOfWeek.Shift(dX=CDayBlot.s_dX)
@@ -1033,7 +1061,8 @@ class CCalendarBlot(CBlot): # tag = calb
 		rectAll = SRect(x = pos.x, y = pos.y, dX = self.dX, dY = self.dY)
 		rectTitleText = SRect(rectAll.x, rectAll.y - (self.s_dYFontTitle * 2), rectAll.dX, self.s_dYFontTitle)
 		oltbTitleText = self.Oltb(rectTitleText, self.doc.fontkeyElimStage, rectTitleText.dY)
-		rectTitleTextDrawn = oltbTitleText.RectDrawText('GROUP STAGE', colorLightGrey, JH.Center)
+		strTitleText = self.page.StrTranslation('stage.group').upper()
+		rectTitleTextDrawn = oltbTitleText.RectDrawText(strTitleText, colorLightGrey, JH.Center)
 
 		yTitleTextMiddle = rectTitleTextDrawn.yMin + rectTitleTextDrawn.dY / 2 # middle of text
 		dSTitleGap = (rectAll.yMin - yTitleTextMiddle) / 2
@@ -1137,25 +1166,17 @@ class CBracketBlot(CBlot): # tag = bracketb
 
 		self.mpStageTuRectStr: dict[STAGE, tuple[SRect, str]] = {}
 
-		# BB (bruceo) put these in the db
-
-		mpStageStrName: dict[STAGE, str] = {
-			STAGE.Round1: 'Round of Sixteen',
-			STAGE.Quarters: 'Quarter-Finals',
-			STAGE.Semis: 'Semi-Finals',
-			STAGE.Third: 'Third Place',
-		}
-
 		for stage, lRect in mpStageLRect.items():
 			rectStage = lRect[0]
-			strStage = mpStageStrName[stage]
+			strKey = 'stage.' + stage.name.lower()
+			strStage = self.page.StrTranslation(strKey).upper()
 			for rect in lRect[1:]:
 				# BB (bruceo) put this in SRect
 				rectStage.xMin = min(rectStage.xMin, rect.xMin)
 				rectStage.yMin = min(rectStage.yMin, rect.yMin)
 				rectStage.xMax = max(rectStage.xMax, rect.xMax)
 				rectStage.yMax = max(rectStage.yMax, rect.yMax)
-			
+
 			self.mpStageTuRectStr[stage] = (rectStage, strStage)
 
 	def Draw(self, pos: SPoint) -> None:
@@ -1170,7 +1191,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 
 			rectStageGlobal = rectStageLocal.Copy().Shift(dX = pos.x, dY = pos.y)
 			rectStageText = SRect(rectStageGlobal.x, rectStageGlobal.y - (self.s_dYFontStage * 2), rectStageGlobal.dX, self.s_dYFontStage)
-			
+
 			if stage == STAGE.Third:
 				rectStageText.Shift(dY = self.s_dYFontStage)
 
@@ -1185,7 +1206,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 
 				yStageTextMiddle = rectStageTextDrawn.yMin + rectStageTextDrawn.dY / 2 # middle of text
 				dSStageGap = (rectStageGlobal.yMin - yStageTextMiddle) / 2
-	
+
 				xLeftMin = rectStageText.xMin + CElimBlot.s_dX / 2
 				xLeftMax = rectStageTextDrawn.xMin - dSStageGap
 
@@ -1332,7 +1353,7 @@ class CHybridPage(CPage): # tag = hybridp
 
 @dataclass
 class SDocumentArgs: # tag = doca
-	tuPagea: tuple[SPageArgs, ...]
+	iterPagea: Iterable[SPageArgs]
 	strDestDir: str = ''
 	strFileSuffix: str = ''
 
@@ -1422,13 +1443,13 @@ class CDocument: # tag = doc
 
 			self.fontkeyCalDayOfWeek	= SFontKey('TradeGothicLight',		'I')
 
-		for pagea in self.doca.tuPagea:
+		for pagea in self.doca.iterPagea:
 			pagea.clsPage(self, pagea)
 
 		pathDirOutput = g_pathHere / self.doca.strDestDir if self.doca.strDestDir else g_pathHere
 		strFile = self.db.pathFile.stem + '-' + self.doca.strFileSuffix if self.doca.strFileSuffix else self.db.pathFile.stem
 
-		pathDirOutput.mkdir(parents=True, exist_ok=True) 
+		pathDirOutput.mkdir(parents=True, exist_ok=True)
 		pathOutput = (pathDirOutput / strFile).with_suffix('.pdf')
 
 		self.pdf.output(str(pathOutput))
@@ -1438,13 +1459,13 @@ if True:
 
 	docaDefault = SDocumentArgs(
 		strDestDir = 'playground',
-		tuPagea = (
-			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None),
+		iterPagea = (
+			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None, strLocale='de'),
 		))
 
 	docaTests = SDocumentArgs(
 		strDestDir = 'playground',
-		tuPagea = (
+		iterPagea = (
 			SPageArgs(CGroupsTestPage),
 			SPageArgs(CDaysTestPage),
 		))
@@ -1452,7 +1473,7 @@ if True:
 	docaDesigns = SDocumentArgs(
 		strDestDir = 'playground',
 		strFileSuffix = 'designs',
-		tuPagea = (
+		iterPagea = (
 			SPageArgs(CPosterPage, fmt=(18, 27), fmtCrop=None, strVariant = 'alpha', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
 			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None, strVariant = 'beta', fEliminationBorders = False, fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
 			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None, strVariant = 'borderless', fMainBorders = False),
@@ -1462,7 +1483,7 @@ if True:
 	docaZones = SDocumentArgs(
 		strDestDir = 'playground',
 		strFileSuffix = 'zones',
-		tuPagea = (
+		iterPagea = (
 			SPageArgs(CHybridPage, strTz='US/Pacific'),
 			SPageArgs(CHybridPage, strTz='US/Mountain'),
 			SPageArgs(CHybridPage, strTz='US/Central'),
@@ -1474,20 +1495,20 @@ if True:
 
 	lDocaZones: list[SDocumentArgs] = []
 
-	for pagea in docaZones.tuPagea:
+	for pagea in docaZones.iterPagea:
 		tTz = arrow.utcnow().to(tz.gettz(pagea.strTz))
 		strTz = tTz.format('ZZZ') # GMT, PST, etc
 
-		lDocaZones.append(SDocumentArgs(strDestDir = 'playground', strFileSuffix = strTz.lower(), tuPagea=(pagea,)))
+		lDocaZones.append(SDocumentArgs(strDestDir = 'playground', strFileSuffix = strTz.lower(), iterPagea=(pagea,)))
 
 	llDocaTodo = [
 		[
-			# docaDefault,
+			docaDefault,
 			# docaTests,
 			# docaDesigns,
 			# docaZones,
 		],
-		lDocaZones,
+		# lDocaZones,
 	]
 
 	for lDoca in llDocaTodo:

@@ -25,13 +25,9 @@ class STAGE(IntEnum):
 	Third = auto()
 	Final = auto()
 
-class CVenue:
-	def __init__(self, xlrow: TExcelRow) -> None:
-		self.strName: str = xlrow['location']
-
 class CTeam:
 	def __init__(self, xlrow: TExcelRow) -> None:
-		self.strName: str = xlrow['team']
+		self.rank: int = int(xlrow['rank'])
 		self.strAbbrev: str = xlrow['abbrev']
 		self.strSeed: Optional[str] = None
 	def SetSeed(self, strSeed: str) -> None:
@@ -64,7 +60,7 @@ class CMatch:
 		self.db = db
 		self.id = int(xlrow['match'])
 		self.strName: str = '#' + str(xlrow['match'])
-		self.venue: CVenue = db.mpIdVenue[int(xlrow['venue'])]
+		self.venue: int = int(xlrow['venue'])
 		self.strHome: str = xlrow['home']
 		self.strAway: str = xlrow['away']
 		self.tStart: arrow.Arrow = arrow.get(xlrow['time'])
@@ -134,7 +130,7 @@ class CMatch:
 
 class CDataBase:
 
-	def __init__(self, pathFile: Path) -> None:
+	def __init__(self, pathFile: Path, ) -> None:
 
 		self.pathFile = pathFile
 
@@ -144,7 +140,6 @@ class CDataBase:
 		self.lStrGroup: list[str] = list(self.mpStrGroupGroup.keys())
 		self.setStrGroup: set[str] = set(self.lStrGroup)
 
-		self.mpIdVenue: dict[int, CVenue] = {int(xlrow['venue']):CVenue(xlrow) for xlrow in xls['venues']}
 		self.mpRankTeam: dict[int, CTeam] = {int(xlrow['rank']):CTeam(xlrow) for xlrow in xls['teams']}
 
 		self.mpStrSeedTeam: dict[str, CTeam] = self.MpStrSeedTeam(xls)
@@ -152,6 +147,11 @@ class CDataBase:
 		# CMatch.__init__ depends on self.mpStrSeedTeam existing
 
 		self.mpIdMatch: dict[int, CMatch] = {int(xlrow['match']):CMatch(self, xlrow) for xlrow in xls['matches']}
+
+		# translations come from both the tranlsations table (mostly unchanging) and the tournament table (new per contest)
+
+		self.mpStrKeyStrLocaleStrText: dict[str, dict[str, str]] = {xlrow['key'].lower():xlrow for xlrow in xls['translations']}
+		self.mpStrKeyStrLocaleStrText.update({'tournament.' + xlrow['key'].lower():xlrow for xlrow in xls['tournament']})
 
 		self.mpDateSetMatch: dict[datetime.date, set[CMatch]] = self.MpDateSetMatch()
 		self.mpStageSetMatch: dict[STAGE, set[CMatch]] = self.MpStageSetMatch()
@@ -269,16 +269,16 @@ class CDataBase:
 		xls: TExcelSheet = {}
 		
 		for ws in wb.worksheets:
-			for strTable, strRange in ws.tables.items():
-				lStrKey: Optional[list[str]] = None
-				xltable: TExcelTable = []
-				for row in ws[strRange]:
-					if not lStrKey:
-						lStrKey = [cell.value.lower() for cell in row]
-					else:
-						lStrValue: list[str] = [cell.value for cell in row]
-						xlrow: TExcelRow = dict(zip(lStrKey, lStrValue))
-						xltable.append(xlrow)
-				xls[strTable] = xltable
+			lStrKey: Optional[list[str]] = None
+			xltable: TExcelTable = []
+			for row in ws.rows:
+				if not lStrKey:
+					lStrKey = [cell.value.lower() for cell in row]
+				else:
+					lStrValue: list[str] = [cell.value for cell in row]
+					xlrow: TExcelRow = dict(zip(lStrKey, lStrValue))
+					xltable.append(xlrow)
+			xls[ws.title.lower()] = xltable
 
 		return xls
+			
