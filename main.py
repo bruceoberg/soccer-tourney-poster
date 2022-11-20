@@ -1033,7 +1033,7 @@ class CCalendarBlot(CBlot): # tag = calb
 		rectDayOfWeek = SRect(x = pos.x, y = pos.y, dX = CDayBlot.s_dX, dY = self.s_dYDayOfWeek)
 
 		for iDay in range(7):
-			strDayOfWeek = arrow.get(2021, 1, 1 + ((iDay + 6) % 7)).format('ddd')
+			strDayOfWeek = arrow.get(2001, 1, 1 + iDay).format('ddd', locale=self.page.strLocale)
 			oltbDayOfWeek = self.Oltb(rectDayOfWeek, self.doc.fontkeyCalDayOfWeek, rectDayOfWeek.dY)
 			oltbDayOfWeek.DrawText(strDayOfWeek, colorBlack, JH.Center)
 			rectDayOfWeek.Shift(dX=CDayBlot.s_dX)
@@ -1460,7 +1460,7 @@ if True:
 	docaDefault = SDocumentArgs(
 		strDestDir = 'playground',
 		iterPagea = (
-			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None, strLocale='de'),
+			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None), #, strLocale='nl'),
 		))
 
 	docaTests = SDocumentArgs(
