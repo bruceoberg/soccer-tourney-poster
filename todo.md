@@ -23,6 +23,7 @@
 			- `CCol` / `CRow`
 - monochrome
 - fix FPDF2 to generate embedded fonts that illustrator can recognize.
+- take results from spreadsheet and print them instead of boxes/forms.
 
 ## never
 
