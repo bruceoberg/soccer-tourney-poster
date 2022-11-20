@@ -3,6 +3,7 @@
 - tourney properties.
 - print against 2018 data.
 	- get **ALL** text from spreadsheet.
+	- don't rely on tables, just use worksheets.
 
 ## future
 
@@ -13,7 +14,7 @@
 - layout engine
 	- move most `CBlot.__init__` stuff into `Layout`/`Draw` phases.
 	- remove `s_dY` and its ilk. everything resizable.
-	- `SVector` (perhaps `SSize`?)
+	- `SVector` (perhaps `SSize`?). dataclass of `dX`/`dY` floats.
     - `SRect`
 		- `Adjacent()`, `RectSplit()`, `LRectSplit()`
 		- remove `SRect.Copy()` and replace with `RectFoo()` static
