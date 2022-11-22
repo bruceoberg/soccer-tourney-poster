@@ -1,16 +1,17 @@
 ## now
 
-- tourney properties.
+- use babel for date time formats.
 - print against 2018 data.
 	- get **ALL** text from spreadsheet.
 	- don't rely on tables, just use worksheets.
+- localized text from database.
+	- split non-tourney strings into their own db next to fonts.
+	- font choices in this non-tourney db.
 
 ## future
 
 - command line with argparse.
 - lists of pages from database (or ?).
-- font choices from database.
-- localized text from database.
 - layout engine
 	- move most `CBlot.__init__` stuff into `Layout`/`Draw` phases.
 	- remove `s_dY` and its ilk. everything resizable.
@@ -42,3 +43,4 @@
 - group name hints on group matches.
 - point/goal spots in group stats.
 - minimal readme.
+- tourney properties.
