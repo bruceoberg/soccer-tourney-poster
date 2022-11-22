@@ -1,10 +1,8 @@
 ## now
 
-- use babel for date time formats.
 - print against 2018 data.
 	- get **ALL** text from spreadsheet.
-	- don't rely on tables, just use worksheets.
-- localized text from database.
+- more localization
 	- split non-tourney strings into their own db next to fonts.
 	- font choices in this non-tourney db.
 
@@ -44,3 +42,6 @@
 - point/goal spots in group stats.
 - minimal readme.
 - tourney properties.
+- don't rely on excel tables, just use worksheets.
+- use babel for date time formats.
+- localized text from database.

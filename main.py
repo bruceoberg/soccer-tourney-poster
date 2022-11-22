@@ -1,8 +1,11 @@
+import babel.dates
+import babel.numbers
 import datetime
 import logging
 import math
 import platform
 
+from babel import Locale
 from dataclasses import dataclass
 from dateutil import tz
 from pathlib import Path
@@ -174,6 +177,7 @@ class CMatchBlot(CBlot): # tag = dayb
 		super().__init__(dayb.pdf)
 		self.doc = dayb.doc
 		self.db = dayb.db
+		self.page = dayb.page
 		self.dayb = dayb
 		self.match = match
 		self.rect = rect
@@ -236,14 +240,8 @@ class CMatchBlot(CBlot): # tag = dayb
 			yTime = self.rect.y + self.dYOuterGap
 			yScore = yTime + self.dYTimeAndGap
 
+			strTime = self.page.StrTimeDayRelative(self.match.tStart)
 			rectTime = SRect(self.rect.x, yTime, self.rect.dX, self.dayb.dYTime)
-
-			tStart = self.match.tStart.to(tz.gettz(self.dayb.strTz))
-
-			strTime = tStart.format('h:mma')
-			if tStart.day != self.match.tStart.day:
-				strTime += ' +1d' if tStart.utcoffset().total_seconds() > 0 else ' -1d'
-
 			oltbTime = self.Oltb(rectTime, self.doc.fontkeyMatchTime, self.dayb.s_dYFontTime)
 			oltbTime.DrawText(strTime, colorBlack, JH.Center)
 		else:
@@ -302,7 +300,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			# round 1 gets them otherwise honor pref
 
-			fDrawFormLabels = self.dayb.page.pagea.fMatchNumbers or self.match.stage == STAGE.Round1
+			fDrawFormLabels = self.page.pagea.fMatchNumbers or self.match.stage == STAGE.Round1
 
 			# elimination hint pref can turn them back on
 
@@ -311,7 +309,7 @@ class CMatchBlot(CBlot): # tag = dayb
 				strAway = self.match.strAway
 				dYFontForm = self.dayb.s_dYFontForm
 			elif (
-					self.dayb.page.pagea.fEliminationHints and
+					self.page.pagea.fEliminationHints and
 					isinstance(self.dayb, CElimBlot) and
 					self.match.stage > STAGE.Round1 and
 					self.match.stage < STAGE.Third
@@ -334,7 +332,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			# match label
 
-			if self.dayb.page.pagea.fMatchNumbers:
+			if self.page.pagea.fMatchNumbers:
 
 				if isinstance(self.dayb, CElimBlot):
 					fontkeyLabel = self.doc.fontkeyElimLabel
@@ -362,7 +360,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			# group name, subtly
 
-			if self.dayb.page.pagea.fGroupHints and self.dYTimeAndGap:
+			if self.page.pagea.fGroupHints and self.dYTimeAndGap:
 				strGroup = self.match.lStrGroup[0]
 				colorGroup = self.db.mpStrGroupGroup[strGroup].colors.colorDarker
 				oltbGroup = self.Oltb(self.rect, self.doc.fontkeyGroupName, self.dayb.s_dYFontTime, dSMargin = oltbAwayTeam.dSMargin)
@@ -396,7 +394,7 @@ class CDayBlot(CBlot): # tag = dayb
 
 	s_dYFontLabel = s_dYFontTime * 1.3
 
-	def __init__(self, page: 'CPage', setMatch: set[CMatch] = set(), date: Optional[datetime.date] = None) -> None:
+	def __init__(self, page: 'CPage', iterMatch: Optional[Iterable[CMatch]] = None, tDay: Optional[arrow.Arrow] = None) -> None:
 		self.page = page
 		self.doc = self.page.doc
 		self.pdf = self.doc.pdf
@@ -405,33 +403,28 @@ class CDayBlot(CBlot): # tag = dayb
 
 		super().__init__(self.pdf)
 
-		self.lMatch = sorted(setMatch, key=lambda match: (match.tStart, match.strHome))
-		if self.lMatch:
-			assert date is None
+		if iterMatch:
+			assert tDay is None
+			self.lMatch = sorted(iterMatch, key=lambda match: (match.tStart, match.strHome))
 			self.tStart = self.lMatch[0].tStart
 		else:
-			assert date is not None
-			self.tStart = arrow.get(date)
-		self.date = self.tStart.date()
+			assert tDay is not None
+			self.lMatch = []
+			self.tStart = tDay
+
 		for match in self.lMatch[1:]:
-			assert self.date == match.tStart.date()
+			assert self.tStart.date() == match.tStart.date()
+
 		self.dYTime = CFontInstance(self.pdf, self.doc.fontkeyMatchTime, self.s_dYFontTime).dYCap
 
-	def Draw(self, pos: SPoint, datePrev: Optional[datetime.date] = None) -> None:
+	def Draw(self, pos: SPoint, tPrev: Optional[arrow.Arrow] = None) -> None:
 
 		rectBorder = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
 		rectInside = rectBorder.Copy().Inset(self.s_dSLineOuter / 2.0)
 
 		# Date
 
-		# BB (bruceo) only include year/month sometimes
-
-		if datePrev and datePrev.month == self.tStart.month:
-			strFormat = "D"
-		else:
-			strFormat = "MMMM D"
-		strDate = self.tStart.format(strFormat)
-
+		strDate = self.page.StrDateForCalendar(self.tStart, tPrev)
 		rectDate = rectInside.Copy(dY=self.s_dYDate)
 		oltbDate = self.Oltb(rectDate, self.doc.fontkeyDayDate, rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack)
@@ -535,8 +528,7 @@ class CElimBlot(CDayBlot): # tag = elimb
 
 		# Date
 
-		strFormat = "ddd, MMM D"
-		strDate = self.tStart.format(strFormat)
+		strDate = self.page.StrDateForElimination(self.tStart)
 		rectDate = rectAll.Copy(dY = self.s_dYDate).Shift(dY = (matchb.dYOuterGap - self.s_dYDate) / 2)
 		oltbDate = self.Oltb(rectDate, self.doc.fontkeyElimDate, rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack, JH.Center)
@@ -587,7 +579,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		self.match: CMatch = self.db.matchFinal
 
-	def Draw(self, pos: SPoint, datePrev: Optional[datetime.date] = None) -> None:
+	def Draw(self, pos: SPoint) -> None:
 
 		rectAll = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
 
@@ -600,19 +592,14 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		# date
 
-		tStart = self.match.tStart
-		strDate = tStart.format('dddd, MMMM D')
+		strDate = self.page.StrDateForFinal(self.match.tStart)
 		rectDate = rectTitle.Copy(dY = self.s_dYFontDate).Shift(dY = rectTitle.dY + self.s_dYTextGap)
 		oltbDate = self.Oltb(rectDate, self.doc.fontkeyFinalDate, rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack, JH.Center)
 
 		# time
 
-		tStart = self.match.tStart.to(tz.gettz(self.page.strTz))
-		strTime = tStart.format('h:mma')
-		if tStart.day != self.match.tStart.day:
-			strTime += ' +1d' if tStart.utcoffset().total_seconds() < 0 else ' -1d'
-
+		strTime = self.page.StrTimeDayRelative(self.match.tStart)
 		rectTime = rectDate.Copy(dY=self.s_dYFontTime).Shift(dY = rectDate.dY + self.s_dYTextGap)
 		oltbTime = self.Oltb(rectTime, self.doc.fontkeyFinalTime, rectTime.dY)
 		oltbTime.DrawText(strTime, colorBlack, JH.Center)
@@ -688,7 +675,7 @@ class SPageArgs: # tag - pagea
 	fmt: str | tuple[float, float] = (22, 28)
 	strTz: str = 'US/Pacific'
 	fmtCrop: Optional[str | tuple[float, float]] = (18, 27)
-	strLocale: str = 'en'
+	strLocale: str = 'en_US'
 	strVariant: str = ''
 	fMainBorders: bool = True
 	fEliminationBorders: bool = True
@@ -697,6 +684,28 @@ class SPageArgs: # tag - pagea
 	fEliminationHints: bool = True
 	fGroupDots: bool = True
 
+def StrPatternDateMMMMEEEEd(locale: Locale) -> str:
+	# CLDR does not provide a skeleton for 'MMMMEEEEd' (for getting 'Sunday, November 1' in any language).
+	# so for western languages (e.g. not arabic/farsi/japanese), we build 'MMMMEEEEd' from the pattern provided by 'MMMEd'.
+
+	dtfMMMEd = locale.datetime_skeletons['MMMEd']
+
+	if locale.language in ('ja', 'ar', 'fa'):
+		return dtfMMMEd.pattern
+
+	lStrPattern = dtfMMMEd.pattern.split("'")
+	lStrPatternNew = []
+
+	for iStr, str in enumerate(lStrPattern):
+		# the pattern can have single quotes denoting literals. so skip those
+		if not (iStr & 1):
+			str = str.replace('E', 'EEEE', 1)
+			str = str.replace('MMM', 'MMMM', 1)
+
+		lStrPatternNew.append(str)
+
+	return ''.join(lStrPatternNew)
+		
 class CPage:
 
 	s_dSLineCropMarks = 0.008
@@ -724,6 +733,8 @@ class CPage:
 		self.fmtCrop = self.pagea.fmtCrop
 		self.strTz = self.pagea.strTz
 		self.strLocale = self.pagea.strLocale
+		self.locale = Locale.parse(self.strLocale)
+		self.strDateMMMMEEEEd = StrPatternDateMMMMEEEEd(self.locale)
 
 		self.pdf.add_page(orientation=self.strOrientation, format=self.fmt)
 		self.rect = SRect(0, 0, self.pdf.w, self.pdf.h)
@@ -757,6 +768,50 @@ class CPage:
 			pass
 
 		return mpStrLocaleStrText['en']
+
+	def StrDateRangeForHeader(self, tMin: arrow.Arrow, tMax: arrow.Arrow) -> str:
+		if tMin.year != tMax.year:
+			strDateFmt = 'yMMM' # multi year: month + year to month + year
+		else:
+			strDateFmt = 'MMMd' # single year: month + day to month + day
+		return babel.dates.format_interval(tMin.datetime, tMax.datetime, strDateFmt, locale=self.locale)
+
+	def StrDateForCalendar(self, tDate: arrow.Arrow, tPrev: Optional[arrow.Arrow] = None) -> str:
+		# NOTE (bruceo) only include month sometimes when it is changing
+		#	these formats are CLDR patterns (https://cldr.unicode.org/translation/date-time/date-time-patterns)
+		#	as supported by babel.dates.format_skeleton()
+
+		if tPrev and tPrev.month == tDate.month:
+			strFormat = "d"
+		else:
+			strFormat = "MMMMd"
+		
+		return babel.dates.format_skeleton(strFormat, tDate.datetime, locale=self.locale)
+
+	def StrDateForElimination(self, tDate: arrow.Arrow) -> str:
+		return babel.dates.format_skeleton('MMMEd', tDate.datetime, locale=self.locale)
+
+	def StrDateForFinal(self, tDate: arrow.Arrow) -> str:
+		return babel.dates.format_date(tDate.datetime, format=self.strDateMMMMEEEEd, locale=self.locale)
+
+	def StrTimeDayRelative(self, tTime: arrow.Arrow) -> str:
+		tTimeTz = tTime.to(tz.gettz(self.strTz))
+		strTime = babel.dates.format_time(tTimeTz.time(), 'short', locale=self.locale)
+		
+		if tTime.day != tTimeTz.day:
+			strDelta = babel.dates.format_timedelta(datetime.timedelta(days=1), format='narrow', granularity='day', locale=self.locale)
+			
+			# NOTE (bruceo) yes, sign symbols can be localized. sheesh.
+			
+			if tTimeTz.utcoffset().total_seconds() > 0:
+				strSign = babel.numbers.get_plus_sign_symbol(self.locale)
+			else:
+				strSign = babel.numbers.get_minus_sign_symbol(self.locale)
+			
+			strTime += f' {strSign}{strDelta}'
+
+		return strTime.lower().replace(' ', '') # hack to get very narrow times. prob violates CLDR.
+
 
 	def DrawCropLines(self) -> None:
 		if self.rectInside is self.rect:
@@ -892,16 +947,10 @@ class CHeaderBlot(CBlot): # tag = headerb
 
 		tMin = arrow.get(min(self.doc.db.mpDateSetMatch))
 		tMax = arrow.get(max(self.doc.db.mpDateSetMatch))
-
-		if tMin.year != tMax.year:
-			strDateFmt = self.page.StrTranslation('format.page.date.with-year')
-		else:
-			strDateFmt = self.page.StrTranslation('format.page.date.no-year')
-		strDateFirst = tMin.format(strDateFmt)
-		strDateSecond = tMax.format(strDateFmt)
+		strDateRange = self.page.StrDateRangeForHeader(tMin, tMax)
 		strLocation = self.page.StrTranslation('tournament.location')
-		strFormatDates = self.page.StrTranslation('format.page.date-range')
-		strDates = strFormatDates.format(first=strDateFirst, second=strDateSecond, location=strLocation).upper()
+		strFormatDates = self.page.StrTranslation('format.page.dates-and-location')
+		strDates = strFormatDates.format(dates=strDateRange, location=strLocation).upper()
 		oltbDates = self.Oltb(rectDate, self.doc.fontkeyPageHeaderTitle, self.s_dYFontSides, dSMargin = dSMarginSides)
 		oltbDates.DrawText(strDates, colorWhite, JH.Left, JV.Bottom)
 
@@ -988,16 +1037,19 @@ class CCalendarBlot(CBlot): # tag = calb
 		dateMin: datetime.date = min(setDate)
 		dateMax: datetime.date = max(setDate)
 
-		# ensure dateMin is a sunday for proper week calculations
+		# ensure dateMin/dateMax are on week boundries
 
-		if dateMin.weekday() != 6: # SUNDAY
+		self.weekdayFirst: int = self.page.locale.first_week_day
+		self.weekdayLast = (self.weekdayFirst + 6) % 7
+
+		if dateMin.weekday() != self.weekdayFirst:
 			# arrow.shift(weekday) always goes forward in time
-			dateMin = arrow.get(dateMin).shift(weeks=-1).shift(weekday=6).date()
+			dateMin = arrow.get(dateMin).shift(weeks=-1).shift(weekday=self.weekdayFirst).date()
 
 		# and always go all the way to saturday
 
-		if dateMax.weekday() != 5: # SATURDAY
-			dateMax = arrow.get(dateMax).shift(weekday=5).date()
+		if dateMax.weekday() != self.weekdayLast:
+			dateMax = arrow.get(dateMax).shift(weekday=self.weekdayLast).date()
 
 		cDay: int = (dateMax - dateMin).days + 1
 		assert cDay % 7 == 0
@@ -1010,20 +1062,18 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		self.lTuDPosDayb: list[tuple[SPoint, CDayBlot]] = []
 
-		for tDay in arrow.Arrow.range('day', arrow.get(dateMin), arrow.get(dateMax)):
-			date = tDay.date()
-
-			setMatchDate = self.db.mpDateSetMatch.get(date, set()).intersection(setMatch)
+		for iDay, tDay in enumerate(arrow.Arrow.range('day', arrow.get(dateMin), arrow.get(dateMax))):
+			setMatchDate = self.db.mpDateSetMatch.get(tDay.date(), set()).intersection(setMatch)
 
 			if setMatchDate:
-				dayb = CDayBlot(self.page, setMatchDate)
+				dayb = CDayBlot(self.page, iterMatch = setMatchDate)
 			else:
-				dayb = CDayBlot(self.page, date=date)
+				dayb = CDayBlot(self.page, tDay = tDay)
 
-			iDay = (date.weekday() + 1) % 7 # we want sunday as 0
-			iWeek = (date - dateMin).days // 7
+			iWeekday = iDay % 7
+			iWeek = iDay // 7
 
-			dPosDayb = SPoint(iDay * CDayBlot.s_dX, iWeek * CDayBlot.s_dY)
+			dPosDayb = SPoint(iWeekday * CDayBlot.s_dX, iWeek * CDayBlot.s_dY)
 			self.lTuDPosDayb.append((dPosDayb, dayb))
 
 	def Draw(self, pos: SPoint) -> None:
@@ -1033,7 +1083,7 @@ class CCalendarBlot(CBlot): # tag = calb
 		rectDayOfWeek = SRect(x = pos.x, y = pos.y, dX = CDayBlot.s_dX, dY = self.s_dYDayOfWeek)
 
 		for iDay in range(7):
-			strDayOfWeek = arrow.get(2001, 1, 1 + iDay).format('ddd', locale=self.page.strLocale)
+			strDayOfWeek = arrow.get(2001, 1, 1 + ((iDay + self.weekdayFirst) % 7)).format('ddd', locale=self.page.strLocale)
 			oltbDayOfWeek = self.Oltb(rectDayOfWeek, self.doc.fontkeyCalDayOfWeek, rectDayOfWeek.dY)
 			oltbDayOfWeek.DrawText(strDayOfWeek, colorBlack, JH.Center)
 			rectDayOfWeek.Shift(dX=CDayBlot.s_dX)
@@ -1042,14 +1092,14 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		rectDays = SRect(x = pos.x, y = pos.y, dX = self.dX, dY = self.dY).Stretch(dYTop = rectDayOfWeek.dY)
 
-		datePrev: Optional[datetime.date] = None
+		tPrev: Optional[arrow.Arrow] = None
 		for dPosDayb, dayb in self.lTuDPosDayb:
 
 			posDayb = SPoint(rectDays.x + dPosDayb.x, rectDays.y + dPosDayb.y)
 
-			dayb.Draw(posDayb, datePrev)
+			dayb.Draw(posDayb, tPrev)
 
-			datePrev = dayb.date
+			tPrev = dayb.tStart
 
 		# border
 
@@ -1454,13 +1504,12 @@ class CDocument: # tag = doc
 
 		self.pdf.output(str(pathOutput))
 
-
 if True:
 
 	docaDefault = SDocumentArgs(
 		strDestDir = 'playground',
 		iterPagea = (
-			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None), #, strLocale='nl'),
+			SPageArgs(CHybridPage, fmt="a1", fmtCrop=(20, 27), strLocale='fr', strTz='Europe/Paris'),
 		))
 
 	docaTests = SDocumentArgs(
