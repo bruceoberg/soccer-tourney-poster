@@ -275,9 +275,23 @@ class COneLineTextBox: # tag = oltb
 		self.dSMargin = dSMargin or max(0.0, (self.rect.dY - self.dYCap) / 2.0)
 		self.rectMargin = self.rect.Copy().Inset(self.dSMargin)
 
-	def RectDrawText(self, strText: str, color: SColor, jh : JH = JH.Left, jv: JV = JV.Middle) -> SRect:
+	def RectDrawText(self, strText: str, color: SColor, jh : JH = JH.Left, jv: JV = JV.Middle, fShrinkToFit: bool = False) -> SRect:
 		self.pdf.set_font(self.fonti.fontkey.strFont, style=self.fonti.fontkey.strStyle, size=self.fonti.dPtFont)
-		rectText = SRect(0, 0, self.pdf.get_string_width(strText), self.dYCap)
+		dXText = self.pdf.get_string_width(strText)
+
+		if fShrinkToFit and dXText > self.rectMargin.dX:
+			rReduce = self.rectMargin.dX / dXText
+			dYFontReduced = rReduce * self.fonti.dYFont
+
+			self.fonti = CFontInstance(self.pdf, self.fonti.fontkey, dYFontReduced)
+			self.dYCap = self.fonti.dYCap
+
+			self.pdf.set_font(self.fonti.fontkey.strFont, style=self.fonti.fontkey.strStyle, size=self.fonti.dPtFont)
+			dXText = self.pdf.get_string_width(strText)
+
+			# BB (bruceo) assert new width fits?
+
+		rectText = SRect(0, 0, dXText, self.dYCap)
 
 		if jh == JH.Left:
 			rectText.x = self.rectMargin.x

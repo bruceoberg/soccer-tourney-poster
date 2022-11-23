@@ -97,12 +97,14 @@ class CGroupBlot(CBlot): # tag = groupb
 			team = self.group.mpStrSeedTeam[strSeed]
 
 			oltbAbbrev = self.Oltb(rectTeam, self.doc.fontkeyGroupTeamAbbrev, dYTeam)
-			oltbAbbrev.DrawText(team.strAbbrev, colorBlack, JH.Right)
+			rectAbbrev = oltbAbbrev.RectDrawText(team.strAbbrev, colorBlack, JH.Right)
+
+			rectName = rectTeam.Copy().Stretch(dXRight = -rectAbbrev.dX)
 
 			uTeamText = 0.75
-			oltbName = self.Oltb(rectTeam, self.doc.fontkeyGroupTeamName, dYTeam * uTeamText, dSMargin = oltbAbbrev.dSMargin)
+			oltbName = self.Oltb(rectName, self.doc.fontkeyGroupTeamName, dYTeam * uTeamText, dSMargin = oltbAbbrev.dSMargin)
 			strTeam = self.page.StrTranslation('team.' + team.strAbbrev.lower())
-			oltbName.DrawText(strTeam, colorDarkSlateGrey, JH.Left) #, JV.Top)
+			oltbName.DrawText(strTeam, colorDarkSlateGrey, JH.Left, fShrinkToFit = True) #, JV.Top)
 
 		# dividers for team/points/gf/ga
 
@@ -1455,7 +1457,7 @@ class CDocument: # tag = doc
 			self.fontkeyFinalFormLabel	= SFontKey('Calibri',	'')
 			self.fontkeyPageHeaderTitle	= SFontKey('Calibri',	'B')
 			self.fontkeyCalDayOfWeek	= SFontKey('Calibri',	'I')
-		else:
+		elif False:
 			self.pdf.AddFont('Consolas',			'',		self.s_pathDirFonts / 'consola.ttf')
 			self.pdf.AddFont('TradeGothic', 		'',		self.s_pathDirFonts / 'TradeGothicLTStd.otf')
 			self.pdf.AddFont('TradeGothic',			'B',	self.s_pathDirFonts / 'TradeGothicLTStd-Bold.otf')
@@ -1492,6 +1494,38 @@ class CDocument: # tag = doc
 			self.fontkeyPageHeaderTitle	= SFontKey('TradeGothicCn20',		'B')
 
 			self.fontkeyCalDayOfWeek	= SFontKey('TradeGothicLight',		'I')
+		else:
+			self.pdf.AddFont('Consolas',			'',		self.s_pathDirFonts / 'consola.ttf')
+			self.pdf.AddFont('YuGothic', 			'',		self.s_pathDirFonts / 'YuGothR_0.ttf')
+			self.pdf.AddFont('YuGothic',			'B',	self.s_pathDirFonts / 'YuGothB_0.ttf')
+			self.pdf.AddFont('YuGothicLight',		'',		self.s_pathDirFonts / 'YuGothL_0.ttf')
+
+			self.fontkeyGroupName		= SFontKey('Consolas',		'')
+			self.fontkeyGroupLabel		= SFontKey('YuGothic',		'')
+			self.fontkeyGroupHeading	= SFontKey('YuGothic',		'')
+			self.fontkeyGroupTeamName	= SFontKey('YuGothic',		'')
+			self.fontkeyGroupTeamAbbrev	= SFontKey('Consolas',		'')
+
+			self.fontkeyDayDate			= SFontKey('YuGothicLight',	'')
+
+			self.fontkeyMatchTime		= SFontKey('YuGothicLight',	'')
+			self.fontkeyMatchTeamAbbrev	= SFontKey('Consolas',		'')
+			self.fontkeyMatchFormLabel	= SFontKey('YuGothicLight',	'')
+			self.fontkeyMatchLabel		= SFontKey('YuGothic',		'B')
+
+			self.fontkeyElimDate		= SFontKey('YuGothic',		'')
+			self.fontkeyElimStage		= SFontKey('YuGothic',		'B')
+			self.fontkeyElimLabel		= SFontKey('YuGothic',		'')
+
+			self.fontkeyFinalTitle		= SFontKey('YuGothic',		'B')
+			self.fontkeyFinalDate		= SFontKey('YuGothic',		'B')
+			self.fontkeyFinalTime		= SFontKey('YuGothicLight',	'')
+			self.fontkeyFinalFormLabel	= SFontKey('YuGothicLight',	'')
+
+			self.fontkeyPageHeaderTitle	= SFontKey('YuGothic',		'B')
+
+			self.fontkeyCalDayOfWeek	= SFontKey('YuGothicLight',	'')
+
 
 		for pagea in self.doca.iterPagea:
 			pagea.clsPage(self, pagea)
@@ -1509,7 +1543,7 @@ if True:
 	docaDefault = SDocumentArgs(
 		strDestDir = 'playground',
 		iterPagea = (
-			SPageArgs(CHybridPage, fmt="a1", fmtCrop=(20, 27), strLocale='fr', strTz='Europe/Paris'),
+			SPageArgs(CHybridPage, fmt="a1", fmtCrop=(20, 27), strLocale='ja', strTz='Asia/Tokyo'),
 		))
 
 	docaTests = SDocumentArgs(
