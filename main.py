@@ -801,16 +801,25 @@ class CPage:
 		strTime = babel.dates.format_time(tTimeTz.time(), 'short', locale=self.locale)
 		
 		if tTime.day != tTimeTz.day:
-			strDelta = babel.dates.format_timedelta(datetime.timedelta(days=1), format='narrow', granularity='day', locale=self.locale)
-			
-			# NOTE (bruceo) yes, sign symbols can be localized. sheesh.
-			
-			if tTimeTz.utcoffset().total_seconds() > 0:
-				strSign = babel.numbers.get_plus_sign_symbol(self.locale)
+			s_fPlusMinusFormatting = False
+			if s_fPlusMinusFormatting:
+				strDelta = babel.dates.format_timedelta(datetime.timedelta(days=1), format='narrow', granularity='day', locale=self.locale)
+				
+				# NOTE (bruceo) yes, sign symbols can be localized. sheesh.
+				
+				if tTimeTz.utcoffset().total_seconds() > 0:
+					strSign = babel.numbers.get_plus_sign_symbol(self.locale)
+				else:
+					strSign = babel.numbers.get_minus_sign_symbol(self.locale)
+				
+				strTime += f' {strSign}{strDelta}'
 			else:
-				strSign = babel.numbers.get_minus_sign_symbol(self.locale)
-			
-			strTime += f' {strSign}{strDelta}'
+				# NOTE (bruceo) japan (and others?) use 48 hour times for events on the "next day" in japan.
+				dSec = tTimeTz.utcoffset().total_seconds()
+				assert dSec > 0
+				strHour, strRest = strTime.split(':', 1)
+				hourNew = int(strHour) + 24
+				strTime = f'{hourNew}:{strRest}'
 
 		return strTime.lower().replace(' ', '') # hack to get very narrow times. prob violates CLDR.
 
