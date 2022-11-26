@@ -15,8 +15,10 @@ from database import *
 from pdf import *
 
 g_pathHere = Path(__file__).parent
-g_pathDb = g_pathHere / '2022-world-cup.xlsx'
-g_db = CDataBase(g_pathDb)
+g_pathLocalization = g_pathHere / 'fonts' / 'localization.xlsx'
+g_loc = CLocalizationDataBase(g_pathLocalization)
+g_pathTourn = g_pathHere / 'tournaments' / '2022-mens-world-cup.xlsx'
+g_tourn = CTournamentDataBase(g_pathTourn, g_loc)
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
@@ -37,7 +39,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		self.page = page
 		self.doc = self.page.doc
 		self.pdf = self.doc.pdf
-		self.db = self.doc.db
+		self.tourn = self.doc.tourn
 		self.strTz = page.strTz
 
 		super().__init__(self.pdf)
@@ -97,13 +99,13 @@ class CGroupBlot(CBlot): # tag = groupb
 			team = self.group.mpStrSeedTeam[strSeed]
 
 			oltbAbbrev = self.Oltb(rectTeam, self.doc.fontkeyGroupTeamAbbrev, dYTeam)
-			rectAbbrev = oltbAbbrev.RectDrawText(team.strAbbrev, colorBlack, JH.Right)
+			rectAbbrev = oltbAbbrev.RectDrawText(team.strTeam, colorBlack, JH.Right)
 
 			rectName = rectTeam.Copy().Stretch(dXRight = -rectAbbrev.dX)
 
 			uTeamText = 0.75
 			oltbName = self.Oltb(rectName, self.doc.fontkeyGroupTeamName, dYTeam * uTeamText, dSMargin = oltbAbbrev.dSMargin)
-			strTeam = self.page.StrTranslation('team.' + team.strAbbrev.lower())
+			strTeam = self.page.StrTranslation('team.' + team.strTeam)
 			oltbName.DrawText(strTeam, colorDarkSlateGrey, JH.Left, fShrinkToFit = True) #, JV.Top)
 
 		# dividers for team/points/gf/ga
@@ -178,7 +180,7 @@ class CMatchBlot(CBlot): # tag = dayb
 	def __init__(self, dayb: 'CDayBlot', match: CMatch, rect: SRect) -> None:
 		super().__init__(dayb.pdf)
 		self.doc = dayb.doc
-		self.db = dayb.db
+		self.tourn = dayb.tourn
 		self.page = dayb.page
 		self.dayb = dayb
 		self.match = match
@@ -201,8 +203,8 @@ class CMatchBlot(CBlot): # tag = dayb
 		if self.match.stage in (STAGE.Third, STAGE.Final):
 			return
 
-		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else self.db.lStrGroup
-		lGroup = [self.db.mpStrGroupGroup[strGroup] for strGroup in lStrGroup]
+		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else self.tourn.lStrGroup
+		lGroup = [self.tourn.mpStrGroupGroup[strGroup] for strGroup in lStrGroup]
 		if self.match.stage == STAGE.Group:
 			lColor = [group.colors.color for group in lGroup]
 		else:
@@ -317,8 +319,8 @@ class CMatchBlot(CBlot): # tag = dayb
 					self.match.stage < STAGE.Third
 			     ):
 				assert len(self.match.lIdFeeders) == 2
-				matchFeedLeft = self.db.mpIdMatch[self.match.lIdFeeders[0]]
-				matchFeedRight = self.db.mpIdMatch[self.match.lIdFeeders[1]]
+				matchFeedLeft = self.tourn.mpIdMatch[self.match.lIdFeeders[0]]
+				matchFeedRight = self.tourn.mpIdMatch[self.match.lIdFeeders[1]]
 
 				fDrawFormLabels = True
 				strHome = ''.join(sorted(matchFeedLeft.lStrGroup))
@@ -364,7 +366,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			if self.page.pagea.fGroupHints and self.dYTimeAndGap:
 				strGroup = self.match.lStrGroup[0]
-				colorGroup = self.db.mpStrGroupGroup[strGroup].colors.colorDarker
+				colorGroup = self.tourn.mpStrGroupGroup[strGroup].colors.colorDarker
 				oltbGroup = self.Oltb(self.rect, self.doc.fontkeyGroupName, self.dayb.s_dYFontTime, dSMargin = oltbAwayTeam.dSMargin)
 				oltbGroup.DrawText(strGroup, colorGroup, JH.Right, JV.Top)
 
@@ -400,7 +402,7 @@ class CDayBlot(CBlot): # tag = dayb
 		self.page = page
 		self.doc = self.page.doc
 		self.pdf = self.doc.pdf
-		self.db = self.doc.db
+		self.tourn = self.doc.tourn
 		self.strTz = page.strTz
 
 		super().__init__(self.pdf)
@@ -499,7 +501,7 @@ class CElimBlot(CDayBlot): # tag = elimb
 		self.page = page
 		self.doc = page.doc
 		self.pdf = page.doc.pdf
-		self.db = page.doc.db
+		self.tourn = page.doc.tourn
 		self.strTz = page.strTz
 
 		super().__init__(page, set([match]))
@@ -575,11 +577,11 @@ class CFinalBlot(CBlot): # tag = finalb
 		self.page = page
 		self.doc = page.doc
 		self.pdf = page.doc.pdf
-		self.db = page.doc.db
+		self.tourn = page.doc.tourn
 
 		super().__init__(self.pdf)
 
-		self.match: CMatch = self.db.matchFinal
+		self.match: CMatch = self.tourn.matchFinal
 
 	def Draw(self, pos: SPoint) -> None:
 
@@ -727,7 +729,7 @@ class CPage:
 		self.doc = doc
 		self.pagea = pagea
 
-		self.db = self.doc.db
+		self.tourn = self.doc.tourn
 		self.pdf = self.doc.pdf
 
 		self.strOrientation = self.pagea.strOrientation
@@ -761,15 +763,7 @@ class CPage:
 			self.rectCropMarks = self.rect
 
 	def StrTranslation(self, strKey: str) -> str:
-		mpStrLocaleStrText = self.db.mpStrKeyStrLocaleStrText[strKey]
-
-		try:
-			if strText := mpStrLocaleStrText[self.strLocale]:
-				return strText
-		except KeyError:
-			pass
-
-		return mpStrLocaleStrText['en']
+		return self.tourn.StrTranslation(strKey, self.strLocale)
 
 	def StrDateRangeForHeader(self, tMin: arrow.Arrow, tMax: arrow.Arrow) -> str:
 		if tMin.year != tMax.year:
@@ -855,10 +849,10 @@ class CGroupsTestPage(CPage): # gtp
 		for col in range(2):
 			for row in range(4):
 				try:
-					strGroup = self.db.lStrGroup[col * 4 + row]
+					strGroup = self.tourn.lStrGroup[col * 4 + row]
 				except IndexError:
 					continue
-				group = self.db.mpStrGroupGroup[strGroup]
+				group = self.tourn.mpStrGroupGroup[strGroup]
 				groupb = CGroupBlot(self, group)
 				pos = SPoint(
 						dSMargin + col * dXGrid,
@@ -875,10 +869,10 @@ class CDaysTestPage(CPage): # gtp
 		dYGrid = CDayBlot.s_dY + dSMargin
 
 		# lIdMatch = (49,57)
-		# setDate: set[datetime.date] = {doc.db.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
-		setDate: set[datetime.date] = set(doc.db.mpDateSetMatch.keys())
+		# setDate: set[datetime.date] = {doc.tourn.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
+		setDate: set[datetime.date] = set(doc.tourn.mpDateSetMatch.keys())
 
-		lDayb: list[CDayBlot] = [CDayBlot(self, self.db.mpDateSetMatch[date]) for date in sorted(setDate)]
+		lDayb: list[CDayBlot] = [CDayBlot(self, self.tourn.mpDateSetMatch[date]) for date in sorted(setDate)]
 
 		for row in range(4):
 			for col in range(7):
@@ -956,11 +950,11 @@ class CHeaderBlot(CBlot): # tag = headerb
 
 		# dates
 
-		tMin = arrow.get(min(self.doc.db.mpDateSetMatch))
-		tMax = arrow.get(max(self.doc.db.mpDateSetMatch))
+		tMin = arrow.get(min(self.doc.tourn.mpDateSetMatch))
+		tMax = arrow.get(max(self.doc.tourn.mpDateSetMatch))
 		strDateRange = self.page.StrDateRangeForHeader(tMin, tMax)
 		strLocation = self.page.StrTranslation('tournament.location')
-		strFormatDates = self.page.StrTranslation('format.page.dates-and-location')
+		strFormatDates = self.page.StrTranslation('page.format.dates-and-location')
 		strDates = strFormatDates.format(dates=strDateRange, location=strLocation).upper()
 		oltbDates = self.Oltb(rectDate, self.doc.fontkeyPageHeaderTitle, self.s_dYFontSides, dSMargin = dSMarginSides)
 		oltbDates.DrawText(strDates, colorWhite, JH.Left, JV.Bottom)
@@ -975,7 +969,7 @@ class CHeaderBlot(CBlot): # tag = headerb
 			strTz += f' (UTC{cHour:+d})'
 
 		strLabelTimeZone = self.page.StrTranslation('page.timezone.label')
-		strFormatTimeZone = self.page.StrTranslation('format.page.timezone')
+		strFormatTimeZone = self.page.StrTranslation('page.format.timezone')
 		strTimeZone = strFormatTimeZone.format(label=strLabelTimeZone, timezone=strTz)
 
 		oltbTimeZone = self.Oltb(rectTimeZone, self.doc.fontkeyPageHeaderTitle, self.s_dYFontSides, dSMargin = dSMarginSides)
@@ -1039,7 +1033,7 @@ class CCalendarBlot(CBlot): # tag = calb
 		self.page = page
 		self.doc = page.doc
 		self.pdf = page.doc.pdf
-		self.db = page.doc.db
+		self.tourn = page.doc.tourn
 
 		super().__init__(self.pdf)
 
@@ -1074,7 +1068,7 @@ class CCalendarBlot(CBlot): # tag = calb
 		self.lTuDPosDayb: list[tuple[SPoint, CDayBlot]] = []
 
 		for iDay, tDay in enumerate(arrow.Arrow.range('day', arrow.get(dateMin), arrow.get(dateMax))):
-			setMatchDate = self.db.mpDateSetMatch.get(tDay.date(), set()).intersection(setMatch)
+			setMatchDate = self.tourn.mpDateSetMatch.get(tDay.date(), set()).intersection(setMatch)
 
 			if setMatchDate:
 				dayb = CDayBlot(self.page, iterMatch = setMatchDate)
@@ -1154,12 +1148,12 @@ class CBracketBlot(CBlot): # tag = bracketb
 		self.page = page
 		self.doc = page.doc
 		self.pdf = page.doc.pdf
-		self.db = page.doc.db
+		self.tourn = page.doc.tourn
 
 		super().__init__(self.pdf)
 
 		lStage: list[STAGE] = list(sorted(set([match.stage for match in setMatch])))
-		mpStageCRow: dict[STAGE, int] = {stage:len(self.db.mpStageSetMatch[stage].intersection(setMatch)) // 2 for stage in lStage}
+		mpStageCRow: dict[STAGE, int] = {stage:len(self.tourn.mpStageSetMatch[stage].intersection(setMatch)) // 2 for stage in lStage}
 
 		self.cCol: int = len(lStage) * 2
 		self.cRow: int = max(mpStageCRow.values())
@@ -1202,8 +1196,8 @@ class CBracketBlot(CBlot): # tag = bracketb
 		mpStageLRect: dict[STAGE, list[SRect]] = {}
 
 		for colLeft, stage in enumerate(lStage):
-			setMatch = self.db.mpStageSetMatch[stage]
-			setMatchLeft = setMatch.intersection(self.db.setMatchLeft)
+			setMatch = self.tourn.mpStageSetMatch[stage]
+			setMatchLeft = setMatch.intersection(self.tourn.setMatchLeft)
 			setMatchRight = setMatch - setMatchLeft
 			tuTuColSetMatchCol = ((colLeft, setMatchLeft), (self.cCol-(1+colLeft), setMatchRight))
 			for col, setMatchCol in tuTuColSetMatchCol:
@@ -1215,7 +1209,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 					rectElimb = SRect(x, y, elimb.s_dX, elimb.s_dY)
 					mpStageLRect.setdefault(stage, []).append(rectElimb)
 
-		elimbThird = CElimBlot(self.page, self.db.matchThird)
+		elimbThird = CElimBlot(self.page, self.tourn.matchThird)
 
 		xThird = (self.dX - elimbThird.s_dX) / 2
 		yThird = (self.dY - elimbThird.s_dY)
@@ -1287,15 +1281,15 @@ class CPosterPage(CPage): # tag = posterp
 	def __init__(self, doc: 'CDocument', pagea: SPageArgs):
 		super().__init__(doc, pagea)
 
-		cGroupHalf = len(self.db.lStrGroup) // 2
+		cGroupHalf = len(self.tourn.lStrGroup) // 2
 
-		lGroupbLeft = [CGroupBlot(self, self.db.mpStrGroupGroup[strGroup]) for strGroup in self.db.lStrGroup[:cGroupHalf]]
+		lGroupbLeft = [CGroupBlot(self, self.tourn.mpStrGroupGroup[strGroup]) for strGroup in self.tourn.lStrGroup[:cGroupHalf]]
 		gsetbLeft = CGroupSetBlot(doc, lGroupbLeft, cCol = 1)
 
-		lGroupbRight = [CGroupBlot(self, self.db.mpStrGroupGroup[strGroup]) for strGroup in self.db.lStrGroup[cGroupHalf:]]
+		lGroupbRight = [CGroupBlot(self, self.tourn.mpStrGroupGroup[strGroup]) for strGroup in self.tourn.lStrGroup[cGroupHalf:]]
 		gsetbRight = CGroupSetBlot(doc, lGroupbRight, cCol = 1)
 
-		calb = CCalendarBlot(self, self.db.setMatchGroup | self.db.setMatchElimination)
+		calb = CCalendarBlot(self, self.tourn.setMatchGroup | self.tourn.setMatchElimination)
 		finalb = CFinalBlot(self)
 
 		headerb = CHeaderBlot(self)
@@ -1344,19 +1338,19 @@ class CHybridPage(CPage): # tag = hybridp
 	def __init__(self, doc: 'CDocument', pagea: SPageArgs):
 		super().__init__(doc, pagea)
 
-		setMatchCalendar: set[CMatch] = self.db.mpStageSetMatch[STAGE.Group]
-		lSetMatchBracket: list[set[CMatch]] = [setMatch for stage, setMatch in self.db.mpStageSetMatch.items() if stage != STAGE.Group]
+		setMatchCalendar: set[CMatch] = self.tourn.mpStageSetMatch[STAGE.Group]
+		lSetMatchBracket: list[set[CMatch]] = [setMatch for stage, setMatch in self.tourn.mpStageSetMatch.items() if stage != STAGE.Group]
 		setMatchBracket: set[CMatch] = set().union(*lSetMatchBracket)
 
-		assert len(self.db.lStrGroup) % 2 == 0
-		cGroupHalf = len(self.db.lStrGroup) // 2
-		lStrGroupLeft = self.db.lStrGroup[:cGroupHalf]
-		lStrGroupRight = self.db.lStrGroup[cGroupHalf:]
+		assert len(self.tourn.lStrGroup) % 2 == 0
+		cGroupHalf = len(self.tourn.lStrGroup) // 2
+		lStrGroupLeft = self.tourn.lStrGroup[:cGroupHalf]
+		lStrGroupRight = self.tourn.lStrGroup[cGroupHalf:]
 
-		lGroupbLeft = [CGroupBlot(self, self.db.mpStrGroupGroup[strGroup]) for strGroup in lStrGroupLeft]
+		lGroupbLeft = [CGroupBlot(self, self.tourn.mpStrGroupGroup[strGroup]) for strGroup in lStrGroupLeft]
 		gsetbLeft = CGroupSetBlot(self.doc, lGroupbLeft, cCol = 1)
 
-		lGroupbRight = [CGroupBlot(self, self.db.mpStrGroupGroup[strGroup]) for strGroup in lStrGroupRight]
+		lGroupbRight = [CGroupBlot(self, self.tourn.mpStrGroupGroup[strGroup]) for strGroup in lStrGroupRight]
 		gsetbRight = CGroupSetBlot(self.doc, lGroupbRight, cCol = 1)
 
 		calb = CCalendarBlot(self, setMatchCalendar)
@@ -1421,16 +1415,16 @@ class SDocumentArgs: # tag = doca
 class CDocument: # tag = doc
 	s_pathDirFonts = Path('fonts')
 
-	def __init__(self, db: CDataBase, doca: SDocumentArgs) -> None:
-		self.db = db
+	def __init__(self, tourn: CTournamentDataBase, doca: SDocumentArgs) -> None:
+		self.tourn = tourn
 		self.doca = doca
 		self.pdf = CPdf()
 
 		strSubject = 'soccer tournament score sheet and schedule'
-		lStrKeywords = strSubject.split() + self.db.pathFile.stem.split('-')
+		lStrKeywords = strSubject.split() + self.tourn.pathFile.stem.split('-')
 		strKeywords = ' '.join(lStrKeywords)
 
-		self.pdf.set_title(self.db.pathFile.stem)
+		self.pdf.set_title(self.tourn.pathFile.stem)
 		self.pdf.set_author('bruce oberg')
 		self.pdf.set_subject(strSubject)
 		self.pdf.set_keywords(strKeywords)
@@ -1516,6 +1510,8 @@ class CDocument: # tag = doc
 			self.fontkeyGroupTeamAbbrev	= SFontKey('Consolas',		'')
 
 			self.fontkeyDayDate			= SFontKey('YuGothicLight',	'')
+			self.fontkeyDayTime			= SFontKey('YuGothicLight',	'')
+			self.fontkeyDayFormLabel	= SFontKey('YuGothicLight',	'')
 
 			self.fontkeyMatchTime		= SFontKey('YuGothicLight',	'')
 			self.fontkeyMatchTeamAbbrev	= SFontKey('Consolas',		'')
@@ -1540,7 +1536,7 @@ class CDocument: # tag = doc
 			pagea.clsPage(self, pagea)
 
 		pathDirOutput = g_pathHere / self.doca.strDestDir if self.doca.strDestDir else g_pathHere
-		strFile = self.db.pathFile.stem + '-' + self.doca.strFileSuffix if self.doca.strFileSuffix else self.db.pathFile.stem
+		strFile = self.tourn.pathFile.stem + '-' + self.doca.strFileSuffix if self.doca.strFileSuffix else self.tourn.pathFile.stem
 
 		pathDirOutput.mkdir(parents=True, exist_ok=True)
 		pathOutput = (pathDirOutput / strFile).with_suffix('.pdf')
@@ -1552,7 +1548,8 @@ if True:
 	docaDefault = SDocumentArgs(
 		strDestDir = 'playground',
 		iterPagea = (
-			SPageArgs(CHybridPage, fmt="a1", fmtCrop=(20, 27), strLocale='ja', strTz='Asia/Tokyo'),
+			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None),
+			# SPageArgs(CHybridPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
 		))
 
 	docaTests = SDocumentArgs(
@@ -1605,7 +1602,7 @@ if True:
 
 	for lDoca in llDocaTodo:
 		for doca in lDoca:
-			doc = CDocument(g_db, doca)
+			doc = CDocument(g_tourn, doca)
 
 else:
 

@@ -11,8 +11,69 @@ from typing import Optional
 from pdf import SColor, ColorFromStr, ColorResaturate
 
 TExcelRow = dict[str, str]				# tag = xlrow
-TExcelTable = list[TExcelRow]			# tag = xltable
-TExcelSheet = dict[str, TExcelTable]	# tag = xls
+TExcelSheet = list[TExcelRow]			# tag = xls
+TExcelBook = dict[str, TExcelSheet]		# tag = xlb
+
+class CDataBase: # tag = db
+
+	def __init__(self, pathFile: Path) -> None:
+
+		self.pathFile = pathFile
+		self.mpStrKeyStrLocaleStrText: dict[str, dict[str, str]] = {}
+
+	def XlbLoad(self) -> TExcelBook:
+		wb = openpyxl.load_workbook(filename = str(self.pathFile))
+		
+		xlb: TExcelBook = {}
+		
+		for ws in wb.worksheets:
+			lStrKey: Optional[list[str]] = None
+			xls: TExcelSheet = []
+			for row in ws.rows:
+				if not lStrKey:
+					lStrKey = [cell.value.lower() for cell in row]
+				else:
+					lStrValue: list[str] = [cell.value for cell in row]
+					xlrow: TExcelRow = dict(zip(lStrKey, lStrValue))
+					xls.append(xlrow)
+			xlb[str(ws.title).lower()] = xls
+
+		return xlb
+
+	def StrTranslation(self, strKey: str, strLocale: str) -> str:
+		strKey = strKey.lower()
+
+		mpStrLocaleStrText = self.mpStrKeyStrLocaleStrText[strKey]
+
+		try:
+			if strText := mpStrLocaleStrText[strLocale]:
+				return strText
+		except KeyError:
+			pass
+
+		return mpStrLocaleStrText['en']
+
+
+class CLocalizationDataBase(CDataBase): # tag = loc
+
+	def __init__(self, pathFile: Path) -> None:
+
+		super().__init__(pathFile)
+
+		self.mpStrSectionSetStrSubkey: dict[str, set[str]] = {}
+
+		xlb: TExcelBook = self.XlbLoad()
+
+		for strSection, xls in xlb.items():
+			setStrSubkey = self.mpStrSectionSetStrSubkey.setdefault(strSection, set())
+			for xlrow in xls:
+				strSubkey = xlrow['key'].lower()
+				setStrSubkey.add(strSubkey)
+
+				strKey = strSection + '.' + strSubkey
+				strKey = strKey.lower()
+
+				self.mpStrKeyStrLocaleStrText[strKey] = xlrow
 
 class STAGE(IntEnum):
 	# BB (bruceo) rename Round1 etc to Round64 Round32 etc
@@ -27,11 +88,8 @@ class STAGE(IntEnum):
 
 class CTeam:
 	def __init__(self, xlrow: TExcelRow) -> None:
-		self.rank: int = int(xlrow['rank'])
-		self.strAbbrev: str = xlrow['abbrev']
-		self.strSeed: Optional[str] = None
-	def SetSeed(self, strSeed: str) -> None:
-		self.strSeed = strSeed
+		self.strSeed: str = xlrow['seed']
+		self.strTeam: str = xlrow['team']
 
 class SColors: # tag = colors
 	s_dSDarker = 0.5
@@ -45,25 +103,28 @@ class SColors: # tag = colors
 		self.colorLighter: SColor = ColorResaturate(self.color, rV=self.s_rVLighter, rS=self.s_rSLighter)
 
 class CGroup:
-	def __init__(self, xlrow: TExcelRow) -> None:
-		self.strName: str = xlrow['group']
-		self.colors: SColors = SColors(xlrow['color'])
-		self.mpStrSeedTeam: dict[str, CTeam] = {}
-	def AddTeam(self, team: CTeam):
-		self.mpStrSeedTeam[team.strSeed] = team
+	def __init__(self, loc: CLocalizationDataBase, strGroup: str, lTeam: list[CTeam]) -> None:
+		self.strName: str = strGroup
+		self.colors: SColors = SColors(loc.StrTranslation('colors.' + strGroup, 'en')) # BB (bruceo) delay this until necessary?
+		self.mpStrSeedTeam: dict[str, CTeam] = {team.strSeed:team for team in lTeam}
 
 class CMatch:
 	s_patAlphaNum = re.compile('([a-zA-Z]+)([0-9]+)')
 	s_patNumAlpha = re.compile('([0-9]+)([a-zA-Z]+)')
 
-	def __init__(self, db: 'CDataBase', xlrow: TExcelRow) -> None:
-		self.db = db
+	def __init__(self, tourn: 'CTournamentDataBase', xlrow: TExcelRow) -> None:
+		self.tourn = tourn
 		self.id = int(xlrow['match'])
-		self.strName: str = '#' + str(xlrow['match'])
 		self.venue: int = int(xlrow['venue'])
 		self.strHome: str = xlrow['home']
 		self.strAway: str = xlrow['away']
 		self.tStart: arrow.Arrow = arrow.get(xlrow['time'])
+
+		self.scoreHome: int = int(xlrow['home']) if xlrow['home-score'] else -1
+		self.scoreAway: int = int(xlrow['away']) if xlrow['away-score'] else -1
+
+		self.scoreHomeTiebreaker: int = int(xlrow['home-tiebreaker']) if xlrow['home-tiebreaker'] else -1
+		self.scoreAwayTiebreaker: int = int(xlrow['away-tiebreaker']) if xlrow['away-tiebreaker'] else -1
 
 		self.stage: Optional[STAGE] = None
 		self.lStrGroup: list[str] = []
@@ -79,11 +140,11 @@ class CMatch:
 			assert matAway
 			assert matHome[1] == matAway[1]
 			
-			if matHome[1] in db.setStrGroup:
+			if matHome[1] in tourn.setStrGroup:
 				self.stage = STAGE.Group
 				self.lStrGroup = [matHome[1]]
-				self.strHome = db.mpStrSeedTeam[self.strHome].strAbbrev
-				self.strAway = db.mpStrSeedTeam[self.strAway].strAbbrev
+				self.strHome = tourn.mpStrSeedTeam[self.strHome].strTeam
+				self.strAway = tourn.mpStrSeedTeam[self.strAway].strTeam
 			elif matHome[1] == 'RU' or matHome[1] == 'L':
 				self.stage = STAGE.Third
 				self.lIdFeeders = [int(matHome[2]), int(matAway[2])]
@@ -122,36 +183,38 @@ class CMatch:
 		elif stagePrev > STAGE.Round1:
 			assert not self.lStrGroup
 			# revert sorting if we have everything
-			self.lStrGroup = lStrGroup if len(lStrGroup) < len(self.db.lStrGroup) else self.db.lStrGroup
+			self.lStrGroup = lStrGroup if len(lStrGroup) < len(self.tourn.lStrGroup) else self.tourn.lStrGroup
 
 		self.stage = stage
 
 		return True
 
-class CDataBase:
+class CTournamentDataBase(CDataBase): # tag = tourn
 
-	def __init__(self, pathFile: Path, ) -> None:
+	s_strKeyTournPrefix = 'tournament'
 
-		self.pathFile = pathFile
+	def __init__(self, pathFile: Path, loc: CLocalizationDataBase) -> None:
 
-		xls: TExcelSheet = self.XlsLoad()
+		super().__init__(pathFile)
+
+		self.loc = loc
+		assert self.s_strKeyTournPrefix not in loc.mpStrSectionSetStrSubkey
+
+		xlb: TExcelBook = self.XlbLoad()
 		
-		self.mpStrGroupGroup: dict[str, CGroup] = {xlrow['group']:CGroup(xlrow) for xlrow in xls['groups']}
-		self.lStrGroup: list[str] = list(self.mpStrGroupGroup.keys())
+		# both MpStrGroupGroup() and CMatch.__init__() depend on self.mpStrSeedTeam existing
+
+		self.mpStrSeedTeam: dict[str, CTeam] = {xlrow['seed']:CTeam(xlrow) for xlrow in xlb['seeds']}
+
+		self.mpStrGroupGroup: dict[str, CGroup] = self.MpStrGroupGroup()
+		self.lStrGroup: list[str] = sorted(self.mpStrGroupGroup.keys())
 		self.setStrGroup: set[str] = set(self.lStrGroup)
 
-		self.mpRankTeam: dict[int, CTeam] = {int(xlrow['rank']):CTeam(xlrow) for xlrow in xls['teams']}
-
-		self.mpStrSeedTeam: dict[str, CTeam] = self.MpStrSeedTeam(xls)
-
-		# CMatch.__init__ depends on self.mpStrSeedTeam existing
-
-		self.mpIdMatch: dict[int, CMatch] = {int(xlrow['match']):CMatch(self, xlrow) for xlrow in xls['matches']}
+		self.mpIdMatch: dict[int, CMatch] = {int(xlrow['match']):CMatch(self, xlrow) for xlrow in xlb['matches']}
 
 		# translations come from both the tranlsations table (mostly unchanging) and the tournament table (new per contest)
 
-		self.mpStrKeyStrLocaleStrText: dict[str, dict[str, str]] = {xlrow['key'].lower():xlrow for xlrow in xls['translations']}
-		self.mpStrKeyStrLocaleStrText.update({'tournament.' + xlrow['key'].lower():xlrow for xlrow in xls['tournament']})
+		self.mpStrKeyStrLocaleStrText: dict[str, dict[str, str]] = {(self.s_strKeyTournPrefix + '.' + xlrow['key']).lower():xlrow for xlrow in xlb['tournament']}
 
 		self.mpDateSetMatch: dict[datetime.date, set[CMatch]] = self.MpDateSetMatch()
 		self.mpStageSetMatch: dict[STAGE, set[CMatch]] = self.MpStageSetMatch()
@@ -171,24 +234,19 @@ class CDataBase:
 		
 		self.setMatchLeft: set[CMatch] = self.SetMatchLeft()
 
-	def MpStrSeedTeam(self, xls: TExcelSheet) -> dict[str, CTeam]:
-		""" load seeds and hook them up to groups. """
-		mpStrSeedTeam: dict[str, CTeam] = {}
+	def MpStrGroupGroup(self) -> dict[str, CGroup]:
+		""" build list of groups from team seedings. """
+		mpStrGroupGroup: dict[str, CGroup] = {}
 
-		for xlrow in xls['seeds']:
-			strSeed = xlrow['seed']
-			rank = int(xlrow['rank'])
+		setStrGroup: set[str] = {strSeed[:1] for strSeed in self.mpStrSeedTeam}
+		assert len(setStrGroup) <= 16
+		assert 'ABCDEFGHIJKLMNOP'[:len(setStrGroup)] == ''.join(sorted(setStrGroup))
 
-			team = self.mpRankTeam[rank]
-			team.SetSeed(strSeed)
+		for strGroup in setStrGroup:
+			lTeam: list[CTeam] = [team for strSeed, team in self.mpStrSeedTeam.items() if strSeed[0] == strGroup]
+			mpStrGroupGroup[strGroup] = CGroup(self, strGroup, lTeam)
 
-			mpStrSeedTeam[strSeed] = team
-
-			strGroup = strSeed[:1]
-			group = self.mpStrGroupGroup[strGroup]
-			group.AddTeam(team)
-
-		return mpStrSeedTeam
+		return mpStrGroupGroup
 
 	def MpDateSetMatch(self) -> dict[datetime.date, set[CMatch]]:
 		""" map dates to matches. """
@@ -263,22 +321,10 @@ class CDataBase:
 
 		return {self.mpIdMatch[id] for id in setIdLeft}
 
-	def XlsLoad(self) -> TExcelSheet:
-		wb = openpyxl.load_workbook(filename = str(self.pathFile))
-		
-		xls: TExcelSheet = {}
-		
-		for ws in wb.worksheets:
-			lStrKey: Optional[list[str]] = None
-			xltable: TExcelTable = []
-			for row in ws.rows:
-				if not lStrKey:
-					lStrKey = [cell.value.lower() for cell in row]
-				else:
-					lStrValue: list[str] = [cell.value for cell in row]
-					xlrow: TExcelRow = dict(zip(lStrKey, lStrValue))
-					xltable.append(xlrow)
-			xls[ws.title.lower()] = xltable
+	def StrTranslation(self, strKey: str, strLocale: str) -> str:
+		if strKey.startswith(self.s_strKeyTournPrefix + '.'):
+			assert strKey not in self.loc.mpStrKeyStrLocaleStrText
+			return super().StrTranslation(strKey, strLocale)
 
-		return xls
-			
+		return self.loc.StrTranslation(strKey, strLocale)
+
