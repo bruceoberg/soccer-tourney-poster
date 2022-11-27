@@ -68,6 +68,8 @@ class CLocalizationDataBase(CDataBase): # tag = loc
 			setStrSubkey = self.mpStrSectionSetStrSubkey.setdefault(strSection, set())
 			for xlrow in xls:
 				strSubkey = xlrow['key'].lower()
+				del xlrow['key']
+				
 				setStrSubkey.add(strSubkey)
 
 				strKey = strSection + '.' + strSubkey

@@ -1,3 +1,8 @@
+# 'annotations' allow typing hints to forward reference.
+#	e.g. Fn(fwd: CFwd) instead of Fn(fwd: 'CFwd')
+#	when CFwd is later in file.
+from __future__ import annotations
+
 import babel.dates
 import babel.numbers
 import datetime
@@ -35,7 +40,7 @@ class CGroupBlot(CBlot): # tag = groupb
 	s_rSGroup = 5.0
 	s_rSTeamName = 6.0
 
-	def __init__(self, page: 'CPage', group: CGroup) -> None:
+	def __init__(self, page: CPage, group: CGroup) -> None:
 		self.page = page
 		self.doc = self.page.doc
 		self.pdf = self.doc.pdf
@@ -60,7 +65,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		self.FillBox(rectTitle, self.group.colors.color)
 
 		dYGroupName = dYTitle * 1.3
-		oltbGroupName = self.Oltb(rectTitle, self.doc.fontkeyGroupName, dYGroupName)
+		oltbGroupName = self.Oltb(rectTitle, self.page.Fontkey('group.name'), dYGroupName)
 		rectGroupName = oltbGroupName.RectDrawText(
 										self.group.strName,
 										self.group.colors.colorDarker,
@@ -70,7 +75,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		rectGroupLabel = rectTitle.Copy(dX=rectGroupName.x - rectTitle.x)
 
 		uGroupLabel = 0.65
-		oltbGroupLabel = self.Oltb(rectGroupLabel, self.doc.fontkeyGroupLabel, dYTitle * uGroupLabel, dSMargin = oltbGroupName.dSMargin)
+		oltbGroupLabel = self.Oltb(rectGroupLabel, self.page.Fontkey('group.label'), dYTitle * uGroupLabel, dSMargin = oltbGroupName.dSMargin)
 		oltbGroupLabel.DrawText('Group', colorWhite, JH.Right) #, JV.Top)
 
 		# heading
@@ -98,13 +103,13 @@ class CGroupBlot(CBlot): # tag = groupb
 			rectTeam.y = rectHeading.y + rectHeading.dY + i * dYTeam
 			team = self.group.mpStrSeedTeam[strSeed]
 
-			oltbAbbrev = self.Oltb(rectTeam, self.doc.fontkeyGroupTeamAbbrev, dYTeam)
+			oltbAbbrev = self.Oltb(rectTeam, self.page.Fontkey('group.team.abbrev'), dYTeam)
 			rectAbbrev = oltbAbbrev.RectDrawText(team.strTeam, colorBlack, JH.Right)
 
 			rectName = rectTeam.Copy().Stretch(dXRight = -rectAbbrev.dX)
 
 			uTeamText = 0.75
-			oltbName = self.Oltb(rectName, self.doc.fontkeyGroupTeamName, dYTeam * uTeamText, dSMargin = oltbAbbrev.dSMargin)
+			oltbName = self.Oltb(rectName, self.page.Fontkey('group.team.name'), dYTeam * uTeamText, dSMargin = oltbAbbrev.dSMargin)
 			strTeam = self.page.StrTranslation('team.' + team.strTeam)
 			oltbName.DrawText(strTeam, colorDarkSlateGrey, JH.Left, fShrinkToFit = True) #, JV.Top)
 
@@ -137,7 +142,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		)
 
 		for rectHeading, strHeading in lTuRectStr:
-			oltbHeading = self.Oltb(rectHeading, self.doc.fontkeyGroupHeading, rectHeading.dY)
+			oltbHeading = self.Oltb(rectHeading, self.page.Fontkey('group.heading'), rectHeading.dY)
 			oltbHeading.DrawText(strHeading, colorWhite, JH.Center)
 
 		if self.page.pagea.fGroupDots:
@@ -177,7 +182,7 @@ class CGroupBlot(CBlot): # tag = groupb
 			self.DrawBox(rectBorder, self.s_dSLineInner, self.group.colors.color)
 
 class CMatchBlot(CBlot): # tag = dayb
-	def __init__(self, dayb: 'CDayBlot', match: CMatch, rect: SRect) -> None:
+	def __init__(self, dayb: CDayBlot, match: CMatch, rect: SRect) -> None:
 		super().__init__(dayb.pdf)
 		self.doc = dayb.doc
 		self.tourn = dayb.tourn
@@ -246,7 +251,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			strTime = self.page.StrTimeDayRelative(self.match.tStart)
 			rectTime = SRect(self.rect.x, yTime, self.rect.dX, self.dayb.dYTime)
-			oltbTime = self.Oltb(rectTime, self.doc.fontkeyMatchTime, self.dayb.s_dYFontTime)
+			oltbTime = self.Oltb(rectTime, self.page.Fontkey('match.time'), self.dayb.s_dYFontTime)
 			oltbTime.DrawText(strTime, colorBlack, JH.Center)
 		else:
 			yScore = self.rect.y + self.dYOuterGap
@@ -331,7 +336,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 				for xLineFormMin, strLabel in ((xLineFormLeftMin, strHome), (xLineFormRightMin, strAway)):
 					rectLabelForm = SRect(xLineFormMin, yLineForm, self.dayb.s_dXLineForm, dYFontForm)
-					oltbLabelForm = self.Oltb(rectLabelForm, self.doc.fontkeyMatchFormLabel, dYFontForm)
+					oltbLabelForm = self.Oltb(rectLabelForm, self.page.Fontkey('match.form.label'), dYFontForm)
 					oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
 
 			# match label
@@ -339,12 +344,12 @@ class CMatchBlot(CBlot): # tag = dayb
 			if self.page.pagea.fMatchNumbers:
 
 				if isinstance(self.dayb, CElimBlot):
-					fontkeyLabel = self.doc.fontkeyElimLabel
+					strFontLabel = 'elim.label'
 				else:
-					fontkeyLabel = self.doc.fontkeyMatchLabel
+					strFontLabel = 'match.label'
 
 				rectLabel = self.rect.Copy(y=rectHomePens.yMax, dY=self.dayb.s_dYFontLabel + self.dayb.s_dYTimeGapMax)
-				oltbLabel = self.Oltb(rectLabel, fontkeyLabel, self.dayb.s_dYFontLabel)
+				oltbLabel = self.Oltb(rectLabel, self.page.Fontkey(strFontLabel), self.dayb.s_dYFontLabel)
 				oltbLabel.DrawText(self.match.strName, colorBlack, JH.Center)
 
 		else:
@@ -355,11 +360,11 @@ class CMatchBlot(CBlot): # tag = dayb
 			dXTeam = dXTeams / 2.0
 
 			rectHomeTeam = SRect(self.rect.x, yScore, dXTeam, self.dayb.s_dSScore)
-			oltbHomeTeam = self.Oltb(rectHomeTeam, self.doc.fontkeyMatchTeamAbbrev, self.dayb.s_dSScore)
+			oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('match.team.abbrev'), self.dayb.s_dSScore)
 			oltbHomeTeam.DrawText(self.match.strHome, colorBlack, JH.Center)
 
 			rectAwayTeam = SRect(self.rect.xMax - dXTeam, yScore, dXTeam, self.dayb.s_dSScore)
-			oltbAwayTeam = self.Oltb(rectAwayTeam, self.doc.fontkeyMatchTeamAbbrev, self.dayb.s_dSScore)
+			oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('match.team.abbrev'), self.dayb.s_dSScore)
 			oltbAwayTeam.DrawText(self.match.strAway, colorBlack, JH.Center)
 
 			# group name, subtly
@@ -367,7 +372,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			if self.page.pagea.fGroupHints and self.dYTimeAndGap:
 				strGroup = self.match.lStrGroup[0]
 				colorGroup = self.tourn.mpStrGroupGroup[strGroup].colors.colorDarker
-				oltbGroup = self.Oltb(self.rect, self.doc.fontkeyGroupName, self.dayb.s_dYFontTime, dSMargin = oltbAwayTeam.dSMargin)
+				oltbGroup = self.Oltb(self.rect, self.page.Fontkey('group.name'), self.dayb.s_dYFontTime, dSMargin = oltbAwayTeam.dSMargin)
 				oltbGroup.DrawText(strGroup, colorGroup, JH.Right, JV.Top)
 
 class CDayBlot(CBlot): # tag = dayb
@@ -398,7 +403,7 @@ class CDayBlot(CBlot): # tag = dayb
 
 	s_dYFontLabel = s_dYFontTime * 1.3
 
-	def __init__(self, page: 'CPage', iterMatch: Optional[Iterable[CMatch]] = None, tDay: Optional[arrow.Arrow] = None) -> None:
+	def __init__(self, page: CPage, iterMatch: Optional[Iterable[CMatch]] = None, tDay: Optional[arrow.Arrow] = None) -> None:
 		self.page = page
 		self.doc = self.page.doc
 		self.pdf = self.doc.pdf
@@ -419,7 +424,7 @@ class CDayBlot(CBlot): # tag = dayb
 		for match in self.lMatch[1:]:
 			assert self.tStart.date() == match.tStart.date()
 
-		self.dYTime = CFontInstance(self.pdf, self.doc.fontkeyMatchTime, self.s_dYFontTime).dYCap
+		self.dYTime = CFontInstance(self.pdf, self.page.Fontkey('match.time'), self.s_dYFontTime).dYCap
 
 	def Draw(self, pos: SPoint, tPrev: Optional[arrow.Arrow] = None) -> None:
 
@@ -430,7 +435,7 @@ class CDayBlot(CBlot): # tag = dayb
 
 		strDate = self.page.StrDateForCalendar(self.tStart, tPrev)
 		rectDate = rectInside.Copy(dY=self.s_dYDate)
-		oltbDate = self.Oltb(rectDate, self.doc.fontkeyDayDate, rectDate.dY)
+		oltbDate = self.Oltb(rectDate, self.page.Fontkey('day.date'), rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack)
 
 		# matchless days get a bottom border and nothing else
@@ -497,7 +502,7 @@ class CElimBlot(CDayBlot): # tag = elimb
 
 	s_dYDate = CDayBlot.s_dYFontTime
 
-	def __init__(self, page: 'CPage', match: CMatch) -> None:
+	def __init__(self, page: CPage, match: CMatch) -> None:
 		self.page = page
 		self.doc = page.doc
 		self.pdf = page.doc.pdf
@@ -534,7 +539,7 @@ class CElimBlot(CDayBlot): # tag = elimb
 
 		strDate = self.page.StrDateForElimination(self.tStart)
 		rectDate = rectAll.Copy(dY = self.s_dYDate).Shift(dY = (matchb.dYOuterGap - self.s_dYDate) / 2)
-		oltbDate = self.Oltb(rectDate, self.doc.fontkeyElimDate, rectDate.dY)
+		oltbDate = self.Oltb(rectDate, self.page.Fontkey('elim.date'), rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack, JH.Center)
 
 		# info
@@ -573,7 +578,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 	s_dXLineForm = s_dSScore * 4
 
-	def __init__(self, page: 'CPage') -> None:
+	def __init__(self, page: CPage) -> None:
 		self.page = page
 		self.doc = page.doc
 		self.pdf = page.doc.pdf
@@ -590,7 +595,7 @@ class CFinalBlot(CBlot): # tag = finalb
 		# title
 
 		rectTitle = rectAll.Copy(dY=self.s_dYFontTitle)
-		oltbTitle = self.Oltb(rectTitle, self.doc.fontkeyFinalTitle, rectTitle.dY)
+		oltbTitle = self.Oltb(rectTitle, self.page.Fontkey('final.title'), rectTitle.dY)
 		strTitle = self.page.StrTranslation('stage.final').upper()
 		oltbTitle.DrawText(strTitle, colorBlack, JH.Center)
 
@@ -598,14 +603,14 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		strDate = self.page.StrDateForFinal(self.match.tStart)
 		rectDate = rectTitle.Copy(dY = self.s_dYFontDate).Shift(dY = rectTitle.dY + self.s_dYTextGap)
-		oltbDate = self.Oltb(rectDate, self.doc.fontkeyFinalDate, rectDate.dY)
+		oltbDate = self.Oltb(rectDate, self.page.Fontkey('final.date'), rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack, JH.Center)
 
 		# time
 
 		strTime = self.page.StrTimeDayRelative(self.match.tStart)
 		rectTime = rectDate.Copy(dY=self.s_dYFontTime).Shift(dY = rectDate.dY + self.s_dYTextGap)
-		oltbTime = self.Oltb(rectTime, self.doc.fontkeyFinalTime, rectTime.dY)
+		oltbTime = self.Oltb(rectTime, self.page.Fontkey('final.time'), rectTime.dY)
 		oltbTime.DrawText(strTime, colorBlack, JH.Center)
 
 		# dash between score boxes
@@ -662,7 +667,7 @@ class CFinalBlot(CBlot): # tag = finalb
 		if self.page.pagea.fMatchNumbers:
 			for xLineFormMin, strLabel in ((xLineFormLeftMin, self.match.strHome), (xLineFormRightMin, self.match.strAway)):
 				rectLabelForm = SRect(xLineFormMin, yLineForm + self.s_dYTextGap / 2, self.s_dXLineForm, self.s_dYFontForm)
-				oltbLabelForm = self.Oltb(rectLabelForm, self.doc.fontkeyFinalFormLabel, self.s_dYFontForm)
+				oltbLabelForm = self.Oltb(rectLabelForm, self.page.Fontkey('final.form.label'), self.s_dYFontForm)
 				oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
 
 @dataclass
@@ -725,7 +730,7 @@ class CPage:
 		STAGE.Semis: ColorFromStr("#aaaaaa"),		# 129 + 41 = 170 (0xaa)
 	}
 
-	def __init__(self, doc: 'CDocument', pagea: SPageArgs):
+	def __init__(self, doc: CDocument, pagea: SPageArgs):
 		self.doc = doc
 		self.pagea = pagea
 
@@ -764,6 +769,11 @@ class CPage:
 
 	def StrTranslation(self, strKey: str) -> str:
 		return self.tourn.StrTranslation(strKey, self.strLocale)
+
+	def Fontkey(self, strFont: str) -> SFontKey:
+		strTtf = self.StrTranslation(self.doc.s_strKeyPrefixFonts + strFont)
+
+		return SFontKey(strTtf, '')
 
 	def StrDateRangeForHeader(self, tMin: arrow.Arrow, tMax: arrow.Arrow) -> str:
 		if tMin.year != tMax.year:
@@ -838,7 +848,7 @@ class CPage:
 		self.pdf.line(self.rectInside.xMax,		self.rectCropMarks.yMax,	self.rectInside.xMax,		self.rect.yMax)
 
 class CGroupsTestPage(CPage): # gtp
-	def __init__(self, doc: 'CDocument', pagea: SPageArgs):
+	def __init__(self, doc: CDocument, pagea: SPageArgs):
 		super().__init__(doc, pagea)
 
 		dSMargin = 0.5
@@ -860,7 +870,7 @@ class CGroupsTestPage(CPage): # gtp
 				groupb.Draw(pos)
 
 class CDaysTestPage(CPage): # gtp
-	def __init__(self, doc: 'CDocument', pagea: SPageArgs):
+	def __init__(self, doc: CDocument, pagea: SPageArgs):
 		super().__init__(doc, pagea)
 
 		dSMargin = 0.25
@@ -889,7 +899,7 @@ class CGroupSetBlot(CBlot): # tag = gsetb
 
 	s_dSGridGap = CGroupBlot.s_dY / 2
 
-	def __init__(self, doc: 'CDocument', lGroupb: list[CGroupBlot], cCol: int = 0, cRow: int = 0) -> None:
+	def __init__(self, doc: CDocument, lGroupb: list[CGroupBlot], cCol: int = 0, cRow: int = 0) -> None:
 		super().__init__(doc.pdf)
 
 		self.doc = doc
@@ -940,7 +950,7 @@ class CHeaderBlot(CBlot): # tag = headerb
 
 		# title
 
-		oltbTitle = self.Oltb(rectAll, self.doc.fontkeyPageHeaderTitle, self.s_dYFontTitle)
+		oltbTitle = self.Oltb(rectAll, self.page.Fontkey('page.header.title'), self.s_dYFontTitle)
 		strTitle = self.page.StrTranslation('tournament.title').upper()
 		rectTitle = oltbTitle.RectDrawText(strTitle, colorWhite, JH.Center, JV.Middle)
 		dSMarginSides = rectAll.yMax - rectTitle.yMax
@@ -956,7 +966,7 @@ class CHeaderBlot(CBlot): # tag = headerb
 		strLocation = self.page.StrTranslation('tournament.location')
 		strFormatDates = self.page.StrTranslation('page.format.dates-and-location')
 		strDates = strFormatDates.format(dates=strDateRange, location=strLocation).upper()
-		oltbDates = self.Oltb(rectDate, self.doc.fontkeyPageHeaderTitle, self.s_dYFontSides, dSMargin = dSMarginSides)
+		oltbDates = self.Oltb(rectDate, self.page.Fontkey('page.header.title'), self.s_dYFontSides, dSMargin = dSMarginSides)
 		oltbDates.DrawText(strDates, colorWhite, JH.Left, JV.Bottom)
 
 		# time zone
@@ -965,14 +975,16 @@ class CHeaderBlot(CBlot): # tag = headerb
 		strTz = tTz.format('ZZZ', locale=self.page.strLocale)
 
 		dT = tTz.utcoffset()
-		if cHour := int(dT.total_seconds()) // (60*60):
-			strTz += f' (UTC{cHour:+d})'
+		if cSec := int(dT.total_seconds()):
+			if (cSec % (60*60)) == 0:
+				cHour = cSec // (60*60)
+				strTz += f' (UTC{cHour:+d})'
 
 		strLabelTimeZone = self.page.StrTranslation('page.timezone.label')
 		strFormatTimeZone = self.page.StrTranslation('page.format.timezone')
 		strTimeZone = strFormatTimeZone.format(label=strLabelTimeZone, timezone=strTz)
 
-		oltbTimeZone = self.Oltb(rectTimeZone, self.doc.fontkeyPageHeaderTitle, self.s_dYFontSides, dSMargin = dSMarginSides)
+		oltbTimeZone = self.Oltb(rectTimeZone, self.page.Fontkey('page.header.title'), self.s_dYFontSides, dSMargin = dSMarginSides)
 		oltbTimeZone.DrawText(strTimeZone, colorWhite, JH.Right, JV.Bottom)
 
 class CFooterBlot(CBlot): # tag = headerb
@@ -1020,7 +1032,7 @@ class CFooterBlot(CBlot): # tag = headerb
 
 		for lStrCredit, jh in ((lStrCreditLeft, JH.Left), (lStrCreditCenter, JH.Center), (lStrCreditRight, JH.Right)):
 			strCredit = strSpaceDotSpace.join(lStrCredit)
-			oltbCredit = self.Oltb(rectCredits, self.doc.fontkeyPageHeaderTitle, self.s_dYFont)
+			oltbCredit = self.Oltb(rectCredits, self.page.Fontkey('page.header.title'), self.s_dYFont)
 			oltbCredit.DrawText(strCredit, colorWhite, jh, JV.Middle)
 
 class CCalendarBlot(CBlot): # tag = calb
@@ -1029,7 +1041,7 @@ class CCalendarBlot(CBlot): # tag = calb
 
 	s_dYFontTitle = CDayBlot.s_dYFontTime
 
-	def __init__(self, page: 'CPage', setMatch: set[CMatch]) -> None:
+	def __init__(self, page: CPage, setMatch: set[CMatch]) -> None:
 		self.page = page
 		self.doc = page.doc
 		self.pdf = page.doc.pdf
@@ -1089,7 +1101,7 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		for iDay in range(7):
 			strDayOfWeek = arrow.get(2001, 1, 1 + ((iDay + self.weekdayFirst) % 7)).format('ddd', locale=self.page.strLocale)
-			oltbDayOfWeek = self.Oltb(rectDayOfWeek, self.doc.fontkeyCalDayOfWeek, rectDayOfWeek.dY)
+			oltbDayOfWeek = self.Oltb(rectDayOfWeek, self.page.Fontkey('calendar.day-of-week'), rectDayOfWeek.dY)
 			oltbDayOfWeek.DrawText(strDayOfWeek, colorBlack, JH.Center)
 			rectDayOfWeek.Shift(dX=CDayBlot.s_dX)
 
@@ -1115,7 +1127,7 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		rectAll = SRect(x = pos.x, y = pos.y, dX = self.dX, dY = self.dY)
 		rectTitleText = SRect(rectAll.x, rectAll.y - (self.s_dYFontTitle * 2), rectAll.dX, self.s_dYFontTitle)
-		oltbTitleText = self.Oltb(rectTitleText, self.doc.fontkeyElimStage, rectTitleText.dY)
+		oltbTitleText = self.Oltb(rectTitleText, self.page.Fontkey('elim.stage'), rectTitleText.dY)
 		strTitleText = self.page.StrTranslation('stage.group').upper()
 		rectTitleTextDrawn = oltbTitleText.RectDrawText(strTitleText, colorLightGrey, JH.Center)
 
@@ -1144,7 +1156,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 
 	s_dYFontStage = CElimBlot.s_dYDate
 
-	def __init__(self, page: 'CPage', setMatch: set[CMatch]) -> None:
+	def __init__(self, page: CPage, setMatch: set[CMatch]) -> None:
 		self.page = page
 		self.doc = page.doc
 		self.pdf = page.doc.pdf
@@ -1250,7 +1262,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 			if stage == STAGE.Third:
 				rectStageText.Shift(dY = self.s_dYFontStage)
 
-			oltbStageText = self.Oltb(rectStageText, self.doc.fontkeyElimStage, rectStageText.dY)
+			oltbStageText = self.Oltb(rectStageText, self.page.Fontkey('elim.stage'), rectStageText.dY)
 			rectStageTextDrawn = oltbStageText.RectDrawText(strStage.upper(), colorLightGrey, JH.Center)
 
 			try:
@@ -1278,7 +1290,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 				self.pdf.line(xRightMax, yStageTextMiddle, xRightMax, yStageTextMiddle + dSStageGap)
 
 class CPosterPage(CPage): # tag = posterp
-	def __init__(self, doc: 'CDocument', pagea: SPageArgs):
+	def __init__(self, doc: CDocument, pagea: SPageArgs):
 		super().__init__(doc, pagea)
 
 		cGroupHalf = len(self.tourn.lStrGroup) // 2
@@ -1335,7 +1347,7 @@ class CPosterPage(CPage): # tag = posterp
 		self.DrawCropLines()
 
 class CHybridPage(CPage): # tag = hybridp
-	def __init__(self, doc: 'CDocument', pagea: SPageArgs):
+	def __init__(self, doc: CDocument, pagea: SPageArgs):
 		super().__init__(doc, pagea)
 
 		setMatchCalendar: set[CMatch] = self.tourn.mpStageSetMatch[STAGE.Group]
@@ -1413,6 +1425,7 @@ class SDocumentArgs: # tag = doca
 	strFileSuffix: str = ''
 
 class CDocument: # tag = doc
+	s_strKeyPrefixFonts = 'fonts.'
 	s_pathDirFonts = Path('fonts')
 
 	def __init__(self, tourn: CTournamentDataBase, doca: SDocumentArgs) -> None:
@@ -1420,7 +1433,7 @@ class CDocument: # tag = doc
 		self.doca = doca
 		self.pdf = CPdf()
 
-		strSubject = 'soccer tournament score sheet and schedule'
+		strSubject = tourn.StrTranslation('tournament.name', 'en')
 		lStrKeywords = strSubject.split() + self.tourn.pathFile.stem.split('-')
 		strKeywords = ' '.join(lStrKeywords)
 
@@ -1432,105 +1445,19 @@ class CDocument: # tag = doc
 		self.pdf.set_lang('en')
 		self.pdf.set_creation_date(arrow.now().datetime)
 
-		if False:
-			self.pdf.AddFont('Consolas',			'',		self.s_pathDirFonts / 'consola.ttf')
-			self.pdf.AddFont('Consolas',			'B',	self.s_pathDirFonts / 'consolab.ttf')
-			self.pdf.AddFont('Calibri',				'',		self.s_pathDirFonts / 'calibri.ttf')
-			self.pdf.AddFont('Calibri',				'B',	self.s_pathDirFonts / 'calibrib.ttf')
-			self.pdf.AddFont('Calibri', 			'I',	self.s_pathDirFonts / 'calibrili.ttf')
+		# load all fonts for all languages
 
-			self.fontkeyGroupName		= SFontKey('Consolas',	'B')
-			self.fontkeyGroupLabel		= SFontKey('Calibri',	'')
-			self.fontkeyGroupHeading	= SFontKey('Calibri',	'')
-			self.fontkeyGroupTeamName	= SFontKey('Calibri',	'')
-			self.fontkeyGroupTeamAbbrev	= SFontKey('Consolas',	'')
-			self.fontkeyDayDate			= SFontKey('Calibri',	'I')
-			self.fontkeyDayTime			= SFontKey('Calibri',	'')
-			self.fontkeyDayFormLabel	= SFontKey('Calibri',	'')
-			self.fontkeyMatchTime		= SFontKey('Calibri',	'')
-			self.fontkeyMatchTeamAbbrev	= SFontKey('Consolas',	'')
-			self.fontkeyMatchFormLabel	= SFontKey('Calibri',	'')
-			self.fontkeyMatchLabel		= SFontKey('Calibri',	'B')
-			self.fontkeyElimDate		= SFontKey('Calibri',	'')
-			self.fontkeyElimStage		= SFontKey('Calibri',	'B')
-			self.fontkeyElimLabel		= SFontKey('Calibri',	'')
-			self.fontkeyFinalTitle		= SFontKey('Calibri',	'B')
-			self.fontkeyFinalDate		= SFontKey('Calibri',	'B')
-			self.fontkeyFinalTime		= SFontKey('Calibri',	'')
-			self.fontkeyFinalFormLabel	= SFontKey('Calibri',	'')
-			self.fontkeyPageHeaderTitle	= SFontKey('Calibri',	'B')
-			self.fontkeyCalDayOfWeek	= SFontKey('Calibri',	'I')
-		elif False:
-			self.pdf.AddFont('Consolas',			'',		self.s_pathDirFonts / 'consola.ttf')
-			self.pdf.AddFont('TradeGothic', 		'',		self.s_pathDirFonts / 'TradeGothicLTStd.otf')
-			self.pdf.AddFont('TradeGothic',			'B',	self.s_pathDirFonts / 'TradeGothicLTStd-Bold.otf')
-			self.pdf.AddFont('TradeGothicLight',	'',		self.s_pathDirFonts / 'TradeGothicLTStd-Light.otf')
-			self.pdf.AddFont('TradeGothicLight',	'I',	self.s_pathDirFonts / 'TradeGothicLTStd-LightObl.otf')
-			self.pdf.AddFont('TradeGothicCn18', 	'',		self.s_pathDirFonts / 'TradeGothicLTStd-Cn18.otf')
-			self.pdf.AddFont('TradeGothicCn20', 	'B',	self.s_pathDirFonts / 'TradeGothicLTStd-BdCn20.otf')
-			self.pdf.AddFont('TradeGothicExtended',	'',		self.s_pathDirFonts / 'TradeGothicLTStd-Extended.otf')
-			self.pdf.AddFont('TradeGothicExtended',	'B',	self.s_pathDirFonts / 'TradeGothicLTStd-BoldExt.otf')
-			self.pdf.AddFont('TradeGothicBd2',		'B',	self.s_pathDirFonts / 'TradeGothicLTStd-Bd2.otf')
+		setStrTtf: set[str] = set()
 
-			self.fontkeyGroupName		= SFontKey('Consolas',				'')
-			self.fontkeyGroupLabel		= SFontKey('TradeGothic',			'')
-			self.fontkeyGroupHeading	= SFontKey('TradeGothicCn18',		'')
-			self.fontkeyGroupTeamName	= SFontKey('TradeGothicCn18',		'')
-			self.fontkeyGroupTeamAbbrev	= SFontKey('Consolas',				'')
+		for strKey in tourn.loc.mpStrKeyStrLocaleStrText:
+			if not strKey.startswith(self.s_strKeyPrefixFonts):
+				continue
+			setStrTtf.update(tourn.loc.mpStrKeyStrLocaleStrText[strKey].values())
 
-			self.fontkeyDayDate			= SFontKey('TradeGothicLight',		'I')
-
-			self.fontkeyMatchTime		= SFontKey('TradeGothicLight',		'')
-			self.fontkeyMatchTeamAbbrev	= SFontKey('Consolas',				'')
-			self.fontkeyMatchFormLabel	= SFontKey('TradeGothicLight',		'')
-			self.fontkeyMatchLabel		= SFontKey('TradeGothic',			'B')
-
-			self.fontkeyElimDate		= SFontKey('TradeGothic',			'')
-			self.fontkeyElimStage		= SFontKey('TradeGothicBd2',		'B')
-			self.fontkeyElimLabel		= SFontKey('TradeGothic',			'')
-
-			self.fontkeyFinalTitle		= SFontKey('TradeGothicBd2',		'B')
-			self.fontkeyFinalDate		= SFontKey('TradeGothicBd2',		'B')
-			self.fontkeyFinalTime		= SFontKey('TradeGothicLight',		'')
-			self.fontkeyFinalFormLabel	= SFontKey('TradeGothicLight',		'')
-
-			self.fontkeyPageHeaderTitle	= SFontKey('TradeGothicCn20',		'B')
-
-			self.fontkeyCalDayOfWeek	= SFontKey('TradeGothicLight',		'I')
-		else:
-			self.pdf.AddFont('Consolas',			'',		self.s_pathDirFonts / 'consola.ttf')
-			self.pdf.AddFont('YuGothic', 			'',		self.s_pathDirFonts / 'YuGothR_0.ttf')
-			self.pdf.AddFont('YuGothic',			'B',	self.s_pathDirFonts / 'YuGothB_0.ttf')
-			self.pdf.AddFont('YuGothicLight',		'',		self.s_pathDirFonts / 'YuGothL_0.ttf')
-
-			self.fontkeyGroupName		= SFontKey('Consolas',		'')
-			self.fontkeyGroupLabel		= SFontKey('YuGothic',		'')
-			self.fontkeyGroupHeading	= SFontKey('YuGothic',		'')
-			self.fontkeyGroupTeamName	= SFontKey('YuGothic',		'')
-			self.fontkeyGroupTeamAbbrev	= SFontKey('Consolas',		'')
-
-			self.fontkeyDayDate			= SFontKey('YuGothicLight',	'')
-			self.fontkeyDayTime			= SFontKey('YuGothicLight',	'')
-			self.fontkeyDayFormLabel	= SFontKey('YuGothicLight',	'')
-
-			self.fontkeyMatchTime		= SFontKey('YuGothicLight',	'')
-			self.fontkeyMatchTeamAbbrev	= SFontKey('Consolas',		'')
-			self.fontkeyMatchFormLabel	= SFontKey('YuGothicLight',	'')
-			self.fontkeyMatchLabel		= SFontKey('YuGothic',		'B')
-
-			self.fontkeyElimDate		= SFontKey('YuGothic',		'')
-			self.fontkeyElimStage		= SFontKey('YuGothic',		'B')
-			self.fontkeyElimLabel		= SFontKey('YuGothic',		'')
-
-			self.fontkeyFinalTitle		= SFontKey('YuGothic',		'B')
-			self.fontkeyFinalDate		= SFontKey('YuGothic',		'B')
-			self.fontkeyFinalTime		= SFontKey('YuGothicLight',	'')
-			self.fontkeyFinalFormLabel	= SFontKey('YuGothicLight',	'')
-
-			self.fontkeyPageHeaderTitle	= SFontKey('YuGothic',		'B')
-
-			self.fontkeyCalDayOfWeek	= SFontKey('YuGothicLight',	'')
-
+		for strTtf in setStrTtf:
+			if not strTtf:
+				continue
+			self.pdf.AddFont(strTtf, '', self.s_pathDirFonts / strTtf)
 
 		for pagea in self.doca.iterPagea:
 			pagea.clsPage(self, pagea)
@@ -1550,6 +1477,7 @@ if True:
 		iterPagea = (
 			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None),
 			# SPageArgs(CHybridPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
+			# SPageArgs(CHybridPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
 		))
 
 	docaTests = SDocumentArgs(
