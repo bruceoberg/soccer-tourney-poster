@@ -75,8 +75,9 @@ class CGroupBlot(CBlot): # tag = groupb
 		rectGroupLabel = rectTitle.Copy(dX=rectGroupName.x - rectTitle.x)
 
 		uGroupLabel = 0.65
+		strGroupTitle = self.page.StrTranslation('group.title')
 		oltbGroupLabel = self.Oltb(rectGroupLabel, self.page.Fontkey('group.label'), dYTitle * uGroupLabel, dSMargin = oltbGroupName.dSMargin)
-		oltbGroupLabel.DrawText('Group', colorWhite, JH.Right) #, JV.Top)
+		oltbGroupLabel.DrawText(strGroupTitle, colorWhite, JH.Right) #, JV.Top)
 
 		# heading
 
@@ -106,12 +107,12 @@ class CGroupBlot(CBlot): # tag = groupb
 			oltbAbbrev = self.Oltb(rectTeam, self.page.Fontkey('group.team.abbrev'), dYTeam)
 			rectAbbrev = oltbAbbrev.RectDrawText(team.strTeam, colorBlack, JH.Right)
 
-			rectName = rectTeam.Copy().Stretch(dXRight = -rectAbbrev.dX)
+			rectName = rectTeam.Copy().Stretch(dXRight = -(rectAbbrev.dX + oltbAbbrev.dSMargin))
 
 			uTeamText = 0.75
 			oltbName = self.Oltb(rectName, self.page.Fontkey('group.team.name'), dYTeam * uTeamText, dSMargin = oltbAbbrev.dSMargin)
 			strTeam = self.page.StrTranslation('team.' + team.strTeam)
-			oltbName.DrawText(strTeam, colorDarkSlateGrey, JH.Left, fShrinkToFit = True) #, JV.Top)
+			oltbName.DrawText(strTeam, colorDarkSlateGrey, self.page.JhStart(), fShrinkToFit = True) #, JV.Top)
 
 		# dividers for team/points/gf/ga
 
@@ -135,9 +136,9 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		lTuRectStr = (
 			#(rectTeam, "COUNTRY"),
-			(rectPoints,		"PTS"),
-			(rectGoalsFor,		"GF"),
-			(rectGoalsAgainst,	"GA"),
+			(rectPoints,		self.page.StrTranslation('group.points')),
+			(rectGoalsFor,		self.page.StrTranslation('group.goals-for')),
+			(rectGoalsAgainst,	self.page.StrTranslation('group.goals-against')),
 			(rectRank,			"\u00bb"), # RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
 		)
 
@@ -436,7 +437,7 @@ class CDayBlot(CBlot): # tag = dayb
 		strDate = self.page.StrDateForCalendar(self.tStart, tPrev)
 		rectDate = rectInside.Copy(dY=self.s_dYDate)
 		oltbDate = self.Oltb(rectDate, self.page.Fontkey('day.date'), rectDate.dY)
-		oltbDate.DrawText(strDate, colorBlack)
+		oltbDate.DrawText(strDate, colorBlack, self.page.JhStart())
 
 		# matchless days get a bottom border and nothing else
 
@@ -775,6 +776,15 @@ class CPage:
 
 		return SFontKey(strTtf, '')
 
+	def FIsLeftToRight(self) -> bool:
+		return self.locale.character_order == 'left-to-right'
+
+	def JhStart(self) -> JH:
+		return JH.Left if self.locale.character_order == 'left-to-right' else JH.Right
+
+	def JhEnd(self) -> JH:
+		return JH.Right if self.locale.character_order == 'left-to-right' else JH.Left
+
 	def StrDateRangeForHeader(self, tMin: arrow.Arrow, tMax: arrow.Arrow) -> str:
 		if tMin.year != tMax.year:
 			strDateFmt = 'yMMM' # multi year: month + year to month + year
@@ -791,9 +801,9 @@ class CPage:
 			strFormat = "d"
 		else:
 			strFormat = "MMMMd"
-		
-		return babel.dates.format_skeleton(strFormat, tDate.datetime, locale=self.locale)
 
+		return babel.dates.format_skeleton(strFormat, tDate.datetime, locale=self.locale)
+		
 	def StrDateForElimination(self, tDate: arrow.Arrow) -> str:
 		return babel.dates.format_skeleton('MMMEd', tDate.datetime, locale=self.locale)
 
@@ -955,9 +965,6 @@ class CHeaderBlot(CBlot): # tag = headerb
 		rectTitle = oltbTitle.RectDrawText(strTitle, colorWhite, JH.Center, JV.Middle)
 		dSMarginSides = rectAll.yMax - rectTitle.yMax
 
-		rectDate = rectAll.Copy().Stretch(dXLeft = self.s_dY) # yes, using height as left space
-		rectTimeZone = rectAll.Copy().Stretch(dXRight = -self.s_dY) # ditto
-
 		# dates
 
 		tMin = arrow.get(min(self.doc.tourn.mpDateSetMatch))
@@ -965,27 +972,41 @@ class CHeaderBlot(CBlot): # tag = headerb
 		strDateRange = self.page.StrDateRangeForHeader(tMin, tMax)
 		strLocation = self.page.StrTranslation('tournament.location')
 		strFormatDates = self.page.StrTranslation('page.format.dates-and-location')
-		strDates = strFormatDates.format(dates=strDateRange, location=strLocation).upper()
-		oltbDates = self.Oltb(rectDate, self.page.Fontkey('page.header.title'), self.s_dYFontSides, dSMargin = dSMarginSides)
-		oltbDates.DrawText(strDates, colorWhite, JH.Left, JV.Bottom)
+		strDatesLocation = strFormatDates.format(dates=strDateRange, location=strLocation).upper()
 
 		# time zone
 
 		tTz = tMin.to(tz.gettz(self.page.strTz))
 		strTz = tTz.format('ZZZ', locale=self.page.strLocale)
-
-		dT = tTz.utcoffset()
-		if cSec := int(dT.total_seconds()):
-			if (cSec % (60*60)) == 0:
-				cHour = cSec // (60*60)
-				strTz += f' (UTC{cHour:+d})'
+		if strTz.startswith('+'):
+			strTz = f'UTC{strTz}'
+		else:
+			dT = tTz.utcoffset()
+			if cSec := int(dT.total_seconds()):
+				if (cSec % (60*60)) == 0:
+					cHour = cSec // (60*60)
+					strTz += f' (UTC{cHour:+d})'
 
 		strLabelTimeZone = self.page.StrTranslation('page.timezone.label')
 		strFormatTimeZone = self.page.StrTranslation('page.format.timezone')
 		strTimeZone = strFormatTimeZone.format(label=strLabelTimeZone, timezone=strTz)
 
-		oltbTimeZone = self.Oltb(rectTimeZone, self.page.Fontkey('page.header.title'), self.s_dYFontSides, dSMargin = dSMarginSides)
-		oltbTimeZone.DrawText(strTimeZone, colorWhite, JH.Right, JV.Bottom)
+		# notes left and right
+
+		if self.page.FIsLeftToRight():
+			strNoteLeft = strDatesLocation
+			strNoteRight = strTimeZone
+		else:
+			strNoteLeft = strTimeZone
+			strNoteRight = strDatesLocation
+
+		rectNoteLeft = rectAll.Copy().Stretch(dXLeft = self.s_dY) # yes, using height as left space
+		oltbNoteLeft = self.Oltb(rectNoteLeft, self.page.Fontkey('page.header.title'), self.s_dYFontSides, dSMargin = dSMarginSides)
+		oltbNoteLeft.DrawText(strNoteLeft, colorWhite, JH.Left, JV.Bottom)
+
+		rectNoteRight = rectAll.Copy().Stretch(dXRight = -self.s_dY) # ditto
+		oltbNoteRight = self.Oltb(rectNoteRight, self.page.Fontkey('page.header.title'), self.s_dYFontSides, dSMargin = dSMarginSides)
+		oltbNoteRight.DrawText(strNoteRight, colorWhite, JH.Right, JV.Bottom)
 
 class CFooterBlot(CBlot): # tag = headerb
 
@@ -1097,10 +1118,12 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		# days of week
 
+		mpIdayStrDayOfWeek = babel.dates.get_day_names('abbreviated', locale=self.page.locale)
+
 		rectDayOfWeek = SRect(x = pos.x, y = pos.y, dX = CDayBlot.s_dX, dY = self.s_dYDayOfWeek)
 
 		for iDay in range(7):
-			strDayOfWeek = arrow.get(2001, 1, 1 + ((iDay + self.weekdayFirst) % 7)).format('ddd', locale=self.page.strLocale)
+			strDayOfWeek = mpIdayStrDayOfWeek[(iDay + self.weekdayFirst) % 7]
 			oltbDayOfWeek = self.Oltb(rectDayOfWeek, self.page.Fontkey('calendar.day-of-week'), rectDayOfWeek.dY)
 			oltbDayOfWeek.DrawText(strDayOfWeek, colorBlack, JH.Center)
 			rectDayOfWeek.Shift(dX=CDayBlot.s_dX)
@@ -1204,12 +1227,14 @@ class CBracketBlot(CBlot): # tag = bracketb
 
 		# allot blots to rows and columns
 
+		setMatchElimLeft = self.tourn.setMatchFirst if self.page.FIsLeftToRight() else self.tourn.setMatchSecond
+
 		self.lTuXYElimb: list[tuple[float, float, CElimBlot]] = []
 		mpStageLRect: dict[STAGE, list[SRect]] = {}
 
 		for colLeft, stage in enumerate(lStage):
 			setMatch = self.tourn.mpStageSetMatch[stage]
-			setMatchLeft = setMatch.intersection(self.tourn.setMatchLeft)
+			setMatchLeft = setMatch.intersection(setMatchElimLeft)
 			setMatchRight = setMatch - setMatchLeft
 			tuTuColSetMatchCol = ((colLeft, setMatchLeft), (self.cCol-(1+colLeft), setMatchRight))
 			for col, setMatchCol in tuTuColSetMatchCol:
@@ -1289,7 +1314,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 				self.pdf.line(xLeftMin, yStageTextMiddle, xLeftMin, yStageTextMiddle + dSStageGap)
 				self.pdf.line(xRightMax, yStageTextMiddle, xRightMax, yStageTextMiddle + dSStageGap)
 
-class CPosterPage(CPage): # tag = posterp
+class CCalOnlyPage(CPage): # tag = calonlyp
 	def __init__(self, doc: CDocument, pagea: SPageArgs):
 		super().__init__(doc, pagea)
 
@@ -1346,7 +1371,7 @@ class CPosterPage(CPage): # tag = posterp
 
 		self.DrawCropLines()
 
-class CHybridPage(CPage): # tag = hybridp
+class CCalElimPage(CPage): # tag = calelimp
 	def __init__(self, doc: CDocument, pagea: SPageArgs):
 		super().__init__(doc, pagea)
 
@@ -1356,8 +1381,13 @@ class CHybridPage(CPage): # tag = hybridp
 
 		assert len(self.tourn.lStrGroup) % 2 == 0
 		cGroupHalf = len(self.tourn.lStrGroup) // 2
-		lStrGroupLeft = self.tourn.lStrGroup[:cGroupHalf]
-		lStrGroupRight = self.tourn.lStrGroup[cGroupHalf:]
+
+		if self.FIsLeftToRight():
+			lStrGroupLeft = self.tourn.lStrGroup[:cGroupHalf]
+			lStrGroupRight = self.tourn.lStrGroup[cGroupHalf:]
+		else:
+			lStrGroupLeft = self.tourn.lStrGroup[cGroupHalf:]
+			lStrGroupRight = self.tourn.lStrGroup[:cGroupHalf]
 
 		lGroupbLeft = [CGroupBlot(self, self.tourn.mpStrGroupGroup[strGroup]) for strGroup in lStrGroupLeft]
 		gsetbLeft = CGroupSetBlot(self.doc, lGroupbLeft, cCol = 1)
@@ -1448,15 +1478,16 @@ class CDocument: # tag = doc
 		# load all fonts for all languages
 
 		setStrTtf: set[str] = set()
+		setStrLocale: set[str] = {pagea.strLocale for pagea in doca.iterPagea}
 
 		for strKey in tourn.loc.mpStrKeyStrLocaleStrText:
 			if not strKey.startswith(self.s_strKeyPrefixFonts):
 				continue
-			setStrTtf.update(tourn.loc.mpStrKeyStrLocaleStrText[strKey].values())
+			for strLocale in setStrLocale:
+				setStrTtf.add(tourn.StrTranslation(strKey, strLocale))
 
 		for strTtf in setStrTtf:
-			if not strTtf:
-				continue
+			assert strTtf
 			self.pdf.AddFont(strTtf, '', self.s_pathDirFonts / strTtf)
 
 		for pagea in self.doca.iterPagea:
@@ -1475,9 +1506,9 @@ if True:
 	docaDefault = SDocumentArgs(
 		strDestDir = 'playground',
 		iterPagea = (
-			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None),
-			# SPageArgs(CHybridPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
-			# SPageArgs(CHybridPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
+			# SPageArgs(CCalElimPage, fmt=(18, 27), fmtCrop=None),
+			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
+			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
 		))
 
 	docaTests = SDocumentArgs(
@@ -1491,23 +1522,23 @@ if True:
 		strDestDir = 'playground',
 		strFileSuffix = 'designs',
 		iterPagea = (
-			SPageArgs(CPosterPage, fmt=(18, 27), fmtCrop=None, strVariant = 'alpha', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
-			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None, strVariant = 'beta', fEliminationBorders = False, fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
-			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None, strVariant = 'borderless', fMainBorders = False),
-			SPageArgs(CHybridPage, fmt=(18, 27), fmtCrop=None, strVariant = 'gold master'),
+			SPageArgs(CCalOnlyPage, fmt=(18, 27), fmtCrop=None, strVariant = 'alpha', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
+			SPageArgs(CCalElimPage, fmt=(18, 27), fmtCrop=None, strVariant = 'beta', fEliminationBorders = False, fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
+			SPageArgs(CCalElimPage, fmt=(18, 27), fmtCrop=None, strVariant = 'borderless', fMainBorders = False),
+			SPageArgs(CCalElimPage, fmt=(18, 27), fmtCrop=None, strVariant = 'gold master'),
 		))
 
 	docaZones = SDocumentArgs(
 		strDestDir = 'playground',
 		strFileSuffix = 'zones',
 		iterPagea = (
-			SPageArgs(CHybridPage, strTz='US/Pacific'),
-			SPageArgs(CHybridPage, strTz='US/Mountain'),
-			SPageArgs(CHybridPage, strTz='US/Central'),
-			SPageArgs(CHybridPage, strTz='US/Eastern'),
-			SPageArgs(CHybridPage, strTz='Europe/London', fmt='a1'),
-			SPageArgs(CHybridPage, strTz='Europe/Amsterdam', fmt='a1'),
-			SPageArgs(CHybridPage, strTz='Asia/Tokyo', fmt='a1'),
+			SPageArgs(CCalElimPage, strTz='US/Pacific'),
+			SPageArgs(CCalElimPage, strTz='US/Mountain'),
+			SPageArgs(CCalElimPage, strTz='US/Central'),
+			SPageArgs(CCalElimPage, strTz='US/Eastern'),
+			SPageArgs(CCalElimPage, strTz='Europe/London', fmt='a1'),
+			SPageArgs(CCalElimPage, strTz='Europe/Amsterdam', fmt='a1'),
+			SPageArgs(CCalElimPage, strTz='Asia/Tokyo', fmt='a1'),
 		))
 
 	lDocaZones: list[SDocumentArgs] = []

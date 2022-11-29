@@ -1,6 +1,11 @@
+import arabic_reshaper
+import bidi.algorithm
 import colorsys
 import copy
 import fpdf
+import string
+import unicategories
+import unicodedata
 
 from enum import Enum, auto
 from dataclasses import dataclass
@@ -264,8 +269,20 @@ class SRect: # tag = rect
 		self.posMax.Shift(dXRight, dYBottom)
 		return self
 
+def FHasAnyRtl(strText: str) -> bool:
+	for ch in strText:
+		strBidi = unicodedata.bidirectional(ch)
+		if strBidi in ('AL', 'R'):
+			return True
+
+	return False
+
 class COneLineTextBox: # tag = oltb
 	"""a box with a single line of text in a particular font, sized to fit the box"""
+	
+	s_strControl: str = ''.join([chr(ucp) for tuMinMax in unicategories.categories['Cf'] for ucp in range(tuMinMax[0], tuMinMax[1])])
+	s_transRemoveControl = str.maketrans('', '', s_strControl)
+
 	def __init__(self, pdf: CPdf, rect: SRect, fontkey: SFontKey, dYFont: float, dSMargin: Optional[float] = None) -> None:
 		self.pdf = pdf
 		self.fonti = CFontInstance(pdf, fontkey, dYFont)
@@ -276,6 +293,11 @@ class COneLineTextBox: # tag = oltb
 		self.rectMargin = self.rect.Copy().Inset(self.dSMargin)
 
 	def RectDrawText(self, strText: str, color: SColor, jh : JH = JH.Left, jv: JV = JV.Middle, fShrinkToFit: bool = False) -> SRect:
+		if FHasAnyRtl(strText):
+			strText = arabic_reshaper.reshape(strText)
+			strText = bidi.algorithm.get_display(strText, base_dir='R')
+			strText = strText.translate(self.s_transRemoveControl)
+
 		self.pdf.set_font(self.fonti.fontkey.strFont, style=self.fonti.fontkey.strStyle, size=self.fonti.dPtFont)
 		dXText = self.pdf.get_string_width(strText)
 

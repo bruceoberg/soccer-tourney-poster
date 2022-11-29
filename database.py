@@ -4,6 +4,7 @@ import datetime
 import openpyxl
 import re
 
+from babel import Locale
 from enum import IntEnum, auto
 from pathlib import Path
 from typing import Optional
@@ -47,6 +48,14 @@ class CDataBase: # tag = db
 
 		try:
 			if strText := mpStrLocaleStrText[strLocale]:
+				return strText
+		except KeyError:
+			pass
+
+		strLanguage = Locale.parse(strLocale).language
+
+		try:
+			if strText := mpStrLocaleStrText[strLanguage]:
 				return strText
 		except KeyError:
 			pass
@@ -234,7 +243,8 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		self.setMatchGroup: set[CMatch] = self.mpStageSetMatch[STAGE.Group]
 		self.setMatchElimination: set[CMatch] = set().union(*[setMatch for stage, setMatch in self.mpStageSetMatch.items() if stage != STAGE.Group])
 		
-		self.setMatchLeft: set[CMatch] = self.SetMatchLeft()
+		self.setMatchFirst: set[CMatch] = self.SetMatchElimHalfFirst()
+		self.setMatchSecond: set[CMatch] = self.SetMatchElimHalfSecond()
 
 	def MpStrGroupGroup(self) -> dict[str, CGroup]:
 		""" build list of groups from team seedings. """
@@ -306,11 +316,19 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 
 		return mpStageSetMatch
 
-	def SetMatchLeft(self) -> set[CMatch]:
-		""" return matches that are on the left side of the elimination bracket. """
+	def SetMatchElimHalfFirst(self) -> set[CMatch]:
+		assert len(self.matchFinal.lIdFeeders) == 2
+		return self.SetMatchElimFeeding(self.matchFinal.lIdFeeders[0])
+	
+	def SetMatchElimHalfSecond(self) -> set[CMatch]:
+		assert len(self.matchFinal.lIdFeeders) == 2
+		return self.SetMatchElimFeeding(self.matchFinal.lIdFeeders[1])
 
-		setIdLeft: set[int] = set(self.matchFinal.lIdFeeders[:1])
-		setIdVisit: set[int] = copy.copy(setIdLeft)
+	def SetMatchElimFeeding(self, id: int) -> set[CMatch]:
+		""" return emlimination matches that feed a particular match id. """
+
+		setIdFeeding: set[int] = set([id])
+		setIdVisit: set[int] = copy.copy(setIdFeeding)
 
 		while setIdVisit:
 			match = self.mpIdMatch[setIdVisit.pop()]
@@ -318,10 +336,10 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 			# NOTE (bruceo) setIdFeeders will be empty for group and round1 matches
 
 			setIdFeeders: set[int] = set(match.lIdFeeders)
-			setIdLeft |= setIdFeeders
+			setIdFeeding |= setIdFeeders
 			setIdVisit |= setIdFeeders
 
-		return {self.mpIdMatch[id] for id in setIdLeft}
+		return {self.mpIdMatch[id] for id in setIdFeeding}
 
 	def StrTranslation(self, strKey: str, strLocale: str) -> str:
 		if strKey.startswith(self.s_strKeyTournPrefix + '.'):
