@@ -1111,6 +1111,9 @@ class CCalendarBlot(CBlot): # tag = calb
 			iWeekday = iDay % 7
 			iWeek = iDay // 7
 
+			if not self.page.FIsLeftToRight():
+				iWeekday = 6 - iWeekday
+
 			dPosDayb = SPoint(iWeekday * CDayBlot.s_dX, iWeek * CDayBlot.s_dY)
 			self.lTuDPosDayb.append((dPosDayb, dayb))
 
@@ -1120,13 +1123,18 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		mpIdayStrDayOfWeek = babel.dates.get_day_names('abbreviated', locale=self.page.locale)
 
-		rectDayOfWeek = SRect(x = pos.x, y = pos.y, dX = CDayBlot.s_dX, dY = self.s_dYDayOfWeek)
+		if self.page.FIsLeftToRight():
+			rectDayOfWeek = SRect(x = pos.x, y = pos.y, dX = CDayBlot.s_dX, dY = self.s_dYDayOfWeek)
+			dXShift = CDayBlot.s_dX
+		else:
+			rectDayOfWeek = SRect(x = pos.x + self.dX - CDayBlot.s_dX, y = pos.y, dX = CDayBlot.s_dX, dY = self.s_dYDayOfWeek)
+			dXShift = -CDayBlot.s_dX
 
 		for iDay in range(7):
 			strDayOfWeek = mpIdayStrDayOfWeek[(iDay + self.weekdayFirst) % 7]
 			oltbDayOfWeek = self.Oltb(rectDayOfWeek, self.page.Fontkey('calendar.day-of-week'), rectDayOfWeek.dY)
 			oltbDayOfWeek.DrawText(strDayOfWeek, colorBlack, JH.Center)
-			rectDayOfWeek.Shift(dX=CDayBlot.s_dX)
+			rectDayOfWeek.Shift(dX = dXShift)
 
 		# days
 
@@ -1506,9 +1514,10 @@ if True:
 	docaDefault = SDocumentArgs(
 		strDestDir = 'playground',
 		iterPagea = (
-			# SPageArgs(CCalElimPage, fmt=(18, 27), fmtCrop=None),
-			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
-			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
+			SPageArgs(CCalElimPage, fmt=(18, 27), fmtCrop=None),
+			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
+			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
+			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
 		))
 
 	docaTests = SDocumentArgs(
