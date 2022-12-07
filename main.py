@@ -22,7 +22,7 @@ from pdf import *
 g_pathHere = Path(__file__).parent
 g_pathLocalization = g_pathHere / 'fonts' / 'localization.xlsx'
 g_loc = CLocalizationDataBase(g_pathLocalization)
-g_pathTourn = g_pathHere / 'tournaments' / '2022-mens-world-cup.xlsx'
+g_pathTourn = g_pathHere / 'tournaments' / '2018-mens-world-cup.xlsx'
 g_tourn = CTournamentDataBase(g_pathTourn, g_loc)
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
@@ -90,28 +90,28 @@ class CGroupBlot(CBlot): # tag = groupb
 		# teams
 
 		dYTeams = rectInside.dY - (dYTitle + dYHeading)
-		dYTeam = dYTeams / len(self.group.mpStrSeedTeam)
+		dYTeam = dYTeams / len(self.group.mpStrSeedStrTeam)
 		rectTeam = rectHeading.Copy(y=rectHeading.yMax, dY=dYTeam)
 
-		for i in range(len(self.group.mpStrSeedTeam)):
+		for i in range(len(self.group.mpStrSeedStrTeam)):
 			color = self.group.colors.colorLighter if (i & 1) else colorWhite
 			self.FillBox(rectTeam, color)
 			rectTeam.Shift(dY=dYTeam)
 
 		rectTeam.dX = dYTeam * self.s_rSTeamName
 
-		for i, strSeed in enumerate(sorted(self.group.mpStrSeedTeam)):
+		for i, strSeed in enumerate(sorted(self.group.mpStrSeedStrTeam)):
 			rectTeam.y = rectHeading.y + rectHeading.dY + i * dYTeam
-			team = self.group.mpStrSeedTeam[strSeed]
+			strTeam = self.group.mpStrSeedStrTeam[strSeed]
 
 			oltbAbbrev = self.Oltb(rectTeam, self.page.Fontkey('group.team.abbrev'), dYTeam)
-			rectAbbrev = oltbAbbrev.RectDrawText(team.strTeam, colorBlack, JH.Right)
+			rectAbbrev = oltbAbbrev.RectDrawText(strTeam, colorBlack, JH.Right)
 
 			rectName = rectTeam.Copy().Stretch(dXRight = -(rectAbbrev.dX + oltbAbbrev.dSMargin))
 
 			uTeamText = 0.75
 			oltbName = self.Oltb(rectName, self.page.Fontkey('group.team.name'), dYTeam * uTeamText, dSMargin = oltbAbbrev.dSMargin)
-			strTeam = self.page.StrTranslation('team.' + team.strTeam)
+			strTeam = self.page.StrTranslation('team.' + strTeam)
 			oltbName.DrawText(strTeam, colorDarkSlateGrey, self.page.JhStart(), fShrinkToFit = True) #, JV.Top)
 
 		# dividers for team/points/gf/ga
@@ -156,7 +156,7 @@ class CGroupBlot(CBlot): # tag = groupb
 			dYTeamDotGrid = dSDot + dYTeamDotGap
 			dYTeamDotMin = dYTeamDotGap
 
-			for iTeam in range(len(self.group.mpStrSeedTeam)):
+			for iTeam in range(len(self.group.mpStrSeedStrTeam)):
 				yTeam = rectHeading.yMax + iTeam * dYTeam
 
 				for xStat, cDotAcross in ((rectPoints.xMin, cDotPtsAcross), (rectGoalsFor.xMin, cDotGoalsAcross), (rectGoalsAgainst.xMin, cDotGoalsAcross)):
@@ -206,7 +206,10 @@ class CMatchBlot(CBlot): # tag = dayb
 
 	def DrawFill(self) -> None:
 
-		if self.match.stage in (STAGE.Third, STAGE.Final):
+		if self.match.stage == STAGE.Final:
+			return
+
+		if self.match.stage == STAGE.Third and isinstance(self.dayb, CElimBlot):
 			return
 
 		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else self.tourn.lStrGroup
@@ -315,8 +318,8 @@ class CMatchBlot(CBlot): # tag = dayb
 			# elimination hint pref can turn them back on
 
 			if fDrawFormLabels:
-				strHome = self.match.strHome
-				strAway = self.match.strAway
+				strHome = self.match.strSeedHome
+				strAway = self.match.strSeedAway
 				dYFontForm = self.dayb.s_dYFontForm
 			elif (
 					self.page.pagea.fEliminationHints and
@@ -349,9 +352,12 @@ class CMatchBlot(CBlot): # tag = dayb
 				else:
 					strFontLabel = 'match.label'
 
+				strFormatLabel = self.page.StrTranslation('match.format.label')
+				strLabel = strFormatLabel.format(id=self.match.id)
+
 				rectLabel = self.rect.Copy(y=rectHomePens.yMax, dY=self.dayb.s_dYFontLabel + self.dayb.s_dYTimeGapMax)
 				oltbLabel = self.Oltb(rectLabel, self.page.Fontkey(strFontLabel), self.dayb.s_dYFontLabel)
-				oltbLabel.DrawText(self.match.strName, colorBlack, JH.Center)
+				oltbLabel.DrawText(strLabel, colorBlack, JH.Center)
 
 		else:
 
@@ -362,11 +368,11 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			rectHomeTeam = SRect(self.rect.x, yScore, dXTeam, self.dayb.s_dSScore)
 			oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('match.team.abbrev'), self.dayb.s_dSScore)
-			oltbHomeTeam.DrawText(self.match.strHome, colorBlack, JH.Center)
+			oltbHomeTeam.DrawText(self.match.strTeamHome, colorBlack, JH.Center)
 
 			rectAwayTeam = SRect(self.rect.xMax - dXTeam, yScore, dXTeam, self.dayb.s_dSScore)
 			oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('match.team.abbrev'), self.dayb.s_dSScore)
-			oltbAwayTeam.DrawText(self.match.strAway, colorBlack, JH.Center)
+			oltbAwayTeam.DrawText(self.match.strTeamAway, colorBlack, JH.Center)
 
 			# group name, subtly
 
@@ -415,7 +421,7 @@ class CDayBlot(CBlot): # tag = dayb
 
 		if iterMatch:
 			assert tDay is None
-			self.lMatch = sorted(iterMatch, key=lambda match: (match.tStart, match.strHome))
+			self.lMatch = sorted(iterMatch, key=lambda match: (match.tStart, match.strSeedHome))
 			self.tStart = self.lMatch[0].tStart
 		else:
 			assert tDay is not None
@@ -666,7 +672,7 @@ class CFinalBlot(CBlot): # tag = finalb
 		# form labels
 
 		if self.page.pagea.fMatchNumbers:
-			for xLineFormMin, strLabel in ((xLineFormLeftMin, self.match.strHome), (xLineFormRightMin, self.match.strAway)):
+			for xLineFormMin, strLabel in ((xLineFormLeftMin, self.match.strSeedHome), (xLineFormRightMin, self.match.strSeedAway)):
 				rectLabelForm = SRect(xLineFormMin, yLineForm + self.s_dYTextGap / 2, self.s_dXLineForm, self.s_dYFontForm)
 				oltbLabelForm = self.Oltb(rectLabelForm, self.page.Fontkey('final.form.label'), self.s_dYFontForm)
 				oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
@@ -1154,6 +1160,8 @@ class CCalendarBlot(CBlot): # tag = calb
 		if self.page.pagea.fMainBorders:
 			self.DrawBox(rectDays, CDayBlot.s_dSLineOuter, colorBlack)
 
+	def DrawHeading(self, pos: SPoint) -> None:
+
 		# heading
 
 		rectAll = SRect(x = pos.x, y = pos.y, dX = self.dX, dY = self.dY)
@@ -1334,7 +1342,7 @@ class CCalOnlyPage(CPage): # tag = calonlyp
 		lGroupbRight = [CGroupBlot(self, self.tourn.mpStrGroupGroup[strGroup]) for strGroup in self.tourn.lStrGroup[cGroupHalf:]]
 		gsetbRight = CGroupSetBlot(doc, lGroupbRight, cCol = 1)
 
-		calb = CCalendarBlot(self, self.tourn.setMatchGroup | self.tourn.setMatchElimination)
+		calb = CCalendarBlot(self, self.tourn.setMatchGroup | self.tourn.setMatchElimination | set([self.tourn.matchThird]))
 		finalb = CFinalBlot(self)
 
 		headerb = CHeaderBlot(self)
@@ -1436,6 +1444,7 @@ class CCalElimPage(CPage): # tag = calelimp
 		yCalendar = rectInside.y + dYGap
 
 		calb.Draw(SPoint(xCalendar, yCalendar))
+		calb.DrawHeading(SPoint(xCalendar, yCalendar))
 
 		xBracket = rectInside.x + (rectInside.dX - bracketb.dX) / 2
 		yBracket = yCalendar + calb.dY + dYGap
@@ -1514,10 +1523,11 @@ if True:
 	docaDefault = SDocumentArgs(
 		strDestDir = 'playground',
 		iterPagea = (
-			SPageArgs(CCalElimPage, fmt=(18, 27), fmtCrop=None),
+			SPageArgs(CCalOnlyPage, fmt=(18, 27), fmtCrop=None, strVariant = 'benjy orig', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
+			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
-			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
+			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
 		))
 
 	docaTests = SDocumentArgs(

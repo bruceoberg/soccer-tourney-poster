@@ -1,15 +1,11 @@
 ## now
 
-- print against 2018 data.
-	- get **ALL** text from spreadsheet.
-- more localization
-	- split non-tourney strings into their own db next to fonts.
-	- font choices in this non-tourney db.
+- take results from spreadsheet and print them instead of boxes/forms.
+- command line with argparse.
+- lists of pages from database (or ?).
 
 ## future
 
-- command line with argparse.
-- lists of pages from database (or ?).
 - layout engine
 	- move most `CBlot.__init__` stuff into `Layout`/`Draw` phases.
 	- remove `s_dY` and its ilk. everything resizable.
@@ -23,11 +19,9 @@
 			- `CCol` / `CRow`
 - monochrome
 - fix FPDF2 to generate embedded fonts that illustrator can recognize.
-- take results from spreadsheet and print them instead of boxes/forms.
 
 ## never
 
-- check boxes in group stats
 
 ## done
 
@@ -45,3 +39,8 @@
 - don't rely on excel tables, just use worksheets.
 - use babel for date time formats.
 - localized text from database.
+- get **ALL** text from spreadsheet.
+- more localization
+	- split non-tourney strings into their own db next to fonts.
+	- font choices in this non-tourney db.
+- print against 2018 data.

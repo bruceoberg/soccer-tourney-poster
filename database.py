@@ -28,13 +28,20 @@ class CDataBase: # tag = db
 		xlb: TExcelBook = {}
 		
 		for ws in wb.worksheets:
-			lStrKey: Optional[list[str]] = None
+			lStrKey: list[str] = []
+			lStrFill: list[str] = []
 			xls: TExcelSheet = []
 			for row in ws.rows:
+				lValRow = [cell.value for cell in row]
 				if not lStrKey:
-					lStrKey = [cell.value.lower() for cell in row]
+					while not lValRow[-1]:
+						del lValRow[-1]
+					assert all(lValRow), f'header row has an empty value: {lValRow}'
+					lStrKey = [val.lower() for val in lValRow]
+					assert lStrKey
+					lStrFill = [''] * len(lStrKey)
 				else:
-					lStrValue: list[str] = [cell.value for cell in row]
+					lStrValue: list[str] = ['' if val is None else str(val) for val in lValRow] + lStrFill
 					xlrow: TExcelRow = dict(zip(lStrKey, lStrValue))
 					xls.append(xlrow)
 			xlb[str(ws.title).lower()] = xls
@@ -97,11 +104,6 @@ class STAGE(IntEnum):
 	Third = auto()
 	Final = auto()
 
-class CTeam:
-	def __init__(self, xlrow: TExcelRow) -> None:
-		self.strSeed: str = xlrow['seed']
-		self.strTeam: str = xlrow['team']
-
 class SColors: # tag = colors
 	s_dSDarker = 0.5
 
@@ -114,10 +116,10 @@ class SColors: # tag = colors
 		self.colorLighter: SColor = ColorResaturate(self.color, rV=self.s_rVLighter, rS=self.s_rSLighter)
 
 class CGroup:
-	def __init__(self, loc: CLocalizationDataBase, strGroup: str, lTeam: list[CTeam]) -> None:
+	def __init__(self, loc: CLocalizationDataBase, strGroup: str, mpStrSeedStrTeam: dict[str, str]) -> None:
 		self.strName: str = strGroup
 		self.colors: SColors = SColors(loc.StrTranslation('colors.' + strGroup, 'en')) # BB (bruceo) delay this until necessary?
-		self.mpStrSeedTeam: dict[str, CTeam] = {team.strSeed:team for team in lTeam}
+		self.mpStrSeedStrTeam: dict[str, str] = {strSeed:strTeam for strSeed, strTeam in mpStrSeedStrTeam.items() if strSeed[0] == strGroup}
 
 class CMatch:
 	s_patAlphaNum = re.compile('([a-zA-Z]+)([0-9]+)')
@@ -127,12 +129,15 @@ class CMatch:
 		self.tourn = tourn
 		self.id = int(xlrow['match'])
 		self.venue: int = int(xlrow['venue'])
-		self.strHome: str = xlrow['home']
-		self.strAway: str = xlrow['away']
+		self.strSeedHome: str = xlrow['home-seed']
+		self.strSeedAway: str = xlrow['away-seed']
 		self.tStart: arrow.Arrow = arrow.get(xlrow['time'])
 
-		self.scoreHome: int = int(xlrow['home']) if xlrow['home-score'] else -1
-		self.scoreAway: int = int(xlrow['away']) if xlrow['away-score'] else -1
+		self.strTeamHome: str = xlrow['home-team'] if xlrow['home-team'] else tourn.mpStrSeedStrTeam.get(self.strSeedHome, '')
+		self.strTeamAway: str = xlrow['away-team'] if xlrow['away-team'] else tourn.mpStrSeedStrTeam.get(self.strSeedAway, '')
+
+		self.scoreHome: int = int(xlrow['home-score']) if xlrow['home-score'] else -1
+		self.scoreAway: int = int(xlrow['away-score']) if xlrow['away-score'] else -1
 
 		self.scoreHomeTiebreaker: int = int(xlrow['home-tiebreaker']) if xlrow['home-tiebreaker'] else -1
 		self.scoreAwayTiebreaker: int = int(xlrow['away-tiebreaker']) if xlrow['away-tiebreaker'] else -1
@@ -141,21 +146,19 @@ class CMatch:
 		self.lStrGroup: list[str] = []
 		self.lIdFeeders: list[int] = []
 
-		if matHome := self.s_patNumAlpha.match(self.strHome):
-			matAway = self.s_patNumAlpha.match(self.strAway)
+		if matHome := self.s_patNumAlpha.match(self.strSeedHome):
+			matAway = self.s_patNumAlpha.match(self.strSeedAway)
 			assert matAway
 			self.stage = STAGE.Round1
 			self.lStrGroup = [matHome[2], matAway[2]]
-		elif matHome := self.s_patAlphaNum.match(self.strHome):
-			matAway = self.s_patAlphaNum.match(self.strAway)
+		elif matHome := self.s_patAlphaNum.match(self.strSeedHome):
+			matAway = self.s_patAlphaNum.match(self.strSeedAway)
 			assert matAway
 			assert matHome[1] == matAway[1]
 			
 			if matHome[1] in tourn.setStrGroup:
 				self.stage = STAGE.Group
 				self.lStrGroup = [matHome[1]]
-				self.strHome = tourn.mpStrSeedTeam[self.strHome].strTeam
-				self.strAway = tourn.mpStrSeedTeam[self.strAway].strTeam
 			elif matHome[1] == 'RU' or matHome[1] == 'L':
 				self.stage = STAGE.Third
 				self.lIdFeeders = [int(matHome[2]), int(matAway[2])]
@@ -215,7 +218,7 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		
 		# both MpStrGroupGroup() and CMatch.__init__() depend on self.mpStrSeedTeam existing
 
-		self.mpStrSeedTeam: dict[str, CTeam] = {xlrow['seed']:CTeam(xlrow) for xlrow in xlb['seeds']}
+		self.mpStrSeedStrTeam: dict[str, str] = {xlrow['seed']:xlrow['team'] for xlrow in xlb['seeds']}
 
 		self.mpStrGroupGroup: dict[str, CGroup] = self.MpStrGroupGroup()
 		self.lStrGroup: list[str] = sorted(self.mpStrGroupGroup.keys())
@@ -250,13 +253,12 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		""" build list of groups from team seedings. """
 		mpStrGroupGroup: dict[str, CGroup] = {}
 
-		setStrGroup: set[str] = {strSeed[:1] for strSeed in self.mpStrSeedTeam}
+		setStrGroup: set[str] = {strSeed[:1] for strSeed in self.mpStrSeedStrTeam}
 		assert len(setStrGroup) <= 16
 		assert 'ABCDEFGHIJKLMNOP'[:len(setStrGroup)] == ''.join(sorted(setStrGroup))
 
 		for strGroup in setStrGroup:
-			lTeam: list[CTeam] = [team for strSeed, team in self.mpStrSeedTeam.items() if strSeed[0] == strGroup]
-			mpStrGroupGroup[strGroup] = CGroup(self, strGroup, lTeam)
+			mpStrGroupGroup[strGroup] = CGroup(self.loc, strGroup, self.mpStrSeedStrTeam)
 
 		return mpStrGroupGroup
 
