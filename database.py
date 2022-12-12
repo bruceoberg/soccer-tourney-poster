@@ -223,6 +223,7 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		self.mpStrGroupGroup: dict[str, CGroup] = self.MpStrGroupGroup()
 		self.lStrGroup: list[str] = sorted(self.mpStrGroupGroup.keys())
 		self.setStrGroup: set[str] = set(self.lStrGroup)
+		self.mpStrTeamGroup: dict[str, CGroup] = {strTeam:group for group in self.mpStrGroupGroup.values() for strTeam in group.mpStrSeedStrTeam.values()}
 
 		self.mpIdMatch: dict[int, CMatch] = {int(xlrow['match']):CMatch(self, xlrow) for xlrow in xlb['matches']}
 

@@ -1,6 +1,7 @@
 ## now
 
-- take results from spreadsheet and print them instead of boxes/forms.
+- present known group stage points and goals.
+- full team names for third place?
 - command line with argparse.
 - lists of pages from database (or ?).
 
@@ -44,3 +45,4 @@
 	- split non-tourney strings into their own db next to fonts.
 	- font choices in this non-tourney db.
 - print against 2018 data.
+- take results from spreadsheet and print them instead of boxes/forms.

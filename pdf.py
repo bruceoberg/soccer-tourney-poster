@@ -277,6 +277,11 @@ def FHasAnyRtl(strText: str) -> bool:
 
 	return False
 
+@dataclass
+class SHaloArgs: # tag = haloa
+	color: SColor
+	uPtLine: float # factor of point size for halo line
+
 class COneLineTextBox: # tag = oltb
 	"""a box with a single line of text in a particular font, sized to fit the box"""
 	
@@ -292,7 +297,7 @@ class COneLineTextBox: # tag = oltb
 		self.dSMargin = dSMargin or max(0.0, (self.rect.dY - self.dYCap) / 2.0)
 		self.rectMargin = self.rect.Copy().Inset(self.dSMargin)
 
-	def RectDrawText(self, strText: str, color: SColor, jh : JH = JH.Left, jv: JV = JV.Middle, fShrinkToFit: bool = False) -> SRect:
+	def RectDrawText(self, strText: str, color: SColor, jh : JH = JH.Left, jv: JV = JV.Middle, fShrinkToFit: bool = False, haloa: Optional[SHaloArgs] = None) -> SRect:
 		if FHasAnyRtl(strText):
 			strText = arabic_reshaper.reshape(strText)
 			strText = bidi.algorithm.get_display(strText, base_dir='R')
@@ -330,6 +335,12 @@ class COneLineTextBox: # tag = oltb
 		else:
 			assert jv == JV.Top
 			rectText.y = self.rectMargin.y + rectText.dY
+
+		if haloa:
+			dSLine = self.fonti.dPtFont * haloa.uPtLine
+			with self.pdf.local_context(text_mode="STROKE", line_width=dSLine):
+				self.pdf.set_draw_color(haloa.color.r, haloa.color.g, haloa.color.b)
+				self.pdf.text(rectText.x, rectText.y, strText)
 
 		self.pdf.set_text_color(color.r, color.g, color.b)
 		self.pdf.text(rectText.x, rectText.y, strText)
