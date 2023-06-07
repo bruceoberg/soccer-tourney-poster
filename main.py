@@ -22,7 +22,7 @@ from pdf import *
 g_pathHere = Path(__file__).parent
 g_pathLocalization = g_pathHere / 'fonts' / 'localization.xlsx'
 g_loc = CLocalizationDataBase(g_pathLocalization)
-g_pathTourn = g_pathHere / 'tournaments' / '2018-mens-world-cup.xlsx'
+g_pathTourn = g_pathHere / 'tournaments' / '2023-womens-world-cup.xlsx'
 g_tourn = CTournamentDataBase(g_pathTourn, g_loc)
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
@@ -768,7 +768,7 @@ class SPageArgs: # tag - pagea
 	fGroupHints: bool = False
 	fEliminationHints: bool = True
 	fGroupDots: bool = True
-	fResults: bool = True
+	fResults: bool = False
 
 def StrPatternDateMMMMEEEEd(locale: Locale) -> str:
 	# CLDR does not provide a skeleton for 'MMMMEEEEd' (for getting 'Sunday, November 1' in any language).
@@ -1593,7 +1593,7 @@ if True:
 	docaDefault = SDocumentArgs(
 		strDestDir = 'playground',
 		iterPagea = (
-			SPageArgs(CCalOnlyPage, fmt=(18, 27), fmtCrop=None, strVariant = 'benjy orig', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
+			# SPageArgs(CCalOnlyPage, fmt=(18, 27), fmtCrop=None, strVariant = 'benjy orig', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
 			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
