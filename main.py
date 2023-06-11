@@ -45,7 +45,6 @@ class CGroupBlot(CBlot): # tag = groupb
 		self.doc = self.page.doc
 		self.pdf = self.doc.pdf
 		self.tourn = self.doc.tourn
-		self.strTz = page.strTz
 
 		super().__init__(self.pdf)
 
@@ -444,7 +443,6 @@ class CDayBlot(CBlot): # tag = dayb
 		self.doc = self.page.doc
 		self.pdf = self.doc.pdf
 		self.tourn = self.doc.tourn
-		self.strTz = page.strTz
 
 		super().__init__(self.pdf)
 
@@ -543,7 +541,6 @@ class CElimBlot(CDayBlot): # tag = elimb
 		self.doc = page.doc
 		self.pdf = page.doc.pdf
 		self.tourn = page.doc.tourn
-		self.strTz = page.strTz
 
 		super().__init__(page, set([match]))
 
@@ -818,6 +815,7 @@ class CPage:
 		self.fmt = self.pagea.fmt
 		self.fmtCrop = self.pagea.fmtCrop
 		self.strTz = self.pagea.strTz
+		self.tzinfo = tz.gettz(self.strTz)
 		self.strLocale = self.pagea.strLocale
 		self.locale = Locale.parse(self.strLocale)
 		self.strDateMMMMEEEEd = StrPatternDateMMMMEEEEd(self.locale)
@@ -887,7 +885,7 @@ class CPage:
 		return babel.dates.format_date(tDate.datetime, format=self.strDateMMMMEEEEd, locale=self.locale)
 
 	def StrTimeDayRelative(self, tTime: arrow.Arrow) -> str:
-		tTimeTz = tTime.to(tz.gettz(self.strTz))
+		tTimeTz = tTime.to(self.tzinfo)
 		strTime = babel.dates.format_time(tTimeTz.time(), 'short', locale=self.locale)
 		
 		if tTime.day != tTimeTz.day:
@@ -1052,7 +1050,7 @@ class CHeaderBlot(CBlot): # tag = headerb
 
 		# time zone
 
-		tTz = tMin.to(tz.gettz(self.page.strTz))
+		tTz = tMin.to(self.page.tzinfo)
 		strTz = tTz.format('ZZZ', locale=self.page.strLocale)
 		if strTz.startswith('+'):
 			strTz = f'UTC{strTz}'
