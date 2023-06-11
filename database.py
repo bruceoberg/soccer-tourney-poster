@@ -231,7 +231,6 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 
 		self.mpStrKeyStrLocaleStrText: dict[str, dict[str, str]] = {(self.s_strKeyTournPrefix + '.' + xlrow['key']).lower():xlrow for xlrow in xlb['tournament']}
 
-		self.mpDateSetMatch: dict[datetime.date, set[CMatch]] = self.MpDateSetMatch()
 		self.mpStageSetMatch: dict[STAGE, set[CMatch]] = self.MpStageSetMatch()
 
 		setMatchFinal = self.mpStageSetMatch[STAGE.Final]
@@ -262,16 +261,6 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 			mpStrGroupGroup[strGroup] = CGroup(self.loc, strGroup, self.mpStrSeedStrTeam)
 
 		return mpStrGroupGroup
-
-	def MpDateSetMatch(self) -> dict[datetime.date, set[CMatch]]:
-		""" map dates to matches. """
-
-		mpDateSetMatch: dict[datetime.date, set[CMatch]] = {}
-
-		for match in self.mpIdMatch.values():
-			mpDateSetMatch.setdefault(match.tStart.date(), set()).add(match)
-
-		return mpDateSetMatch
 
 	def MpStageSetMatch(self) -> dict[STAGE, set[CMatch]]:
 		""" allot matches to stages. """

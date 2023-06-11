@@ -438,25 +438,23 @@ class CDayBlot(CBlot): # tag = dayb
 
 	s_dYFontLabel = s_dYFontTime * 1.3
 
-	def __init__(self, page: CPage, iterMatch: Optional[Iterable[CMatch]] = None, tDay: Optional[arrow.Arrow] = None) -> None:
+	def __init__(self, page: CPage, tDay: arrow.Arrow, iterMatch: Optional[Iterable[CMatch]] = None) -> None:
 		self.page = page
 		self.doc = self.page.doc
 		self.pdf = self.doc.pdf
 		self.tourn = self.doc.tourn
 
+		self.tDay = tDay
+
 		super().__init__(self.pdf)
 
 		if iterMatch:
-			assert tDay is None
 			self.lMatch = sorted(iterMatch, key=lambda match: (match.tStart, match.strSeedHome))
-			self.tStart = self.lMatch[0].tStart
-		else:
-			assert tDay is not None
-			self.lMatch = []
-			self.tStart = tDay
 
-		for match in self.lMatch[1:]:
-			assert self.tStart.date() == match.tStart.date()
+			for match in self.lMatch:
+				assert self.tDay.date() == self.page.DateDisplay(match.tStart)
+		else:
+			self.lMatch = []
 
 		self.dYTime = CFontInstance(self.pdf, self.page.Fontkey('match.time'), self.s_dYFontTime).dYCap
 
@@ -467,7 +465,7 @@ class CDayBlot(CBlot): # tag = dayb
 
 		# Date
 
-		strDate = self.page.StrDateForCalendar(self.tStart, tPrev)
+		strDate = self.page.StrDateForCalendar(self.tDay, tPrev)
 		rectDate = rectInside.Copy(dY=self.s_dYDate)
 		oltbDate = self.Oltb(rectDate, self.page.Fontkey('day.date'), rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack, self.page.JhStart())
@@ -542,7 +540,7 @@ class CElimBlot(CDayBlot): # tag = elimb
 		self.pdf = page.doc.pdf
 		self.tourn = page.doc.tourn
 
-		super().__init__(page, set([match]))
+		super().__init__(page, arrow.get(self.page.DateDisplay(match.tStart)), set([match]))
 
 		self.stage = match.stage
 		assert len(self.lMatch) == 1
@@ -570,7 +568,7 @@ class CElimBlot(CDayBlot): # tag = elimb
 
 		# Date
 
-		strDate = self.page.StrDateForElimination(self.tStart)
+		strDate = self.page.StrDateForElimination(self.tDay)
 		rectDate = rectAll.Copy(dY = self.s_dYDate).Shift(dY = (matchb.dYOuterGap - self.s_dYDate) / 2)
 		oltbDate = self.Oltb(rectDate, self.page.Fontkey('elim.date'), rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack, JH.Center)
@@ -820,6 +818,8 @@ class CPage:
 		self.locale = Locale.parse(self.strLocale)
 		self.strDateMMMMEEEEd = StrPatternDateMMMMEEEEd(self.locale)
 
+		self.mpDateSetMatch: dict[datetime.date, set[CMatch]] = self.MpDateSetMatch()
+
 		self.pdf.add_page(orientation=self.strOrientation, format=self.fmt)
 		self.rect = SRect(0, 0, self.pdf.w, self.pdf.h)
 
@@ -883,6 +883,20 @@ class CPage:
 
 	def StrDateForFinal(self, tDate: arrow.Arrow) -> str:
 		return babel.dates.format_date(tDate.datetime, format=self.strDateMMMMEEEEd, locale=self.locale)
+	
+	def DateDisplay(self, tTime: arrow.Arrow) -> datetime.date:
+		# for timezones behind the UTC start time, return the date in that timezone.
+		# for those ahead, return the UTC date, and StrTimeDayRelative() will display a weirdo 48hr time.
+		# BB (bruceo) may need to do this on a per-locale basis. japan knows about 48hr times, but do others?
+
+		tTimeTz = tTime.to(self.tzinfo)
+
+		if tTime.day != tTimeTz.day:
+			dSec = tTimeTz.utcoffset().total_seconds()
+			if dSec < 0:
+				return tTimeTz.date()
+			
+		return tTime.date()
 
 	def StrTimeDayRelative(self, tTime: arrow.Arrow) -> str:
 		tTimeTz = tTime.to(self.tzinfo)
@@ -904,12 +918,25 @@ class CPage:
 			else:
 				# NOTE (bruceo) japan (and others?) use 48 hour times for events on the "next day" in japan.
 				dSec = tTimeTz.utcoffset().total_seconds()
-				assert dSec > 0
-				strHour, strRest = strTime.split(':', 1)
-				hourNew = int(strHour) + 24
-				strTime = f'{hourNew}:{strRest}'
+				if dSec > 0:
+					strHour, strRest = strTime.split(':', 1)
+					hourNew = int(strHour) + 24
+					strTime = f'{hourNew}:{strRest}'
+				else:
+					# DateDisplay should ensure match is in correct calendar spot, so we can use strTime as is
+					pass
 
 		return strTime.lower().replace(' ', '') # hack to get very narrow times. prob violates CLDR.
+
+	def MpDateSetMatch(self) -> dict[datetime.date, set[CMatch]]:
+		""" map dates to matches. """
+
+		mpDateSetMatch: dict[datetime.date, set[CMatch]] = {}
+
+		for match in self.tourn.mpIdMatch.values():
+			mpDateSetMatch.setdefault(self.DateDisplay(match.tStart), set()).add(match)
+
+		return mpDateSetMatch
 
 
 	def DrawCropLines(self) -> None:
@@ -964,9 +991,9 @@ class CDaysTestPage(CPage): # gtp
 
 		# lIdMatch = (49,57)
 		# setDate: set[datetime.date] = {doc.tourn.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
-		setDate: set[datetime.date] = set(doc.tourn.mpDateSetMatch.keys())
+		setDate: set[datetime.date] = set(self.mpDateSetMatch.keys())
 
-		lDayb: list[CDayBlot] = [CDayBlot(self, self.tourn.mpDateSetMatch[date]) for date in sorted(setDate)]
+		lDayb: list[CDayBlot] = [CDayBlot(self, arrow.get(date), self.mpDateSetMatch.get(date)) for date in sorted(setDate)]
 
 		for row in range(4):
 			for col in range(7):
@@ -1041,8 +1068,8 @@ class CHeaderBlot(CBlot): # tag = headerb
 
 		# dates
 
-		tMin = arrow.get(min(self.doc.tourn.mpDateSetMatch))
-		tMax = arrow.get(max(self.doc.tourn.mpDateSetMatch))
+		tMin = arrow.get(min(self.page.mpDateSetMatch))
+		tMax = arrow.get(max(self.page.mpDateSetMatch))
 		strDateRange = self.page.StrDateRangeForHeader(tMin, tMax)
 		strLocation = self.page.StrTranslation('tournament.location')
 		strFormatDates = self.page.StrTranslation('page.format.dates-and-location')
@@ -1175,12 +1202,9 @@ class CCalendarBlot(CBlot): # tag = calb
 		self.lTuDPosDayb: list[tuple[SPoint, CDayBlot]] = []
 
 		for iDay, tDay in enumerate(arrow.Arrow.range('day', arrow.get(dateMin), arrow.get(dateMax))):
-			setMatchDate = self.tourn.mpDateSetMatch.get(tDay.date(), set()).intersection(setMatch)
+			setMatchDate = self.page.mpDateSetMatch.get(tDay.date(), set()).intersection(setMatch)
 
-			if setMatchDate:
-				dayb = CDayBlot(self.page, iterMatch = setMatchDate)
-			else:
-				dayb = CDayBlot(self.page, tDay = tDay)
+			dayb = CDayBlot(self.page, tDay, iterMatch = setMatchDate)
 
 			iWeekday = iDay % 7
 			iWeek = iDay // 7
@@ -1221,7 +1245,7 @@ class CCalendarBlot(CBlot): # tag = calb
 
 			dayb.Draw(posDayb, tPrev)
 
-			tPrev = dayb.tStart
+			tPrev = dayb.tDay
 
 		# border
 
