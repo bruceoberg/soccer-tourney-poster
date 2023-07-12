@@ -1,3 +1,8 @@
+# 'annotations' allow typing hints to forward reference.
+#	e.g. Fn(fwd: CFwd) instead of Fn(fwd: 'CFwd')
+#	when CFwd is later in file.
+from __future__ import annotations
+
 import arrow
 import copy
 import datetime
@@ -116,16 +121,16 @@ class SColors: # tag = colors
 		self.colorLighter: SColor = ColorResaturate(self.color, rV=self.s_rVLighter, rS=self.s_rSLighter)
 
 class CGroup:
-	def __init__(self, loc: CLocalizationDataBase, strGroup: str, mpStrSeedStrTeam: dict[str, str]) -> None:
+	def __init__(self, tourn: CTournamentDataBase, strGroup: str, mpStrSeedStrTeam: dict[str, str]) -> None:
 		self.strName: str = strGroup
-		self.colors: SColors = SColors(loc.StrTranslation('colors.' + strGroup, 'en')) # BB (bruceo) delay this until necessary?
+		self.colors: SColors = SColors(tourn.StrTranslation('colors.' + strGroup, 'en')) # BB (bruceo) delay this until necessary?
 		self.mpStrSeedStrTeam: dict[str, str] = {strSeed:strTeam for strSeed, strTeam in mpStrSeedStrTeam.items() if strSeed[0] == strGroup}
 
 class CMatch:
 	s_patAlphaNum = re.compile('([a-zA-Z]+)([0-9]+)')
 	s_patNumAlpha = re.compile('([0-9]+)([a-zA-Z]+)')
 
-	def __init__(self, tourn: 'CTournamentDataBase', xlrow: TExcelRow) -> None:
+	def __init__(self, tourn: CTournamentDataBase, xlrow: TExcelRow) -> None:
 		self.tourn = tourn
 		self.id = int(xlrow['match'])
 		self.venue: int = int(xlrow['venue'])
@@ -205,17 +210,23 @@ class CMatch:
 
 class CTournamentDataBase(CDataBase): # tag = tourn
 
-	s_strKeyTournPrefix = 'tournament'
+	s_lStrKeyLocPrefix = ('tournament', 'colors')
 
 	def __init__(self, pathFile: Path, loc: CLocalizationDataBase) -> None:
 
 		super().__init__(pathFile)
 
 		self.loc = loc
-		assert self.s_strKeyTournPrefix not in loc.mpStrSectionSetStrSubkey
 
 		xlb: TExcelBook = self.XlbLoad()
 		
+		# translations come from both the tranlsations table (mostly unchanging) and the tournament table (new per contest)
+
+		for strKeyLocPrefix in self.s_lStrKeyLocPrefix:
+			assert strKeyLocPrefix not in loc.mpStrSectionSetStrSubkey
+			for xlrow in xlb[strKeyLocPrefix]:
+				self.mpStrKeyStrLocaleStrText[(strKeyLocPrefix + '.' + xlrow['key']).lower()] = xlrow
+
 		# both MpStrGroupGroup() and CMatch.__init__() depend on self.mpStrSeedTeam existing
 
 		self.mpStrSeedStrTeam: dict[str, str] = {xlrow['seed']:xlrow['team'] for xlrow in xlb['seeds']}
@@ -226,10 +237,6 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		self.mpStrTeamGroup: dict[str, CGroup] = {strTeam:group for group in self.mpStrGroupGroup.values() for strTeam in group.mpStrSeedStrTeam.values()}
 
 		self.mpIdMatch: dict[int, CMatch] = {int(xlrow['match']):CMatch(self, xlrow) for xlrow in xlb['matches']}
-
-		# translations come from both the tranlsations table (mostly unchanging) and the tournament table (new per contest)
-
-		self.mpStrKeyStrLocaleStrText: dict[str, dict[str, str]] = {(self.s_strKeyTournPrefix + '.' + xlrow['key']).lower():xlrow for xlrow in xlb['tournament']}
 
 		self.mpStageSetMatch: dict[STAGE, set[CMatch]] = self.MpStageSetMatch()
 
@@ -258,7 +265,7 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		assert 'ABCDEFGHIJKLMNOP'[:len(setStrGroup)] == ''.join(sorted(setStrGroup))
 
 		for strGroup in setStrGroup:
-			mpStrGroupGroup[strGroup] = CGroup(self.loc, strGroup, self.mpStrSeedStrTeam)
+			mpStrGroupGroup[strGroup] = CGroup(self, strGroup, self.mpStrSeedStrTeam)
 
 		return mpStrGroupGroup
 
@@ -334,9 +341,10 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		return {self.mpIdMatch[id] for id in setIdFeeding}
 
 	def StrTranslation(self, strKey: str, strLocale: str) -> str:
-		if strKey.startswith(self.s_strKeyTournPrefix + '.'):
-			assert strKey not in self.loc.mpStrKeyStrLocaleStrText
-			return super().StrTranslation(strKey, strLocale)
+		for strKeyLocPrefix in self.s_lStrKeyLocPrefix:
+			if strKey.startswith(strKeyLocPrefix + '.'):
+				assert strKey not in self.loc.mpStrKeyStrLocaleStrText
+				return super().StrTranslation(strKey, strLocale)
 
 		return self.loc.StrTranslation(strKey, strLocale)
 

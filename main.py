@@ -1078,7 +1078,12 @@ class CHeaderBlot(CBlot): # tag = headerb
 		# time zone
 
 		tTz = tMin.to(self.page.tzinfo)
-		strTz = tTz.format('ZZZ', locale=self.page.strLocale)
+		
+		if self.page.pagea.strTz == 'Asia/Tehran':
+			strTz = 'IRST'	# thanks arrow for not supporting iran
+		else:
+			strTz = tTz.format('ZZZ', self.page.strLocale)
+
 		if strTz.startswith('+'):
 			strTz = f'UTC{strTz}'
 		else:
@@ -1087,6 +1092,10 @@ class CHeaderBlot(CBlot): # tag = headerb
 				if (cSec % (60*60)) == 0:
 					cHour = cSec // (60*60)
 					strTz += f' (UTC{cHour:+d})'
+				else:
+					cHour = cSec // (60*60)
+					cMin = (cSec % (60*60)) // 60
+					strTz += f' (UTC{cHour:+d}:{cMin:02d})'
 
 		strLabelTimeZone = self.page.StrTranslation('page.timezone.label')
 		strFormatTimeZone = self.page.StrTranslation('page.format.timezone')
@@ -1616,10 +1625,10 @@ if True:
 		strDestDir = 'playground',
 		iterPagea = (
 			# SPageArgs(CCalOnlyPage, fmt=(18, 27), fmtCrop=None, strVariant = 'benjy orig', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
-			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None),
+			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
-			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
+			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
 		))
 
 	docaTests = SDocumentArgs(
@@ -1639,35 +1648,54 @@ if True:
 			SPageArgs(CCalElimPage, fmt=(18, 27), fmtCrop=None, strVariant = 'gold master'),
 		))
 
-	docaZones = SDocumentArgs(
-		strDestDir = 'playground',
-		strFileSuffix = 'zones',
+	docaRelease = SDocumentArgs(
+		strDestDir = str(Path('releases') / g_pathTourn.stem),
+		strFileSuffix = 'all',
 		iterPagea = (
+			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None),
 			SPageArgs(CCalElimPage, strTz='US/Pacific'),
 			SPageArgs(CCalElimPage, strTz='US/Mountain'),
 			SPageArgs(CCalElimPage, strTz='US/Central'),
 			SPageArgs(CCalElimPage, strTz='US/Eastern'),
-			SPageArgs(CCalElimPage, strTz='Europe/London', fmt='a1'),
-			SPageArgs(CCalElimPage, strTz='Europe/Amsterdam', fmt='a1'),
-			SPageArgs(CCalElimPage, strTz='Asia/Tokyo', fmt='a1'),
+			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Europe/London'),
+			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Europe/Paris', strLocale='fr'),
+			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Europe/Rome', strLocale='it'),
+			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Europe/Berlin', strLocale='de'),
+			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Europe/Madrid', strLocale='es'),
+			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Europe/Amsterdam', strLocale='nl'),
+			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Asia/Tehran', strLocale='fa'),
+			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Asia/Tokyo', strLocale='ja'),
 		))
 
-	lDocaZones: list[SDocumentArgs] = []
+	lDocaRelease: list[SDocumentArgs] = []
 
-	for pagea in docaZones.iterPagea:
-		tTz = arrow.utcnow().to(tz.gettz(pagea.strTz))
-		strTz = tTz.format('ZZZ') # GMT, PST, etc
+	for pagea in docaRelease.iterPagea:
+		
+		if pagea.fmt == (20, 27) and pagea.fmtCrop == None:	# BB (bruceo) somehow glean this from the pagea more explicitly
+			lStrFileSuffix = []
+		else:
+			lStrFileSuffix = [Locale.parse(pagea.strLocale).language.lower()]
 
-		lDocaZones.append(SDocumentArgs(strDestDir = 'playground', strFileSuffix = strTz.lower(), iterPagea=(pagea,)))
+			if pagea.strTz == 'Asia/Tehran':
+				lStrFileSuffix.append('irst')	# thanks arrow for not supporting iran
+			else:
+				tTz = arrow.utcnow().to(tz.gettz(pagea.strTz))
+				strTz = tTz.format('ZZZ') # GMT, PST, etc
+				lStrFileSuffix.append(strTz.lower())
+
+
+		strFileSuffix = '-'.join(lStrFileSuffix)
+
+		lDocaRelease.append(SDocumentArgs(strDestDir = docaRelease.strDestDir, strFileSuffix = strFileSuffix, iterPagea=(pagea,)))
 
 	llDocaTodo = [
 		[
-			docaDefault,
+			# docaDefault,
 			# docaTests,
 			# docaDesigns,
-			# docaZones,
+			docaRelease,
 		],
-		# lDocaZones,
+		lDocaRelease,
 	]
 
 	for lDoca in llDocaTodo:
