@@ -864,7 +864,9 @@ class CPage:
 			strDateFmt = 'yMMM' # multi year: month + year to month + year
 		else:
 			strDateFmt = 'MMMd' # single year: month + day to month + day
-		return babel.dates.format_interval(tMin.datetime, tMax.datetime, strDateFmt, locale=self.locale)
+		strDateRange = babel.dates.format_interval(tMin.datetime, tMax.datetime, strDateFmt, locale=self.locale)
+		strDateRange = strDateRange.translate({ord(ch):' ' for ch in '\u00a0\u2009\u202f'}) # our fonts don't have these weirdo spaces
+		return strDateRange
 
 	def StrDateForCalendar(self, tDate: arrow.Arrow, tPrev: Optional[arrow.Arrow] = None) -> str:
 		# NOTE (bruceo) only include month sometimes when it is changing
@@ -926,7 +928,12 @@ class CPage:
 					# DateDisplay should ensure match is in correct calendar spot, so we can use strTime as is
 					pass
 
-		return strTime.lower().replace(' ', '') # hack to get very narrow times. prob violates CLDR.
+		# hacks that probably violate the CLDR
+
+		strTime = strTime.lower()
+		strTime = strTime.translate({ord(ch):'' for ch in ' \u00a0\u2009\u202f'}) # remove spaces for very narrow times, please
+
+		return strTime
 
 	def MpDateSetMatch(self) -> dict[datetime.date, set[CMatch]]:
 		""" map dates to matches. """
@@ -1356,7 +1363,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 			tuTuColSetMatchCol = ((colLeft, setMatchLeft), (self.cCol-(1+colLeft), setMatchRight))
 			for col, setMatchCol in tuTuColSetMatchCol:
 				x = mpColX[col]
-				for row, matchCol in enumerate(sorted(setMatchCol, key=lambda match: match.id)):
+				for row, matchCol in enumerate(sorted(setMatchCol, key=lambda match: match.tuIdFed)):
 					y = mpStageRowY[(stage, row)]
 					elimb = CElimBlot(self.page, matchCol)
 					self.lTuXYElimb.append((x, y, elimb))
@@ -1625,10 +1632,10 @@ if True:
 		strDestDir = 'playground',
 		iterPagea = (
 			# SPageArgs(CCalOnlyPage, fmt=(18, 27), fmtCrop=None, strVariant = 'benjy orig', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
-			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None),
+			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
-			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
+			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
 		))
 
 	docaTests = SDocumentArgs(
@@ -1649,7 +1656,7 @@ if True:
 		))
 
 	docaRelease = SDocumentArgs(
-		strDestDir = str(Path('releases') / g_pathTourn.stem),
+		strDestDir = str(Path('releases') / (g_pathTourn.stem + '-patch1' )),
 		strFileSuffix = 'all',
 		iterPagea = (
 			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None),
@@ -1690,7 +1697,7 @@ if True:
 
 	llDocaTodo = [
 		[
-			# docaDefault,
+			docaDefault,
 			# docaTests,
 			# docaDesigns,
 			docaRelease,

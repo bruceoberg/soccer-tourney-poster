@@ -150,6 +150,13 @@ class CMatch:
 		self.stage: Optional[STAGE] = None
 		self.lStrGroup: list[str] = []
 		self.lIdFeeders: list[int] = []
+		self.idFeeding: Optional[int] = None
+
+		# this tuple is for sorting the columns of the elimination bracket.
+		# as such, it starts with the most distant fed match (the final) and then
+		# ids matches closer to this match, ending with the match's own id.
+
+		self.tuIdFed: tuple[int] = ()
 
 		if matHome := self.s_patNumAlpha.match(self.strSeedHome):
 			matAway = self.s_patNumAlpha.match(self.strSeedAway)
@@ -174,6 +181,29 @@ class CMatch:
 				self.lIdFeeders = [int(matHome[2]), int(matAway[2])]
 		else:
 			assert False
+
+	def LinkFeeders(self, mpIdMatch: dict[int, 'CMatch']) -> None:
+
+		# both the final and thiurd place match are fed by the semis.
+		# we use idFeeding for sorting the bracket, so it's ok to ign ore the third place match
+		if self.stage == STAGE.Third:
+			return
+		
+		for idFeeder in self.lIdFeeders:
+			matchFeeder = mpIdMatch[idFeeder]
+			assert matchFeeder.idFeeding is None
+			matchFeeder.idFeeding = self.id
+
+	def BuildTuIdFed(self, mpIdMatch: dict[int, 'CMatch']) -> None:
+	
+		lIdFeeding: list[int] = []
+		matchFeeding: Optional[CMatch] = self
+
+		while matchFeeding:
+			lIdFeeding.append(matchFeeding.id)
+			matchFeeding = mpIdMatch.get(matchFeeding.idFeeding)
+
+		self.tuIdFed = tuple(reversed(lIdFeeding))
 
 	def FTrySetStage(self, mpIdMatch: dict[int, 'CMatch'], stagePrev: STAGE, stage: STAGE):
 		assert self.stage is None
@@ -237,6 +267,12 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		self.mpStrTeamGroup: dict[str, CGroup] = {strTeam:group for group in self.mpStrGroupGroup.values() for strTeam in group.mpStrSeedStrTeam.values()}
 
 		self.mpIdMatch: dict[int, CMatch] = {int(xlrow['match']):CMatch(self, xlrow) for xlrow in xlb['matches']}
+
+		for match in self.mpIdMatch.values():
+			match.LinkFeeders(self.mpIdMatch)
+
+		for match in self.mpIdMatch.values():
+			match.BuildTuIdFed(self.mpIdMatch)
 
 		self.mpStageSetMatch: dict[STAGE, set[CMatch]] = self.MpStageSetMatch()
 
