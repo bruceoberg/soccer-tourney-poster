@@ -123,7 +123,12 @@ class CFontInstance:
 
 		font = pdf.fonts[self.fontkey.Str()]
 
-		self.dYCap = font['desc']['CapHeight'] * self.dYFont / 1000.0
+		desc = font['desc']
+		try:
+			dYCapRaw = desc['CapHeight']
+		except TypeError:
+			dYCapRaw = desc.cap_height
+		self.dYCap = dYCapRaw * self.dYFont / 1000.0
 
 @dataclass
 class SColor: # tag = color

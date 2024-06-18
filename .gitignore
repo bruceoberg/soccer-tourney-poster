@@ -2,3 +2,5 @@
 __pycache__/*.pyc
 playground/
 ~*.*
+# ** means any directory in the tree
+**/.DS_Store
