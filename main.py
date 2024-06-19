@@ -22,7 +22,7 @@ from pdf import *
 g_pathHere = Path(__file__).parent
 g_pathLocalization = g_pathHere / 'fonts' / 'localization.xlsx'
 g_loc = CLocalizationDataBase(g_pathLocalization)
-g_pathTourn = g_pathHere / 'tournaments' / '2023-womens-world-cup.xlsx'
+g_pathTourn = g_pathHere / 'tournaments' / '2024-mens-euro.xlsx'
 g_tourn = CTournamentDataBase(g_pathTourn, g_loc)
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
@@ -228,13 +228,19 @@ class CMatchBlot(CBlot): # tag = dayb
 		if self.match.stage == STAGE.Group:
 			assert len(lColor) == 1
 			lRc.append(SRectColor(self.rect, lColor[0]))
-		elif self.match.stage == STAGE.Round1:
-			assert len(lColor) == 2
+		elif self.match.stage == STAGE.Round16:
 			rectLeft = self.rect.Copy(dX=self.rect.dX / 2.0)
 			lRc.append(SRectColor(rectLeft, lColor[0]))
-
 			rectRight = rectLeft.Copy().Shift(dX=rectLeft.dX)
-			lRc.append(SRectColor(rectRight, lColor[1]))
+
+			if len(lColor) == 2:
+				lRc.append(SRectColor(rectRight, lColor[1]))
+			else:
+				assert len(lColor) > 2
+				rectStripe = rectRight.Copy(dX=rectRight.dX / (len(lColor) - 1))
+				for color in lColor[1:]:
+					lRc.append(SRectColor(rectStripe, color))
+					rectStripe = rectStripe.Copy().Shift(dX=rectStripe.dX)
 		else:
 			rectStripe = self.rect.Copy(dX=self.rect.dX / len(lColor))
 			for color in lColor:
@@ -332,7 +338,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			# round 1 gets them otherwise honor pref
 
-			fDrawFormLabels = self.page.pagea.fMatchNumbers or self.match.stage == STAGE.Round1
+			fDrawFormLabels = self.page.pagea.fMatchNumbers or self.match.stage == STAGE.Round16
 
 			# elimination hint pref can turn them back on
 
@@ -343,7 +349,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			elif (
 					self.page.pagea.fEliminationHints and
 					isinstance(self.dayb, CElimBlot) and
-					self.match.stage > STAGE.Round1 and
+					self.match.stage > STAGE.Round16 and
 					self.match.stage < STAGE.Third
 			     ):
 				assert len(self.match.lIdFeeders) == 2
@@ -797,7 +803,9 @@ class CPage:
 	# (211 - 47) / 3 = 41
 
 	s_mpStageColorBorder: dict[STAGE, SColor] = {
-		STAGE.Round1: ColorFromStr("#585858"),		# 47 + 41 = 88 (0x58)
+		STAGE.Round64: ColorFromStr("#585858"),		# 47 + 41 = 88 (0x58)
+		STAGE.Round32: ColorFromStr("#585858"),		
+		STAGE.Round16: ColorFromStr("#585858"),		
 		STAGE.Quarters: ColorFromStr("#818181"),	# 88 + 41 = 129 (0x81)
 		STAGE.Semis: ColorFromStr("#aaaaaa"),		# 129 + 41 = 170 (0xaa)
 	}
@@ -1370,15 +1378,16 @@ class CBracketBlot(CBlot): # tag = bracketb
 					rectElimb = SRect(x, y, elimb.s_dX, elimb.s_dY)
 					mpStageLRect.setdefault(stage, []).append(rectElimb)
 
-		elimbThird = CElimBlot(self.page, self.tourn.matchThird)
+		if self.tourn.matchThird:
+			elimbThird = CElimBlot(self.page, self.tourn.matchThird)
 
-		xThird = (self.dX - elimbThird.s_dX) / 2
-		yThird = (self.dY - elimbThird.s_dY)
+			xThird = (self.dX - elimbThird.s_dX) / 2
+			yThird = (self.dY - elimbThird.s_dY)
 
-		self.lTuXYElimb.append((xThird, yThird, elimbThird))
+			self.lTuXYElimb.append((xThird, yThird, elimbThird))
 
-		rectElimbThird = SRect(xThird, yThird, elimbThird.s_dX, elimbThird.s_dY)
-		mpStageLRect.setdefault(STAGE.Third, []).append(rectElimbThird)
+			rectElimbThird = SRect(xThird, yThird, elimbThird.s_dX, elimbThird.s_dY)
+			mpStageLRect.setdefault(STAGE.Third, []).append(rectElimbThird)
 
 		self.mpStageTuRectStr: dict[STAGE, tuple[SRect, str]] = {}
 
@@ -1450,7 +1459,12 @@ class CCalOnlyPage(CPage): # tag = calonlyp
 		lGroupbRight = [CGroupBlot(self, self.tourn.mpStrGroupGroup[strGroup]) for strGroup in self.tourn.lStrGroup[cGroupHalf:]]
 		gsetbRight = CGroupSetBlot(doc, lGroupbRight, cCol = 1)
 
-		calb = CCalendarBlot(self, self.tourn.setMatchGroup | self.tourn.setMatchElimination | set([self.tourn.matchThird]))
+		setMatchCalendar = self.tourn.setMatchGroup | self.tourn.setMatchElimination
+
+		if self.tourn.matchThird:
+			setMatchCalendar.add(self.tourn.matchThird)
+
+		calb = CCalendarBlot(self, setMatchCalendar)
 		finalb = CFinalBlot(self)
 
 		headerb = CHeaderBlot(self)
@@ -1656,7 +1670,8 @@ if True:
 		))
 
 	docaRelease = SDocumentArgs(
-		strDestDir = str(Path('releases') / (g_pathTourn.stem + '-patch1' )),
+		#strDestDir = str(Path('releases') / (g_pathTourn.stem + '-patch1' )),
+		strDestDir = str(Path('releases') / g_pathTourn.stem),
 		strFileSuffix = 'all',
 		iterPagea = (
 			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None),
@@ -1700,9 +1715,9 @@ if True:
 			docaDefault,
 			# docaTests,
 			# docaDesigns,
-			docaRelease,
+			# docaRelease,
 		],
-		lDocaRelease,
+		#lDocaRelease,
 	]
 
 	for lDoca in llDocaTodo:

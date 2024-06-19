@@ -99,11 +99,10 @@ class CLocalizationDataBase(CDataBase): # tag = loc
 				self.mpStrKeyStrLocaleStrText[strKey] = xlrow
 
 class STAGE(IntEnum):
-	# BB (bruceo) rename Round1 etc to Round64 Round32 etc
 	Group = auto()
-	Round1 = auto()
-	Round2 = auto()	# may not be used, depending on tourney size
-	Round3 = auto() # ditto
+	Round64 = auto()
+	Round32 = auto()	# may not be used, depending on tourney size
+	Round16 = auto() # ditto
 	Quarters = auto()
 	Semis = auto()
 	Third = auto()
@@ -161,8 +160,8 @@ class CMatch:
 		if matHome := self.s_patNumAlpha.match(self.strSeedHome):
 			matAway = self.s_patNumAlpha.match(self.strSeedAway)
 			assert matAway
-			self.stage = STAGE.Round1
-			self.lStrGroup = [matHome[2], matAway[2]]
+			self.stage = STAGE.Round16
+			self.lStrGroup = [ch for ch in matHome[2]] + [ch for ch in matAway[2]]
 		elif matHome := self.s_patAlphaNum.match(self.strSeedHome):
 			matAway = self.s_patAlphaNum.match(self.strSeedAway)
 			assert matAway
@@ -225,11 +224,11 @@ class CMatch:
 					setStrGroup.add(strGroup)
 					lStrGroup += strGroup
 
-		if stagePrev == STAGE.Round1:
+		if stagePrev in frozenset([STAGE.Round64, STAGE.Round32, STAGE.Round16]):
 			assert not self.lStrGroup
-			assert len(lStrGroup) == 4
+			assert len(lStrGroup) >= 4
 			self.lStrGroup = lStrGroup
-		elif stagePrev > STAGE.Round1:
+		elif stagePrev > STAGE.Round16:
 			assert not self.lStrGroup
 			# revert sorting if we have everything
 			self.lStrGroup = lStrGroup if len(lStrGroup) < len(self.tourn.lStrGroup) else self.tourn.lStrGroup
@@ -280,11 +279,16 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		assert len(setMatchFinal) == 1
 		self.matchFinal = next(iter(setMatchFinal))
 		del self.mpStageSetMatch[STAGE.Final]
+
+		self.matchThird: Optional[CMatch] = None
 		
-		setMatchThird = self.mpStageSetMatch[STAGE.Third]
-		assert len(setMatchThird) == 1
-		self.matchThird = next(iter(setMatchThird))
-		del self.mpStageSetMatch[STAGE.Third]
+		try:
+			setMatchThird = self.mpStageSetMatch[STAGE.Third]
+			assert len(setMatchThird) == 1
+			self.matchThird = next(iter(setMatchThird))
+			del self.mpStageSetMatch[STAGE.Third]
+		except KeyError:
+			pass
 		
 		self.setMatchGroup: set[CMatch] = self.mpStageSetMatch[STAGE.Group]
 		self.setMatchElimination: set[CMatch] = set().union(*[setMatch for stage, setMatch in self.mpStageSetMatch.items() if stage != STAGE.Group])
@@ -317,7 +321,7 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 			else:
 				setMatchNoStage.add(match)
 
-		stagePrev: STAGE = STAGE.Round1
+		stagePrev: STAGE = STAGE.Round16
 
 		while setMatchNoStage:
 			setMatchPrev = mpStageSetMatch[stagePrev]
@@ -368,7 +372,7 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		while setIdVisit:
 			match = self.mpIdMatch[setIdVisit.pop()]
 
-			# NOTE (bruceo) setIdFeeders will be empty for group and round1 matches
+			# NOTE (bruceo) setIdFeeders will be empty for group and first elimination round matches
 
 			setIdFeeders: set[int] = set(match.lIdFeeders)
 			setIdFeeding |= setIdFeeders
