@@ -123,7 +123,11 @@ class CFontInstance:
 
 		font = pdf.fonts[self.fontkey.Str()]
 
-		desc = font['desc']
+		try:
+			desc = font['desc']
+		except TypeError:
+			desc = font.desc
+		
 		try:
 			dYCapRaw = desc['CapHeight']
 		except TypeError:
