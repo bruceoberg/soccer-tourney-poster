@@ -14,7 +14,7 @@ from enum import IntEnum, auto
 from pathlib import Path
 from typing import Optional
 
-from pdf import SColor, ColorFromStr, ColorResaturate
+from pdf import SColor, ColorFromStr, ColorResaturate, FIsSaturated
 
 TExcelRow = dict[str, str]				# tag = xlrow
 TExcelSheet = list[TExcelRow]			# tag = xls
@@ -114,10 +114,17 @@ class SColors: # tag = colors
 	s_rVLighter = 1.5
 	s_rSLighter = 0.5
 
+	s_rVDarker = 0.75	# for unsaturated colors
+	s_dVLighter = 0.2
+
 	def __init__(self, strColor: str) -> None:
 		self.color: SColor = ColorFromStr(strColor)
-		self.colorDarker: SColor = ColorResaturate(self.color, dS=self.s_dSDarker)
-		self.colorLighter: SColor = ColorResaturate(self.color, rV=self.s_rVLighter, rS=self.s_rSLighter)
+		if FIsSaturated(self.color):
+			self.colorDarker: SColor = ColorResaturate(self.color, dS=self.s_dSDarker)
+			self.colorLighter: SColor = ColorResaturate(self.color, rV=self.s_rVLighter, rS=self.s_rSLighter)
+		else:
+			self.colorDarker: SColor = ColorResaturate(self.color, rV=self.s_rVDarker)
+			self.colorLighter: SColor = ColorResaturate(self.color, dV=self.s_dVLighter)
 
 class CGroup:
 	def __init__(self, tourn: CTournamentDataBase, strGroup: str, mpStrSeedStrTeam: dict[str, str]) -> None:

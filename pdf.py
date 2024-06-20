@@ -158,6 +158,9 @@ def ColorResaturate(color: SColor, rS: float = 1.0, dS: float = 0.0, rV: float =
 	r, g, b = colorsys.hsv_to_rgb(h, s, v)
 	return SColor(round(r * 255), round(g * 255), round(b * 255), color.a)
 
+def FIsSaturated(color: SColor) -> bool:
+	return colorsys.rgb_to_hsv(color.r / 255.0, color.g / 255.0, color.b / 255.0)[1] > 0.0
+
 @dataclass
 class SPoint: # tag = pos
 	x: float = 0
