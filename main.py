@@ -22,7 +22,9 @@ from pdf import *
 g_pathHere = Path(__file__).parent
 g_pathLocalization = g_pathHere / 'fonts' / 'localization.xlsx'
 g_loc = CLocalizationDataBase(g_pathLocalization)
-g_pathTourn = g_pathHere / 'tournaments' / '2024-mens-euro.xlsx'
+#g_pathTourn = g_pathHere / 'tournaments' / '2023-womens-world-cup.xlsx'
+#g_pathTourn = g_pathHere / 'tournaments' / '2024-mens-euro.xlsx'
+g_pathTourn = g_pathHere / 'tournaments' / '2024-mens-copa-america.xlsx'
 g_tourn = CTournamentDataBase(g_pathTourn, g_loc)
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
@@ -228,7 +230,7 @@ class CMatchBlot(CBlot): # tag = dayb
 		if self.match.stage == STAGE.Group:
 			assert len(lColor) == 1
 			lRc.append(SRectColor(self.rect, lColor[0]))
-		elif self.match.stage == STAGE.Round16:
+		elif self.match.stage == self.tourn.stageElimFirst:
 			rectLeft = self.rect.Copy(dX=self.rect.dX / 2.0)
 			lRc.append(SRectColor(rectLeft, lColor[0]))
 			rectRight = rectLeft.Copy().Shift(dX=rectLeft.dX)
@@ -338,7 +340,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			# round 1 gets them otherwise honor pref
 
-			fDrawFormLabels = self.page.pagea.fMatchNumbers or self.match.stage == STAGE.Round16
+			fDrawFormLabels = self.page.pagea.fMatchNumbers or self.match.stage == self.tourn.stageElimFirst
 
 			# elimination hint pref can turn them back on
 
@@ -349,7 +351,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			elif (
 					self.page.pagea.fEliminationHints and
 					isinstance(self.dayb, CElimBlot) and
-					self.match.stage > STAGE.Round16 and
+					self.match.stage > self.tourn.stageElimFirst and
 					self.match.stage < STAGE.Third
 			     ):
 				assert len(self.match.lIdFeeders) == 2

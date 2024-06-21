@@ -167,7 +167,7 @@ class CMatch:
 		if matHome := self.s_patNumAlpha.match(self.strSeedHome):
 			matAway = self.s_patNumAlpha.match(self.strSeedAway)
 			assert matAway
-			self.stage = STAGE.Round16
+			self.stage = tourn.stageElimFirst
 			self.lStrGroup = [ch for ch in matHome[2]] + [ch for ch in matAway[2]]
 		elif matHome := self.s_patAlphaNum.match(self.strSeedHome):
 			matAway = self.s_patAlphaNum.match(self.strSeedAway)
@@ -211,7 +211,7 @@ class CMatch:
 
 		self.tuIdFed = tuple(reversed(lIdFeeding))
 
-	def FTrySetStage(self, mpIdMatch: dict[int, 'CMatch'], stagePrev: STAGE, stage: STAGE):
+	def FTrySetStage(self, tourn: CTournamentDataBase, stagePrev: STAGE, stage: STAGE):
 		assert self.stage is None
 		assert self.lIdFeeders
 
@@ -221,7 +221,7 @@ class CMatch:
 		lStrGroup: list[str] = []
 
 		for id in self.lIdFeeders:
-			match = mpIdMatch[id]
+			match = tourn.mpIdMatch[id]
 
 			if match.stage != stagePrev:
 				return False
@@ -231,11 +231,11 @@ class CMatch:
 					setStrGroup.add(strGroup)
 					lStrGroup += strGroup
 
-		if stagePrev in frozenset([STAGE.Round64, STAGE.Round32, STAGE.Round16]):
+		if stagePrev == tourn.stageElimFirst:
 			assert not self.lStrGroup
-			assert len(lStrGroup) >= 4
+			#assert len(lStrGroup) >= 4
 			self.lStrGroup = lStrGroup
-		elif stagePrev > STAGE.Round16:
+		elif stagePrev > tourn.stageElimFirst:
 			assert not self.lStrGroup
 			# revert sorting if we have everything
 			self.lStrGroup = lStrGroup if len(lStrGroup) < len(self.tourn.lStrGroup) else self.tourn.lStrGroup
@@ -247,6 +247,16 @@ class CMatch:
 class CTournamentDataBase(CDataBase): # tag = tourn
 
 	s_lStrKeyLocPrefix = ('tournament', 'colors')
+
+	s_mpCSeedStageElimFirst = {
+		8:	STAGE.Semis,
+		12:	STAGE.Quarters,
+		16:	STAGE.Quarters,
+		24:	STAGE.Round16,
+		32:	STAGE.Round16,
+		48:	STAGE.Round32,
+		64:	STAGE.Round32,
+	}
 
 	def __init__(self, pathFile: Path, loc: CLocalizationDataBase) -> None:
 
@@ -266,6 +276,8 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		# both MpStrGroupGroup() and CMatch.__init__() depend on self.mpStrSeedTeam existing
 
 		self.mpStrSeedStrTeam: dict[str, str] = {xlrow['seed']:xlrow['team'] for xlrow in xlb['seeds']}
+
+		self.stageElimFirst = self.s_mpCSeedStageElimFirst[len(self.mpStrSeedStrTeam)]
 
 		self.mpStrGroupGroup: dict[str, CGroup] = self.MpStrGroupGroup()
 		self.lStrGroup: list[str] = sorted(self.mpStrGroupGroup.keys())
@@ -328,7 +340,7 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 			else:
 				setMatchNoStage.add(match)
 
-		stagePrev: STAGE = STAGE.Round16
+		stagePrev: STAGE = self.stageElimFirst
 
 		while setMatchNoStage:
 			setMatchPrev = mpStageSetMatch[stagePrev]
@@ -350,7 +362,7 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 			setMatchNext: set[CMatch] = set()
 
 			for match in setMatchNoStage:
-				if match.FTrySetStage(self.mpIdMatch, stagePrev, stageNext):
+				if match.FTrySetStage(self, stagePrev, stageNext):
 					setMatchNext.add(match)
 			
 			assert setMatchNext
