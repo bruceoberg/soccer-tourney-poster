@@ -1384,7 +1384,14 @@ class CBracketBlot(CBlot): # tag = bracketb
 			elimbThird = CElimBlot(self.page, self.tourn.matchThird)
 
 			xThird = (self.dX - elimbThird.s_dX) / 2
-			yThird = (self.dY - elimbThird.s_dY)
+
+			# add extra space for small bracket with a third place match
+
+			if lStage[0] == STAGE.Quarters:
+				yThird = self.dY
+				self.dY += elimbThird.s_dY
+			else:
+				yThird = (self.dY - elimbThird.s_dY)
 
 			self.lTuXYElimb.append((xThird, yThird, elimbThird))
 
