@@ -626,6 +626,7 @@ class CFinalBlot(CBlot): # tag = finalb
 		super().__init__(self.pdf)
 
 		self.match: CMatch = self.tourn.matchFinal
+		self.tDay = arrow.get(self.page.DateDisplay(self.match.tStart))
 
 	def Draw(self, pos: SPoint) -> None:
 
@@ -640,7 +641,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		# date
 
-		strDate = self.page.StrDateForFinal(self.match.tStart)
+		strDate = self.page.StrDateForFinal(self.tDay)
 		rectDate = rectTitle.Copy(dY = self.s_dYFontDate).Shift(dY = rectTitle.dY + self.s_dYTextGap)
 		oltbDate = self.Oltb(rectDate, self.page.Fontkey('final.date'), rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack, JH.Center)
