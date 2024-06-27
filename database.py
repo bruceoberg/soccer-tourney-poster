@@ -33,6 +33,9 @@ class CDataBase: # tag = db
 		xlb: TExcelBook = {}
 		
 		for ws in wb.worksheets:
+			# skip worksheets starting with pound sign... so we can have scratch sheets for conversion work
+			if str(ws.title).startswith('#'):
+				continue
 			lStrKey: list[str] = []
 			lStrFill: list[str] = []
 			xls: TExcelSheet = []
