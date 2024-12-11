@@ -142,7 +142,8 @@ class SColor: # tag = color
 	a: int = 255
 
 def ColorFromStr(strColor: str, alpha: int = 255) -> SColor:
-	return SColor(*fpdf.html.color_as_decimal(strColor), alpha)
+	r, g, b = fpdf.html.color_as_decimal(strColor).colors255
+	return SColor(r, g, b, alpha)
 
 colorWhite = ColorFromStr('white')
 colorGrey = ColorFromStr('grey')
