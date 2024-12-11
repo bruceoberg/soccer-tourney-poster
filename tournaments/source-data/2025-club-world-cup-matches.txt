@@ -1,0 +1,64 @@
+date	match	home	away	time	venue	datetime
+6/14/2025,1,Al Ahly Egypt,Inter Miami,20:00,Miami
+6/15/2025,2,Bayern Munich,Auckland City,12:00,Cincinnati
+6/15/2025,3,Paris Saint-Germain,Atlético Madrid,15:00,Pasadena
+6/15/2025,4,Palmeiras,Porto,18:00,East Rutherford
+6/15/2025,5,Botafogo,Seattle Sounders,22:00,Seattle
+6/16/2025,6,Chelsea,León,15:00,Atlanta
+6/16/2025,7,Boca Juniors,Benfica,18:00,Miami
+6/16/2025,8,Flamengo,Espérance de Tunis,21:00,Philadelphia
+6/17/2025,9,Fluminense,Borussia Dortmund,12:00,East Rutherford
+6/17/2025,10,Group E River Plate,Urawa Red Diamonds,15:00,Seattle
+6/17/2025,11,Ulsan HD,Mamelodi Sundowns,18:00,Orlando
+6/17/2025,12,Monterrey,Inter Milan,15:00,Pasadena
+6/18/2025,13,Manchester City,Wydad AC,12:00,Philadelphia
+6/18/2025,14,Real Madrid,Al Hilal,15:00,Miami
+6/18/2025,15,Pachuca,FC Salzburg,18:00,Cincinnati
+6/18/2025,16,Al Ain,Juventus,21:00,Washington
+6/19/2025,17,Palmeiras,Al Ahly,12:00,East Rutherford
+6/19/2025,18,Inter Miami,Porto,15:00,Atlanta
+6/19/2025,19,Seattle Sounders,Atlético Madrid,18:00,Seattle
+6/19/2025,20,Paris Saint-Germain,Botafogo,21:00,Pasadena
+6/20/2025,21,Benfica,Auckland City,12:00,Orlando
+6/20/2025,22,Flamengo,Chelsea,14:00,Philadelphia
+6/20/2025,23,León,Espérance de Tunis,18:00,Nashville
+6/20/2025,24,Bayern Munich,Boca Juniors ,21:00,Miami
+6/21/2025,25,Mamelodi Sundowns,Borussia Dortmund,12:00,Cincinnati
+6/21/2025,26,Inter Milan,Urawa Red Diamonds,15:00,Seattle
+6/21/2025,27,Fluminense,Ulsan HD,18:00,East Rutherford
+6/21/2025,28,River Plate,Monterrey,21:00,Pasadena
+6/22/2025,29,Juventus,Wydad AC,12:00,Philadelphia
+6/22/2025,30,Real Madrid,Pachuca,15:00,Charlotte
+6/22/2025,31,FC Salzburg,Al Hilal,18:00,Washington
+6/22/2025,32,Manchester City,Al Ain,21:00,Atlanta
+6/23/2025,34,Atlético Madrid,Botafogo,15:00,Pasadena
+6/23/2025,33,Seattle Sounders,Paris Saint-Germain,15:00,Seattle
+6/23/2025,35,Inter Miami,Palmeiras,21:00,Miami Gardens
+6/23/2025,36,Porto,Al Ahly,21:00,East Rutherford
+6/24/2025,38,Benfica,Bayern Munich,15:00,Charlotte
+6/24/2025,37,Auckland City,Boca Juniors,15:00,Nashville
+6/24/2025,40,Espérance de Tunis,Chelsea,21:00,Philadelphia
+6/24/2025,39,León,Flamengo,21:00,Orlando
+6/25/2025,41,Borussia Dortmund,Ulsan HD,15:00,Cincinnati
+6/25/2025,42,Mamelodi Sundowns,Fluminense,15:00,Miami
+6/25/2025,43,Inter Milan,River Plate,21:00,Seattle
+6/25/2025,44,Urawa Red Diamonds,Monterrey,21:00,Pasadena
+6/26/2025,46,Wydad AC,Al Ain,15:00,Washington
+6/26/2025,45,Juventus,Manchester City,15:00,Orlando
+6/26/2025,47,Al Hilal,Mexico Pachuca,21:00,Nashville
+6/26/2025,48,FC Salzburg,Real Madrid,21:00,Philadelphia
+6/28/2025,49,1A,2B,12:00,Philadelphia
+6/28/2025,50,1C,2D,16:00,Charlotte
+6/29/2025,51,1B,2A,12:00,Atlanta
+6/29/2025,52,1D,2C,16:00,Miami
+6/30/2025,53,1E,2F,15:00,Charlotte
+6/30/2025,54,1G,2H,21:00,Orlando
+7/1/2025,55,1F,2E,21:00,Atlanta
+7/1/2025,56,1H,2G,15:00,Miami
+7/4/2025,57,W49,W50,21:00,Philadelphia
+7/4/2025,58,W53,W54,15:00,Orlando
+7/5/2025,59,W51,W52,12:00,Atlanta
+7/5/2025,60,W55,W56,16:00,East Rutherford
+7/8/2025,61,W57,W58,15:00,East Rutherford
+7/9/2025,62,W59,W60,15:00,East Rutherford
+7/13/2025,63,W61,W62,15:00,East Rutherford
