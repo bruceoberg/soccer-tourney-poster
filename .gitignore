@@ -1,6 +1,7 @@
 *.zip
 __pycache__/*.pyc
 playground/
+.venv/
 ~*.*
 # ** means any directory in the tree
 **/.DS_Store
