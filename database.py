@@ -12,7 +12,7 @@ import re
 from babel import Locale
 from enum import IntEnum, auto
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Iterable
 
 from pdf import SColor, ColorFromStr, ColorResaturate, FIsSaturated
 
@@ -280,6 +280,12 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 
 		self.mpStrSeedStrTeam: dict[str, str] = {xlrow['seed']:xlrow['team'] for xlrow in xlb['seeds']}
 
+		setStrTeam: set[str] = set(map(lambda s: s.lower(), self.mpStrSeedStrTeam.values()))
+		fAllTeams: bool = self.FLocSectionHasAllKeys('team', setStrTeam)
+		fAllClubs: bool = self.FLocSectionHasAllKeys('club', setStrTeam)
+
+		self.strKeyTeamPrefix: str = 'team.' if fAllTeams or not fAllClubs else 'club.'	
+
 		self.stageElimFirst = self.s_mpCSeedStageElimFirst[len(self.mpStrSeedStrTeam)]
 
 		self.mpStrGroupGroup: dict[str, CGroup] = self.MpStrGroupGroup()
@@ -409,4 +415,10 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 				return super().StrTranslation(strKey, strLocale)
 
 		return self.loc.StrTranslation(strKey, strLocale)
+	
+	def FLocSectionHasAllKeys(self, strSection: str, setStrKeys: set[str]) -> bool:
+		return setStrKeys.issubset(self.loc.mpStrSectionSetStrSubkey[strSection])
 
+	def StrTeam(self, strKey: str, strLocale: str) -> str:
+		strKeyResolved = self.strKeyTeamPrefix + strKey
+		return self.StrTranslation(strKeyResolved, strLocale)
