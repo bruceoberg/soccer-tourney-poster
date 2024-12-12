@@ -24,7 +24,8 @@ g_pathLocalization = g_pathHere / 'fonts' / 'localization.xlsx'
 g_loc = CLocalizationDataBase(g_pathLocalization)
 #g_pathTourn = g_pathHere / 'tournaments' / '2023-womens-world-cup.xlsx'
 #g_pathTourn = g_pathHere / 'tournaments' / '2024-mens-euro.xlsx'
-g_pathTourn = g_pathHere / 'tournaments' / '2024-mens-copa-america.xlsx'
+#g_pathTourn = g_pathHere / 'tournaments' / '2024-mens-copa-america.xlsx'
+g_pathTourn = g_pathHere / 'tournaments' / '2025-mens-club-world-cup.xlsx'
 g_tourn = CTournamentDataBase(g_pathTourn, g_loc)
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
@@ -112,7 +113,7 @@ class CGroupBlot(CBlot): # tag = groupb
 
 			uTeamText = 0.75
 			oltbName = self.Oltb(rectName, self.page.Fontkey('group.team.name'), dYTeam * uTeamText, dSMargin = oltbAbbrev.dSMargin)
-			strTeam = self.page.StrTranslation('team.' + strTeam)
+			strTeam = self.page.StrTeam(strTeam)
 			oltbName.DrawText(strTeam, colorDarkSlateGrey, self.page.JhStart(), fShrinkToFit = True) #, JV.Top)
 
 		# dividers for team/points/gf/ga
@@ -709,14 +710,14 @@ class CFinalBlot(CBlot): # tag = finalb
 
 			# (full) team names
 
-			strHome = self.page.StrTranslation('team.' + self.match.strTeamHome)
+			strHome = self.page.StrTeam(self.match.strTeamHome)
 			groupHome = self.tourn.mpStrTeamGroup[self.match.strTeamHome]
 			haloaHome = SHaloArgs(groupHome.colors.colorLighter, 0.05)
 			rectHomeTeam = SRect(rectAll.x, rectHomeBox.y, rectHomeBox.xMin - rectAll.x, rectHomeBox.dY)
 			oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('match.team.abbrev'), rectHomeBox.dY)
 			oltbHomeTeam.DrawText(strHome, colorBlack, JH.Right, haloa = haloaHome)
 
-			strAway = self.page.StrTranslation('team.' + self.match.strTeamAway)
+			strAway = self.page.StrTeam(self.match.strTeamAway)
 			groupAway = self.tourn.mpStrTeamGroup[self.match.strTeamAway]
 			haloaAway = SHaloArgs(groupAway.colors.colorLighter, 0.05)
 			rectAwayTeam = SRect(rectAwayBox.xMax, rectAwayBox.y, rectAll.xMax - rectAwayBox.xMax, rectAwayBox.dY)
@@ -855,6 +856,9 @@ class CPage:
 
 	def StrTranslation(self, strKey: str) -> str:
 		return self.tourn.StrTranslation(strKey, self.strLocale)
+
+	def StrTeam(self, strKey: str) -> str:
+		return self.tourn.StrTeam(strKey, self.strLocale)
 
 	def Fontkey(self, strFont: str) -> SFontKey:
 		strTtf = self.StrTranslation(self.doc.s_strKeyPrefixFonts + strFont)
@@ -1198,7 +1202,9 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		super().__init__(self.pdf)
 
-		setDate: set[datetime.date] = {match.tStart.date() for match in setMatch}
+		# added DateDisplay for 2025 CWC... unclear if this breaks previous tourneys (prob 2023 NZ womens WC?)
+
+		setDate: set[datetime.date] = {self.page.DateDisplay(match.tStart) for match in setMatch}
 
 		dateMin: datetime.date = min(setDate)
 		dateMax: datetime.date = max(setDate)
@@ -1656,7 +1662,7 @@ if True:
 		strDestDir = 'playground',
 		iterPagea = (
 			# SPageArgs(CCalOnlyPage, fmt=(18, 27), fmtCrop=None, strVariant = 'benjy orig', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
-			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None),
+			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='US/Eastern'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
