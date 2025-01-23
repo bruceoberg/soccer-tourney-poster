@@ -22,10 +22,12 @@ from pdf import *
 g_pathHere = Path(__file__).parent
 g_pathLocalization = g_pathHere / 'fonts' / 'localization.xlsx'
 g_loc = CLocalizationDataBase(g_pathLocalization)
+#g_pathTourn = g_pathHere / 'tournaments' / '2018-mens-world-cup.xlsx'
+g_pathTourn = g_pathHere / 'tournaments' / '2022-mens-world-cup.xlsx'
 #g_pathTourn = g_pathHere / 'tournaments' / '2023-womens-world-cup.xlsx'
 #g_pathTourn = g_pathHere / 'tournaments' / '2024-mens-euro.xlsx'
 #g_pathTourn = g_pathHere / 'tournaments' / '2024-mens-copa-america.xlsx'
-g_pathTourn = g_pathHere / 'tournaments' / '2025-mens-club-world-cup.xlsx'
+#g_pathTourn = g_pathHere / 'tournaments' / '2025-mens-club-world-cup.xlsx'
 g_tourn = CTournamentDataBase(g_pathTourn, g_loc)
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
@@ -261,7 +263,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			yTime = self.rect.y + self.dYOuterGap
 			yScore = yTime + self.dYTimeAndGap
 
-			strTime = self.page.StrTimeDayRelative(self.match.tStart)
+			strTime = self.page.StrTimeDisplay(self.match)
 			rectTime = SRect(self.rect.x, yTime, self.rect.dX, self.dayb.dYTime)
 			oltbTime = self.Oltb(rectTime, self.page.Fontkey('match.time'), self.dayb.s_dYFontTime)
 			oltbTime.DrawText(strTime, colorBlack, JH.Center)
@@ -461,7 +463,7 @@ class CDayBlot(CBlot): # tag = dayb
 			self.lMatch = sorted(iterMatch, key=lambda match: (match.tStart, match.strSeedHome))
 
 			for match in self.lMatch:
-				assert self.tDay.date() == self.page.DateDisplay(match.tStart)
+				assert self.tDay.date() == self.page.DateDisplay(match)
 		else:
 			self.lMatch = []
 
@@ -549,7 +551,7 @@ class CElimBlot(CDayBlot): # tag = elimb
 		self.pdf = page.doc.pdf
 		self.tourn = page.doc.tourn
 
-		super().__init__(page, arrow.get(self.page.DateDisplay(match.tStart)), set([match]))
+		super().__init__(page, arrow.get(self.page.DateDisplay(match)), set([match]))
 
 		self.stage = match.stage
 		assert len(self.lMatch) == 1
@@ -627,7 +629,7 @@ class CFinalBlot(CBlot): # tag = finalb
 		super().__init__(self.pdf)
 
 		self.match: CMatch = self.tourn.matchFinal
-		self.tDay = arrow.get(self.page.DateDisplay(self.match.tStart))
+		self.tDay = arrow.get(self.page.DateDisplay(self.match))
 
 	def Draw(self, pos: SPoint) -> None:
 
@@ -649,7 +651,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		# time
 
-		strTime = self.page.StrTimeDayRelative(self.match.tStart)
+		strTime = self.page.StrTimeDisplay(self.match)
 		rectTime = rectDate.Copy(dY=self.s_dYFontTime).Shift(dY = rectDate.dY + self.s_dYTextGap)
 		oltbTime = self.Oltb(rectTime, self.page.Fontkey('final.time'), rectTime.dY)
 		oltbTime.DrawText(strTime, colorBlack, JH.Center)
@@ -901,25 +903,25 @@ class CPage:
 	def StrDateForFinal(self, tDate: arrow.Arrow) -> str:
 		return babel.dates.format_date(tDate.datetime, format=self.strDateMMMMEEEEd, locale=self.locale)
 	
-	def DateDisplay(self, tTime: arrow.Arrow) -> datetime.date:
+	def DateDisplay(self, match: CMatch) -> datetime.date:
 		# for timezones behind the UTC start time, return the date in that timezone.
-		# for those ahead, return the UTC date, and StrTimeDayRelative() will display a weirdo 48hr time.
+		# for those ahead, return the UTC date, and StrTimeDidplay() will display a weirdo 48hr time.
 		# BB (bruceo) may need to do this on a per-locale basis. japan knows about 48hr times, but do others?
 
-		tTimeTz = tTime.to(self.tzinfo)
+		tTimeTz = match.tStart.to(self.tzinfo)
 
-		if tTime.day != tTimeTz.day:
+		if match.tStart.day != tTimeTz.day:
 			dSec = tTimeTz.utcoffset().total_seconds()
 			if dSec < 0:
 				return tTimeTz.date()
 			
-		return tTime.date()
+		return match.tStart.date()
 
-	def StrTimeDayRelative(self, tTime: arrow.Arrow) -> str:
-		tTimeTz = tTime.to(self.tzinfo)
+	def StrTimeDisplay(self, match: CMatch) -> str:
+		tTimeTz = match.tStart.to(self.tzinfo)
 		strTime = babel.dates.format_time(tTimeTz.time(), 'short', locale=self.locale)
 		
-		if tTime.day != tTimeTz.day:
+		if match.tStart.day != tTimeTz.day:
 			s_fPlusMinusFormatting = False
 			if s_fPlusMinusFormatting:
 				strDelta = babel.dates.format_timedelta(datetime.timedelta(days=1), format='narrow', granularity='day', locale=self.locale)
@@ -956,7 +958,7 @@ class CPage:
 		mpDateSetMatch: dict[datetime.date, set[CMatch]] = {}
 
 		for match in self.tourn.mpIdMatch.values():
-			mpDateSetMatch.setdefault(self.DateDisplay(match.tStart), set()).add(match)
+			mpDateSetMatch.setdefault(self.DateDisplay(match), set()).add(match)
 
 		return mpDateSetMatch
 
@@ -1204,7 +1206,7 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		# added DateDisplay for 2025 CWC... unclear if this breaks previous tourneys (prob 2023 NZ womens WC?)
 
-		setDate: set[datetime.date] = {self.page.DateDisplay(match.tStart) for match in setMatch}
+		setDate: set[datetime.date] = {self.page.DateDisplay(match) for match in setMatch}
 
 		dateMin: datetime.date = min(setDate)
 		dateMax: datetime.date = max(setDate)
@@ -1663,9 +1665,10 @@ if True:
 		iterPagea = (
 			# SPageArgs(CCalOnlyPage, fmt=(18, 27), fmtCrop=None, strVariant = 'benjy orig', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
 			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='US/Eastern'),
-			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
-			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
+			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
+			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
+			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='Australia/Sydney'),
 		))
 
 	docaTests = SDocumentArgs(
