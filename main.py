@@ -832,6 +832,8 @@ class CPage:
 		self.locale = Locale.parse(self.strLocale)
 		self.strDateMMMMEEEEd = StrPatternDateMMMMEEEEd(self.locale)
 
+		self.BuildDisplayDatesTimes()
+
 		self.mpDateSetMatch: dict[datetime.date, set[CMatch]] = self.MpDateSetMatch()
 
 		self.pdf.add_page(orientation=self.strOrientation, format=self.fmt)
@@ -903,54 +905,41 @@ class CPage:
 	def StrDateForFinal(self, tDate: arrow.Arrow) -> str:
 		return babel.dates.format_date(tDate.datetime, format=self.strDateMMMMEEEEd, locale=self.locale)
 	
-	def DateDisplay(self, match: CMatch) -> datetime.date:
-		# for timezones behind the UTC start time, return the date in that timezone.
-		# for those ahead, return the UTC date, and StrTimeDidplay() will display a weirdo 48hr time.
-		# BB (bruceo) may need to do this on a per-locale basis. japan knows about 48hr times, but do others?
+	def BuildDisplayDatesTimes(self):
 
-		tTimeTz = match.tStart.to(self.tzinfo)
+		self.mpIdDateDisplay: dict[int, datetime.date] = {}
+		self.mpIdStrTimeDisplay: dict[int, str] = {}
 
-		if match.tStart.day != tTimeTz.day:
-			dSec = tTimeTz.utcoffset().total_seconds()
-			if dSec < 0:
-				return tTimeTz.date()
+		for match in self.tourn.mpIdMatch.values():
+			dateDisplay = match.tStart.date()
+			tTimeTz = match.tStart.to(self.tzinfo)
+			strTime = babel.dates.format_time(tTimeTz.time(), 'short', locale=self.locale)
+
+			if match.tStart.day != tTimeTz.day:
+				# for timezones behind the UTC start time, return the date in that timezone.
+				# for those ahead, return the UTC date, and StrTimeDidplay() will display a weirdo 48hr time.
+				# BB (bruceo) may need to do this on a per-locale basis. japan knows about 48hr times, but do others?
+				dSec = tTimeTz.utcoffset().total_seconds()
+				if dSec < 0:
+					dateDisplay = tTimeTz.date()
+				else:
+					strHour, strRest = strTime.split(':', 1)
+					hourNew = 24 if tTimeTz.hour == 0 else int(strHour) + 24 # correct for 12am not always being "00"
+					strTime = f'{hourNew}:{strRest}'
 			
-		return match.tStart.date()
+			# hacks that probably violate the CLDR
+
+			strTime = strTime.lower()
+			strTime = strTime.translate({ord(ch):'' for ch in ' \u00a0\u2009\u202f'}) # remove spaces for very narrow times, please
+
+			self.mpIdDateDisplay[match.id] = dateDisplay
+			self.mpIdStrTimeDisplay[match.id] = strTime
+
+	def DateDisplay(self, match: CMatch) -> datetime.date:
+		return self.mpIdDateDisplay[match.id]
 
 	def StrTimeDisplay(self, match: CMatch) -> str:
-		tTimeTz = match.tStart.to(self.tzinfo)
-		strTime = babel.dates.format_time(tTimeTz.time(), 'short', locale=self.locale)
-		
-		if match.tStart.day != tTimeTz.day:
-			s_fPlusMinusFormatting = False
-			if s_fPlusMinusFormatting:
-				strDelta = babel.dates.format_timedelta(datetime.timedelta(days=1), format='narrow', granularity='day', locale=self.locale)
-				
-				# NOTE (bruceo) yes, sign symbols can be localized. sheesh.
-				
-				if tTimeTz.utcoffset().total_seconds() > 0:
-					strSign = babel.numbers.get_plus_sign_symbol(self.locale)
-				else:
-					strSign = babel.numbers.get_minus_sign_symbol(self.locale)
-				
-				strTime += f' {strSign}{strDelta}'
-			else:
-				# NOTE (bruceo) japan (and others?) use 48 hour times for events on the "next day" in japan.
-				dSec = tTimeTz.utcoffset().total_seconds()
-				if dSec > 0:
-					strHour, strRest = strTime.split(':', 1)
-					hourNew = int(strHour) + 24
-					strTime = f'{hourNew}:{strRest}'
-				else:
-					# DateDisplay should ensure match is in correct calendar spot, so we can use strTime as is
-					pass
-
-		# hacks that probably violate the CLDR
-
-		strTime = strTime.lower()
-		strTime = strTime.translate({ord(ch):'' for ch in ' \u00a0\u2009\u202f'}) # remove spaces for very narrow times, please
-
-		return strTime
+		return self.mpIdStrTimeDisplay[match.id]
 
 	def MpDateSetMatch(self) -> dict[datetime.date, set[CMatch]]:
 		""" map dates to matches. """
@@ -1666,6 +1655,7 @@ if True:
 			# SPageArgs(CCalOnlyPage, fmt=(18, 27), fmtCrop=None, strVariant = 'benjy orig', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
 			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='US/Eastern'),
 			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
+			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='Asia/Qatar'),
 			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
 			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='Australia/Sydney'),
