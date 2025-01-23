@@ -579,7 +579,7 @@ class CElimBlot(CDayBlot): # tag = elimb
 
 		# Date
 
-		strDate = self.page.StrDateForElimination(self.tDay)
+		strDate = self.page.StrDateForElimination(self.match)
 		rectDate = rectAll.Copy(dY = self.s_dYDate).Shift(dY = (matchb.dYOuterGap - self.s_dYDate) / 2)
 		oltbDate = self.Oltb(rectDate, self.page.Fontkey('elim.date'), rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack, JH.Center)
@@ -644,7 +644,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		# date
 
-		strDate = self.page.StrDateForFinal(self.tDay)
+		strDate = self.page.StrDateForFinal(self.match)
 		rectDate = rectTitle.Copy(dY = self.s_dYFontDate).Shift(dY = rectTitle.dY + self.s_dYTextGap)
 		oltbDate = self.Oltb(rectDate, self.page.Fontkey('final.date'), rectDate.dY)
 		oltbDate.DrawText(strDate, colorBlack, JH.Center)
@@ -899,11 +899,11 @@ class CPage:
 
 		return babel.dates.format_skeleton(strFormat, tDate.datetime, locale=self.locale)
 		
-	def StrDateForElimination(self, tDate: arrow.Arrow) -> str:
-		return babel.dates.format_skeleton('MMMEd', tDate.datetime, locale=self.locale)
+	def StrDateForElimination(self, match: CMatch) -> str:
+		return babel.dates.format_skeleton('MMMEd', self.DateDisplay(match), locale=self.locale)
 
-	def StrDateForFinal(self, tDate: arrow.Arrow) -> str:
-		return babel.dates.format_date(tDate.datetime, format=self.strDateMMMMEEEEd, locale=self.locale)
+	def StrDateForFinal(self, match: CMatch) -> str:
+		return babel.dates.format_date(self.DateDisplay(match), format=self.strDateMMMMEEEEd, locale=self.locale)
 	
 	def BuildDisplayDatesTimes(self):
 
@@ -911,18 +911,17 @@ class CPage:
 		self.mpIdStrTimeDisplay: dict[int, str] = {}
 
 		for match in self.tourn.mpIdMatch.values():
-			dateDisplay = match.tStart.date()
 			tTimeTz = match.tStart.to(self.tzinfo)
+			dateDisplay = tTimeTz.date()
 			strTime = babel.dates.format_time(tTimeTz.time(), 'short', locale=self.locale)
 
-			if match.tStart.day != tTimeTz.day:
+			if match.stage == STAGE.Group and match.tStart.day != tTimeTz.day:
 				# for timezones behind the UTC start time, return the date in that timezone.
 				# for those ahead, return the UTC date, and StrTimeDidplay() will display a weirdo 48hr time.
 				# BB (bruceo) may need to do this on a per-locale basis. japan knows about 48hr times, but do others?
 				dSec = tTimeTz.utcoffset().total_seconds()
-				if dSec < 0:
-					dateDisplay = tTimeTz.date()
-				else:
+				if dSec > 0:
+					dateDisplay = match.tStart.date()
 					strHour, strRest = strTime.split(':', 1)
 					hourNew = 24 if tTimeTz.hour == 0 else int(strHour) + 24 # correct for 12am not always being "00"
 					strTime = f'{hourNew}:{strRest}'
