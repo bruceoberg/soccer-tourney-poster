@@ -14,7 +14,7 @@ from enum import IntEnum, auto
 from pathlib import Path
 from typing import Optional, Iterable
 
-from pdf import SColor, ColorFromStr, ColorResaturate, FIsSaturated
+from bolay import SColor, ColorFromStr, ColorResaturate, FIsSaturated
 
 TExcelRow = dict[str, str]				# tag = xlrow
 TExcelSheet = list[TExcelRow]			# tag = xls

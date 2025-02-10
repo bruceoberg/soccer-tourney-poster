@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Optional, Type, Iterable
 
 from database import *
-from pdf import *
+from bolay import *
 
 g_pathHere = Path(__file__).parent
 g_pathLocalization = g_pathHere / 'fonts' / 'localization.xlsx'
