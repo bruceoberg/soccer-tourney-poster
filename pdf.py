@@ -3,7 +3,6 @@ import bidi.algorithm
 import colorsys
 import copy
 import fpdf
-import string
 import unicategories
 import unicodedata
 
