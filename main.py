@@ -1687,7 +1687,7 @@ if True:
 			SPageArgs(CCalElimPage, strTz='US/Mountain'),
 			SPageArgs(CCalElimPage, strTz='US/Central'),
 			SPageArgs(CCalElimPage, strTz='US/Eastern'),
-			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Europe/London'),
+			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Europe/London', strLocale='en'),
 			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Europe/Paris', strLocale='fr'),
 			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Europe/Rome', strLocale='it'),
 			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Europe/Berlin', strLocale='de'),
@@ -1695,6 +1695,7 @@ if True:
 			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Europe/Amsterdam', strLocale='nl'),
 			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Asia/Tehran', strLocale='fa'),
 			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Asia/Tokyo', strLocale='ja'),
+			SPageArgs(CCalElimPage, fmt='a1', fmtCrop=None, strTz='Australia/Sydney', strLocale='en'),
 		))
 
 	lDocaRelease: list[SDocumentArgs] = []
