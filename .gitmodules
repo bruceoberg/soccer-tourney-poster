@@ -1,0 +1,3 @@
+[submodule "bolay"]
+	path = bolay
+	url = git@github.com:bruceoberg/bolay.git
