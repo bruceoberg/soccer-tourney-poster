@@ -1721,12 +1721,12 @@ if True:
 
 	llDocaTodo = [
 		[
-			docaDefault,
+			#docaDefault,
 			# docaTests,
 			# docaDesigns,
-			# docaRelease,
+			docaRelease,
 		],
-		#lDocaRelease,
+		lDocaRelease,
 	]
 
 	for lDoca in llDocaTodo:
