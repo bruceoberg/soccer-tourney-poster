@@ -10,3 +10,7 @@ python-dateutil>=2.9.0.post0
 pytz>=2024.2
 six>=1.17.0
 types-python-dateutil>=2.9.0.20241206
+arabic-reshaper>=3.0.0
+fpdf2>=2.8.1
+python-bidi>=0.6.3
+unicategories>=0.1.2
