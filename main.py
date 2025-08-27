@@ -910,6 +910,14 @@ class CPage:
 		self.mpIdDateDisplay: dict[int, datetime.date] = {}
 		self.mpIdStrTimeDisplay: dict[int, str] = {}
 
+		# map all matches into the day that they are played in the tournament's timezone.
+		# the goal here is to have same-day matches appear on the same calendar day for all
+		# pages regardless of the page timezone.
+
+		strTzTourney: str = self.StrTranslation('tournament.timezone')
+		tzinfoTourney = tz.gettz(strTzTourney)
+		mpIdDateTourney: dict[int, datetime.date] = { id: match.tStart.to(tzinfoTourney).date() for id, match in self.tourn.mpIdMatch.items() }
+
 		for match in self.tourn.mpIdMatch.values():
 			tTimeTz = match.tStart.to(self.tzinfo)
 			dateDisplay = tTimeTz.date()
