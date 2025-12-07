@@ -136,8 +136,8 @@ class CGroup:
 		self.mpStrSeedStrTeam: dict[str, str] = {strSeed:strTeam for strSeed, strTeam in mpStrSeedStrTeam.items() if strSeed[0] == strGroup}
 
 class CMatch:
-	s_patAlphaNum = re.compile('([a-zA-Z]+)([0-9]+)')
-	s_patNumAlpha = re.compile('([0-9]+)([a-zA-Z]+)')
+	s_patAlphaNum = re.compile('([a-zA-Z]+)-*([0-9]+)')
+	s_patNumAlpha = re.compile('([0-9]+)-*([a-zA-Z]+)')
 
 	def __init__(self, tourn: CTournamentDataBase, xlrow: TExcelRow) -> None:
 		self.tourn = tourn
