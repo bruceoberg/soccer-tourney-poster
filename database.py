@@ -281,10 +281,10 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		self.mpStrSeedStrTeam: dict[str, str] = {xlrow['seed']:xlrow['team'] for xlrow in xlb['seeds']}
 
 		setStrTeam: set[str] = set(map(lambda s: s.lower(), self.mpStrSeedStrTeam.values()))
-		fAllTeams: bool = self.FLocSectionHasAllKeys('team', setStrTeam)
+		fAllCountries: bool = self.FLocSectionHasAllKeys('country', setStrTeam)
 		fAllClubs: bool = self.FLocSectionHasAllKeys('club', setStrTeam)
 
-		self.strKeyTeamPrefix: str = 'team.' if fAllTeams or not fAllClubs else 'club.'	
+		self.strKeyTeamPrefix: str = 'country.' if fAllCountries or not fAllClubs else 'club.'	
 
 		self.stageElimFirst = self.s_mpCSeedStageElimFirst[len(self.mpStrSeedStrTeam)]
 
