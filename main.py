@@ -27,7 +27,8 @@ g_loc = CLocalizationDataBase(g_pathLocalization)
 #g_pathTourn = g_pathHere / 'tournaments' / '2023-womens-world-cup.xlsx'
 #g_pathTourn = g_pathHere / 'tournaments' / '2024-mens-euro.xlsx'
 #g_pathTourn = g_pathHere / 'tournaments' / '2024-mens-copa-america.xlsx'
-g_pathTourn = g_pathHere / 'tournaments' / '2025-mens-club-world-cup.xlsx'
+#g_pathTourn = g_pathHere / 'tournaments' / '2025-mens-club-world-cup.xlsx'
+g_pathTourn = g_pathHere / 'tournaments' / '2026-mens-world-cup.xlsx'
 g_tourn = CTournamentDataBase(g_pathTourn, g_loc)
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
