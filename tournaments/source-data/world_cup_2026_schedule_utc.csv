@@ -1,0 +1,105 @@
+Match Number,Date (UTC),Time (UTC),Match
+1,2026-06-11,19:00,Mexico vs South Africa (Group A)
+2,2026-06-12,02:00,South Korea vs UEFA playoff D (Group A)
+3,2026-06-18,16:00,UEFA playoff D vs South Africa (Group A)
+4,2026-06-19,01:00,Mexico vs South Korea (Group A)
+5,2026-06-25,01:00,UEFA playoff D vs Mexico (Group A)
+6,2026-06-25,01:00,South Africa vs South Korea (Group A)
+7,2026-06-12,19:00,Canada vs UEFA playoff A (Group B)
+8,2026-06-13,19:00,Qatar vs Switzerland (Group B)
+9,2026-06-18,19:00,Switzerland vs UEFA playoff A (Group B)
+10,2026-06-18,22:00,Canada vs Qatar (Group B)
+11,2026-06-24,19:00,Switzerland vs Canada (Group B)
+12,2026-06-24,19:00,UEFA playoff A vs Qatar (Group B)
+13,2026-06-13,22:00,Brazil vs Morocco (Group C)
+14,2026-06-14,01:00,Haiti vs Scotland (Group C)
+15,2026-06-19,22:00,Scotland vs Morocco (Group C)
+16,2026-06-20,01:00,Brazil vs Haiti (Group C)
+17,2026-06-24,22:00,Scotland vs Brazil (Group C)
+18,2026-06-24,22:00,Morocco vs Haiti (Group C)
+19,2026-06-13,01:00,USA vs Paraguay (Group D)
+20,2026-06-13,04:00,Australia vs UEFA playoff C (Group D)
+21,2026-06-19,19:00,USA vs Australia (Group D)
+22,2026-06-19,04:00,UEFA playoff C vs Paraguay (Group D)
+23,2026-06-26,02:00,UEFA playoff C vs USA (Group D)
+24,2026-06-26,02:00,Paraguay vs Australia (Group D)
+25,2026-06-14,17:00,Germany vs Curacao (Group E)
+26,2026-06-14,23:00,Ivory Coast vs Ecuador (Group E)
+27,2026-06-20,20:00,Germany vs Ivory Coast (Group E)
+28,2026-06-21,00:00,Ecuador vs Curacao (Group E)
+29,2026-06-25,20:00,Ecuador vs Germany (Group E)
+30,2026-06-25,20:00,Curacao vs Ivory Coast (Group E)
+31,2026-06-14,20:00,Netherlands vs Japan (Group F)
+32,2026-06-15,02:00,UEFA playoff B vs Tunisia (Group F)
+33,2026-06-20,17:00,Netherlands vs UEFA playoff B (Group F)
+34,2026-06-20,04:00,Tunisia vs Japan (Group F)
+35,2026-06-25,23:00,Japan vs UEFA playoff B (Group F)
+36,2026-06-25,23:00,Tunisia vs Netherlands (Group F)
+37,2026-06-16,01:00,Iran vs New Zealand (Group G)
+38,2026-06-15,19:00,Belgium vs Egypt (Group G)
+39,2026-06-21,19:00,Belgium vs Iran (Group G)
+40,2026-06-22,01:00,New Zealand vs Egypt (Group G)
+41,2026-06-27,03:00,Egypt vs Iran (Group G)
+42,2026-06-27,03:00,New Zealand vs Belgium (Group G)
+43,2026-06-15,16:00,Spain vs Cape Verde (Group H)
+44,2026-06-15,22:00,Saudi Arabia vs Uruguay (Group H)
+45,2026-06-21,16:00,Spain vs Saudi Arabia (Group H)
+46,2026-06-21,22:00,Uruguay vs Cape Verde (Group H)
+47,2026-06-27,00:00,Cape Verde vs Saudi Arabia (Group H)
+48,2026-06-27,00:00,Uruguay vs Spain (Group H)
+49,2026-06-16,19:00,France vs Senegal (Group I)
+50,2026-06-16,22:00,Inter-confederation playoff 2 vs Norway (Group I)
+51,2026-06-22,21:00,France vs Inter-confederation playoff 2 (Group I)
+52,2026-06-23,00:00,Norway vs Senegal (Group I)
+53,2026-06-26,19:00,Norway vs France (Group I)
+54,2026-06-26,19:00,Senegal vs Inter-confederation playoff 2 (Group I)
+55,2026-06-17,01:00,Argentina vs Algeria (Group J)
+56,2026-06-16,04:00,Austria vs Jordan (Group J)
+57,2026-06-22,17:00,Argentina vs Austria (Group J)
+58,2026-06-23,03:00,Jordan vs Algeria (Group J)
+59,2026-06-28,02:00,Algeria vs Austria (Group J)
+60,2026-06-28,02:00,Jordan vs Argentina (Group J)
+61,2026-06-17,17:00,Portugal vs Inter-confederation playoff 1 (Group K)
+62,2026-06-18,02:00,Uzbekistan vs Colombia (Group K)
+63,2026-06-23,17:00,Portugal vs Uzbekistan (Group K)
+64,2026-06-24,02:00,Colombia vs Inter-confederation playoff 1 (Group K)
+65,2026-06-27,23:30,Colombia vs Portugal (Group K)
+66,2026-06-27,23:30,Inter-confederation playoff 1 vs Uzbekistan (Group K)
+67,2026-06-17,20:00,England vs Croatia (Group L)
+68,2026-06-17,23:00,Ghana vs Panama (Group L)
+69,2026-06-23,20:00,England vs Ghana (Group L)
+70,2026-06-23,23:00,Panama vs Croatia (Group L)
+71,2026-06-27,21:00,Panama vs England (Group L)
+72,2026-06-27,21:00,Croatia vs Ghana (Group L)
+73,2026-06-28,19:00,Round of 32
+74,2026-06-29,17:00,Round of 32
+75,2026-06-29,20:30,Round of 32
+76,2026-06-30,01:00,Round of 32
+77,2026-06-30,17:00,Round of 32
+78,2026-06-30,21:00,Round of 32
+79,2026-07-01,01:00,Round of 32
+80,2026-07-01,16:00,Round of 32
+81,2026-07-01,20:00,Round of 32
+82,2026-07-02,00:00,Round of 32
+83,2026-07-02,19:00,Round of 32
+84,2026-07-02,23:00,Round of 32
+85,2026-07-03,03:00,Round of 32
+86,2026-07-03,18:00,Round of 32
+87,2026-07-03,22:00,Round of 32
+88,2026-07-04,01:30,Round of 32
+89,2026-07-04,17:00,Round of 16
+90,2026-07-04,21:00,Round of 16
+91,2026-07-05,20:00,Round of 16
+92,2026-07-06,00:00,Round of 16
+93,2026-07-06,19:00,Round of 16
+94,2026-07-07,00:00,Round of 16
+95,2026-07-07,16:00,Round of 16
+96,2026-07-07,20:00,Round of 16
+97,2026-07-09,20:00,Quarterfinal
+98,2026-07-10,19:00,Quarterfinal
+99,2026-07-11,21:00,Quarterfinal
+100,2026-07-12,01:00,Quarterfinal
+101,2026-07-14,19:00,Semifinal
+102,2026-07-15,19:00,Semifinal
+103,2026-07-18,21:00,Bronze Medal Match
+104,2026-07-19,19:00,Final
