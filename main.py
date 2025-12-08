@@ -1662,11 +1662,11 @@ if True:
 		iterPagea = (
 			# SPageArgs(CCalOnlyPage, fmt=(18, 27), fmtCrop=None, strVariant = 'benjy orig', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
 			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='US/Pacific'),
-			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
-			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='Asia/Qatar'),
-			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
+			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
+			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='Asia/Qatar'),
+			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
-			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='Australia/Sydney'),
+			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='Australia/Sydney'),
 		))
 
 	docaTests = SDocumentArgs(
@@ -1730,10 +1730,10 @@ if True:
 
 	llDocaTodo = [
 		[
-			#docaDefault,
+			docaDefault,
 			# docaTests,
 			# docaDesigns,
-			docaRelease,
+			#docaRelease,
 		],
 		lDocaRelease,
 	]
