@@ -167,7 +167,12 @@ class CMatch:
 
 		self.tuIdFed: tuple[int] = ()
 
-		if matHome := self.s_patNumAlpha.match(self.strSeedHome):
+		if self.strSeedHome in tourn.mpStrSeedStrTeam and \
+		   self.strSeedAway in tourn.mpStrSeedStrTeam:
+			self.stage = STAGE.Group
+			assert self.strSeedHome[0] == self.strSeedAway[0]
+			self.lStrGroup = [self.strSeedHome[0]]
+		elif matHome := self.s_patNumAlpha.match(self.strSeedHome):
 			matAway = self.s_patNumAlpha.match(self.strSeedAway)
 			assert matAway
 			self.stage = tourn.stageElimFirst
@@ -177,10 +182,7 @@ class CMatch:
 			assert matAway
 			assert matHome[1] == matAway[1]
 			
-			if matHome[1] in tourn.setStrGroup:
-				self.stage = STAGE.Group
-				self.lStrGroup = [matHome[1]]
-			elif matHome[1] == 'RU' or matHome[1] == 'L':
+			if matHome[1] == 'RU' or matHome[1] == 'L':
 				self.stage = STAGE.Third
 				self.lIdFeeders = [int(matHome[2]), int(matAway[2])]
 			else:
@@ -366,7 +368,7 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 				assert len(setMatchNoStage) == 1
 				stageNext = STAGE.Final
 			else:
-				stageNext = stagePrev + 1
+				stageNext = STAGE(stagePrev + 1)
 
 			setMatchNext: set[CMatch] = set()
 
