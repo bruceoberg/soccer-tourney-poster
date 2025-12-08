@@ -1660,8 +1660,8 @@ if True:
 	docaDefault = SDocumentArgs(
 		strDestDir = 'playground',
 		iterPagea = (
-			# SPageArgs(CCalOnlyPage, fmt=(18, 27), fmtCrop=None, strVariant = 'benjy orig', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
-			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='US/Pacific'),
+			SPageArgs(CCalOnlyPage, fmt=(20, 27), fmtCrop=None, strTz='US/Eastern'),
+			SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='US/Eastern'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='Asia/Qatar'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
@@ -1733,9 +1733,9 @@ if True:
 			docaDefault,
 			# docaTests,
 			# docaDesigns,
-			#docaRelease,
+			# docaRelease,
 		],
-		lDocaRelease,
+		#lDocaRelease,
 	]
 
 	for lDoca in llDocaTodo:
