@@ -1029,13 +1029,16 @@ class CDaysTestPage(CPage): # gtp
 
 class CGroupSetBlot(CBlot): # tag = gsetb
 
-	s_dSGridGap = CGroupBlot.s_dY / 2
+	s_dSGridGapMax = CGroupBlot.s_dY / 2
 
-	def __init__(self, doc: CDocument, lGroupb: list[CGroupBlot], cCol: int = 0, cRow: int = 0) -> None:
+	def __init__(self, doc: CDocument, lGroupb: list[CGroupBlot], rectCanvas: SRect, cCol: int = 0, cRow: int = 0) -> None:
 		super().__init__(doc.pdf)
 
 		self.doc = doc
 		self.lGroupb = lGroupb
+
+		if not lGroupb:
+			return
 
 		if cCol == 0 and cRow == 0:
 			self.cCol = round(math.sqrt(len(lGroupb))) + 1
@@ -1050,13 +1053,27 @@ class CGroupSetBlot(CBlot): # tag = gsetb
 			self.cCol = cCol
 			self.cRow = cRow
 
-		self.dX = (self.cCol * CGroupBlot.s_dX) + ((self.cCol - 1) * self.s_dSGridGap)
-		self.dY = (self.cRow * CGroupBlot.s_dY) + ((self.cRow - 1) * self.s_dSGridGap)
+		dXGroups = (self.cCol * CGroupBlot.s_dX)
+		dYGroups = (self.cRow * CGroupBlot.s_dY) 
+
+		self.dXGridGap = 0 if self.cCol <= 1 else (rectCanvas.dX - dXGroups) / ((self.cCol - 1))
+		self.dYGridGap = 0 if self.cRow <= 1 else (rectCanvas.dY - dYGroups) / ((self.cRow - 1))
+
+		# gaps could be negative if rectInside is too small
+
+		self.dXGridGap = min(max(0, self.dXGridGap), self.s_dSGridGapMax)
+		self.dYGridGap = min(max(0, self.dYGridGap), self.s_dSGridGapMax)
+
+		self.dX = dXGroups + ((self.cCol - 1) * self.dXGridGap)
+		self.dY = dYGroups + ((self.cRow - 1) * self.dYGridGap)
 
 	def Draw(self, pos: SPoint) -> None:
 		for iGroupb, groupb in enumerate(self.lGroupb):
-			yGroup = pos.y + iGroupb * (CGroupBlot.s_dY + self.s_dSGridGap)
-			groupb.Draw(SPoint(pos.x, yGroup))
+			iRow, iCol = divmod(iGroupb, self.cCol)
+			posGroup = SPoint(
+				pos.x + iCol * (CGroupBlot.s_dX + self.dXGridGap),
+				pos.y + iRow * (CGroupBlot.s_dY + self.dYGridGap))
+			groupb.Draw(posGroup)
 
 class CHeaderBlot(CBlot): # tag = headerb
 
@@ -1466,13 +1483,27 @@ class CCalOnlyPage(CPage): # tag = calonlyp
 	def __init__(self, doc: CDocument, pagea: SPageArgs):
 		super().__init__(doc, pagea)
 
+		# header/footer
+
+		headerb = CHeaderBlot(self)
+		rectHeader = self.rectInside.Copy().Set(dY=headerb.s_dY)
+
+		footerb = CFooterBlot(self)
+		rectFooter = self.rectInside.Copy().Stretch(dYTop = (self.rectInside.dY - footerb.s_dY))
+
+		rectCanvas = self.rectInside.Copy()
+		rectCanvas.yMin = rectHeader.yMax
+		rectCanvas.yMax = rectFooter.yMin
+
+		# groups on either side
+
 		cGroupHalf = len(self.tourn.lStrGroup) // 2
 
 		lGroupbLeft = [CGroupBlot(self, self.tourn.mpStrGroupGroup[strGroup]) for strGroup in self.tourn.lStrGroup[:cGroupHalf]]
-		gsetbLeft = CGroupSetBlot(doc, lGroupbLeft, cCol = 1)
+		gsetbLeft = CGroupSetBlot(doc, lGroupbLeft, rectCanvas, cCol = 1)
 
 		lGroupbRight = [CGroupBlot(self, self.tourn.mpStrGroupGroup[strGroup]) for strGroup in self.tourn.lStrGroup[cGroupHalf:]]
-		gsetbRight = CGroupSetBlot(doc, lGroupbRight, cCol = 1)
+		gsetbRight = CGroupSetBlot(doc, lGroupbRight, rectCanvas, cCol = 1)
 
 		setMatchCalendar = self.tourn.setMatchGroup | self.tourn.setMatchElimination
 
@@ -1482,35 +1513,25 @@ class CCalOnlyPage(CPage): # tag = calonlyp
 		calb = CCalendarBlot(self, setMatchCalendar)
 		finalb = CFinalBlot(self)
 
-		headerb = CHeaderBlot(self)
-		rectHeader = self.rectInside.Copy().Set(dY=headerb.s_dY)
-
-		footerb = CFooterBlot(self)
-		rectFooter = self.rectInside.Copy().Stretch(dYTop = (self.rectInside.dY - footerb.s_dY))
-
-		rectInside = self.rectInside.Copy()
-		rectInside.yMin = rectHeader.yMax
-		rectInside.yMax = rectFooter.yMin
-
-		dXUnused = rectInside.dX - (calb.dX + gsetbLeft.dX + gsetbRight.dX)
+		dXUnused = rectCanvas.dX - (calb.dX + gsetbLeft.dX + gsetbRight.dX)
 		dXGap = dXUnused / 4.0 # both margins and both gaps between groups and calendar. same gap vertically for calendar/final
 
-		dYUnused = rectInside.dY - (calb.dY + finalb.s_dY)
+		dYUnused = rectCanvas.dY - (calb.dY + finalb.s_dY)
 		dYGap = dYUnused / 3.0
 
 		assert gsetbLeft.dY == gsetbRight.dY
-		yGroups = rectInside.y + (rectInside.dY - gsetbLeft.dY) / 2.0
+		yGroups = rectCanvas.y + (rectCanvas.dY - gsetbLeft.dY) / 2.0
 
-		xGroupsLeft = rectInside.x + dXGap
+		xGroupsLeft = rectCanvas.x + dXGap
 
 		gsetbLeft.Draw(SPoint(xGroupsLeft, yGroups))
 
 		xCalendar = xGroupsLeft + gsetbLeft.dX + dXGap
-		yCalendar = rectInside.y + dYGap
+		yCalendar = rectCanvas.y + dYGap
 
 		calb.Draw(SPoint(xCalendar, yCalendar))
 
-		xFinal = (rectInside.dX - finalb.s_dX) / 2.0
+		xFinal = (rectCanvas.dX - finalb.s_dX) / 2.0
 		yFinal = yCalendar + calb.dY + dYGap
 
 		finalb.Draw(SPoint(xFinal, yFinal))
@@ -1528,9 +1549,19 @@ class CCalElimPage(CPage): # tag = calelimp
 	def __init__(self, doc: CDocument, pagea: SPageArgs):
 		super().__init__(doc, pagea)
 
-		setMatchCalendar: set[CMatch] = self.tourn.mpStageSetMatch[STAGE.Group]
-		lSetMatchBracket: list[set[CMatch]] = [setMatch for stage, setMatch in self.tourn.mpStageSetMatch.items() if stage != STAGE.Group]
-		setMatchBracket: set[CMatch] = set().union(*lSetMatchBracket)
+		# header/footer
+
+		headerb = CHeaderBlot(self)
+		rectHeader = self.rectInside.Copy().Set(dY=headerb.s_dY)
+
+		footerb = CFooterBlot(self)
+		rectFooter = self.rectInside.Copy().Stretch(dYTop = (self.rectInside.dY - footerb.s_dY))
+
+		rectCanvas = self.rectInside.Copy()
+		rectCanvas.yMin = rectHeader.yMax
+		rectCanvas.yMax = rectFooter.yMin
+
+		# groups on either side
 
 		assert len(self.tourn.lStrGroup) % 2 == 0
 		cGroupHalf = len(self.tourn.lStrGroup) // 2
@@ -1543,52 +1574,47 @@ class CCalElimPage(CPage): # tag = calelimp
 			lStrGroupRight = self.tourn.lStrGroup[:cGroupHalf]
 
 		lGroupbLeft = [CGroupBlot(self, self.tourn.mpStrGroupGroup[strGroup]) for strGroup in lStrGroupLeft]
-		gsetbLeft = CGroupSetBlot(self.doc, lGroupbLeft, cCol = 1)
+		gsetbLeft = CGroupSetBlot(self.doc, lGroupbLeft, rectCanvas, cCol = 1)
 
 		lGroupbRight = [CGroupBlot(self, self.tourn.mpStrGroupGroup[strGroup]) for strGroup in lStrGroupRight]
-		gsetbRight = CGroupSetBlot(self.doc, lGroupbRight, cCol = 1)
+		gsetbRight = CGroupSetBlot(self.doc, lGroupbRight, rectCanvas, cCol = 1)
+
+		# cal vs bracket matches
+
+		setMatchCalendar: set[CMatch] = self.tourn.mpStageSetMatch[STAGE.Group]
+		lSetMatchBracket: list[set[CMatch]] = [setMatch for stage, setMatch in self.tourn.mpStageSetMatch.items() if stage != STAGE.Group]
+		setMatchBracket: set[CMatch] = set().union(*lSetMatchBracket)
 
 		calb = CCalendarBlot(self, setMatchCalendar)
-
 		bracketb = CBracketBlot(self, setMatchBracket)
 
 		finalb = CFinalBlot(self)
 
-		headerb = CHeaderBlot(self)
-		rectHeader = self.rectInside.Copy().Set(dY=headerb.s_dY)
-
-		footerb = CFooterBlot(self)
-		rectFooter = self.rectInside.Copy().Stretch(dYTop = (self.rectInside.dY - footerb.s_dY))
-
-		rectInside = self.rectInside.Copy()
-		rectInside.yMin = rectHeader.yMax
-		rectInside.yMax = rectFooter.yMin
-
-		dXUnused = rectInside.dX - (calb.dX + gsetbLeft.dX + gsetbRight.dX)
+		dXUnused = rectCanvas.dX - (calb.dX + gsetbLeft.dX + gsetbRight.dX)
 		dXGap = dXUnused / 4.0 # both margins and both gaps between groups and calendar. same gap vertically for calendar/final
 
-		dYUnused = rectInside.dY - (calb.dY + bracketb.dY + finalb.s_dY)
+		dYUnused = rectCanvas.dY - (calb.dY + bracketb.dY + finalb.s_dY)
 		dYGap = dYUnused / 4.0
 
 		assert gsetbLeft.dY == gsetbRight.dY
-		yGroups = rectInside.y + (rectInside.dY - gsetbLeft.dY) / 2.0
+		yGroups = rectCanvas.y + (rectCanvas.dY - gsetbLeft.dY) / 2.0
 
-		xGroupsLeft = rectInside.x + dXGap
+		xGroupsLeft = rectCanvas.x + dXGap
 
 		gsetbLeft.Draw(SPoint(xGroupsLeft, yGroups))
 
 		xCalendar = xGroupsLeft + gsetbLeft.dX + dXGap
-		yCalendar = rectInside.y + dYGap
+		yCalendar = rectCanvas.y + dYGap
 
 		calb.Draw(SPoint(xCalendar, yCalendar))
 		calb.DrawHeading(SPoint(xCalendar, yCalendar))
 
-		xBracket = rectInside.x + (rectInside.dX - bracketb.dX) / 2
+		xBracket = rectCanvas.x + (rectCanvas.dX - bracketb.dX) / 2
 		yBracket = yCalendar + calb.dY + dYGap
 
 		bracketb.Draw(SPoint(xBracket, yBracket))
 
-		xFinal = rectInside.x + (rectInside.dX - finalb.s_dX) / 2.0
+		xFinal = rectCanvas.x + (rectCanvas.dX - finalb.s_dX) / 2.0
 		yFinal = yBracket + bracketb.dY + dYGap
 
 		finalb.Draw(SPoint(xFinal, yFinal))
