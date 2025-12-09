@@ -1406,15 +1406,15 @@ class CBracketBlot(CBlot): # tag = bracketb
 		if self.tourn.matchThird:
 			elimbThird = CElimBlot(self.page, self.tourn.matchThird)
 
+			# center directly below semis, with vertical midpoint even with
+			# bottom of last quarters row.
+
 			xThird = (self.dX - elimbThird.s_dX) / 2
+			yThird = mpStageRowY[(STAGE.Quarters, 1)] + (CElimBlot.s_dY / 2)
 
 			# add extra space for small bracket with a third place match
 
-			if lStage[0] == STAGE.Quarters:
-				yThird = self.dY
-				self.dY += elimbThird.s_dY
-			else:
-				yThird = (self.dY - elimbThird.s_dY)
+			self.dY = max(self.dY, yThird + CElimBlot.s_dY)
 
 			self.lTuXYElimb.append((xThird, yThird, elimbThird))
 
