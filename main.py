@@ -1029,7 +1029,7 @@ class CDaysTestPage(CPage): # gtp
 
 class CGroupSetBlot(CBlot): # tag = gsetb
 
-	s_dSGridGapMax = CGroupBlot.s_dY / 2
+	s_dSGridGapMax = min(CGroupBlot.s_dX, CGroupBlot.s_dY) / 2
 
 	def __init__(self, doc: CDocument, lGroupb: list[CGroupBlot], rectCanvas: SRect, cCol: int = 0, cRow: int = 0) -> None:
 		super().__init__(doc.pdf)
@@ -1056,23 +1056,28 @@ class CGroupSetBlot(CBlot): # tag = gsetb
 		dXGroups = (self.cCol * CGroupBlot.s_dX)
 		dYGroups = (self.cRow * CGroupBlot.s_dY) 
 
-		self.dXGridGap = 0 if self.cCol <= 1 else (rectCanvas.dX - dXGroups) / ((self.cCol - 1))
-		self.dYGridGap = 0 if self.cRow <= 1 else (rectCanvas.dY - dYGroups) / ((self.cRow - 1))
+		self.dXGridGap = 0 if self.cCol <= 1 else (rectCanvas.dX - dXGroups) / self.cCol
+		self.dYGridGap = 0 if self.cRow <= 1 else (rectCanvas.dY - dYGroups) / self.cRow
 
 		# gaps could be negative if rectInside is too small
 
 		self.dXGridGap = min(max(0, self.dXGridGap), self.s_dSGridGapMax)
 		self.dYGridGap = min(max(0, self.dYGridGap), self.s_dSGridGapMax)
 
-		self.dX = dXGroups + ((self.cCol - 1) * self.dXGridGap)
-		self.dY = dYGroups + ((self.cRow - 1) * self.dYGridGap)
+		self.dX = dXGroups + (self.cCol * self.dXGridGap)
+		self.dY = dYGroups + (self.cRow * self.dYGridGap)
 
 	def Draw(self, pos: SPoint) -> None:
+		
+		# add margins if there is spacing
+
+		xGroupOrigin = pos.x + self.dXGridGap / 2
+		yGroupOrigin = pos.y + self.dYGridGap / 2
 		for iGroupb, groupb in enumerate(self.lGroupb):
 			iRow, iCol = divmod(iGroupb, self.cCol)
 			posGroup = SPoint(
-				pos.x + iCol * (CGroupBlot.s_dX + self.dXGridGap),
-				pos.y + iRow * (CGroupBlot.s_dY + self.dYGridGap))
+				xGroupOrigin + iCol * (CGroupBlot.s_dX + self.dXGridGap),
+				yGroupOrigin + iRow * (CGroupBlot.s_dY + self.dYGridGap))
 			groupb.Draw(posGroup)
 
 class CHeaderBlot(CBlot): # tag = headerb
