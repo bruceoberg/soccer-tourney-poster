@@ -424,22 +424,22 @@ class CMatchBlot(CBlot): # tag = dayb
 
 class CDayBlot(CBlot): # tag = dayb
 
-	s_dX = 2.25
-	s_dY = s_dX # square
+	s_dXMin = 2.25
+	s_dYMin = s_dXMin # square
 
 	s_dSLineOuter = 0.02
 	s_dSLineScore = 0.01
 
 	s_uYDate = 0.06
-	s_dYDate = s_dY * s_uYDate
+	s_dYDate = s_dYMin * s_uYDate
 
 	s_uYTime = 0.075
-	s_dYFontTime = s_dY * s_uYTime
+	s_dYFontTime = s_dYMin * s_uYTime
 	s_dYTimeGapMax = s_dYFontTime / 2.0
 	# scores are square, so we use dS
 
 	s_uSScore = 0.147
-	s_dSScore = s_dY * s_uSScore
+	s_dSScore = s_dYMin * s_uSScore
 	s_dSScoreGap = s_dSScore / 2.0
 
 	s_dSPens = s_dSScore / 2.0
@@ -470,9 +470,9 @@ class CDayBlot(CBlot): # tag = dayb
 
 		self.dYTime = CFontInstance(self.pdf, self.page.Fontkey('match.time'), self.s_dYFontTime).dYCap
 
-	def Draw(self, pos: SPoint, tPrev: Optional[arrow.Arrow] = None) -> None:
+	def Draw(self, pos: SPoint, daybl: CDayBlotList, tPrev: Optional[arrow.Arrow] = None) -> None:
 
-		rectBorder = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
+		rectBorder = SRect(pos.x, pos.y, daybl.dXDayb, daybl.dYDayb)
 		rectInside = rectBorder.Copy().Inset(self.s_dSLineOuter / 2.0)
 
 		# Date
@@ -540,9 +540,23 @@ class CDayBlot(CBlot): # tag = dayb
 		if self.page.pagea.fMainBorders:
 			self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
 
+class CDayBlotList: # tag = daybl
+	def __init__(self, lDayb: list[CDayBlot]):
+		self.lDayb = lDayb
+
+		self.dXDayb = CDayBlot.s_dXMin
+		self.dYDayb = CDayBlot.s_dYMin
+
+		cMatchMax = max([len(dayb.lMatch) for dayb in lDayb])
+
+		if cMatchMax >= 6:
+			self.dXDayb *= 1.1
+			self.dYDayb *= 1.3
+
 class CElimBlot(CDayBlot): # tag = elimb
 
-	s_dY = (CDayBlot.s_dY / 2) + (CDayBlot.s_dYTimeGapMax * 2)
+	s_dX = CDayBlot.s_dXMin
+	s_dY = (CDayBlot.s_dYMin / 2) + (CDayBlot.s_dYTimeGapMax * 2)
 
 	s_dYDate = CDayBlot.s_dYFontTime
 
@@ -601,8 +615,8 @@ class CElimBlot(CDayBlot): # tag = elimb
 
 class CFinalBlot(CBlot): # tag = finalb
 
-	s_dX = CDayBlot.s_dX * 3.0
-	s_dY = CDayBlot.s_dY
+	s_dX = CDayBlot.s_dXMin * 3.0
+	s_dY = CDayBlot.s_dYMin
 
 	s_dYFontTitle = CDayBlot.s_dYFontLabel * 1.7
 	s_dYFontDate = s_dYFontTitle * 0.66
@@ -1007,25 +1021,25 @@ class CDaysTestPage(CPage): # gtp
 
 		dSMargin = 0.25
 
-		dXGrid = CDayBlot.s_dX + dSMargin
-		dYGrid = CDayBlot.s_dY + dSMargin
-
 		# lIdMatch = (49,57)
 		# setDate: set[datetime.date] = {doc.tourn.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
 		setDate: set[datetime.date] = set(self.mpDateSetMatch.keys())
 
-		lDayb: list[CDayBlot] = [CDayBlot(self, arrow.get(date), self.mpDateSetMatch.get(date)) for date in sorted(setDate)]
+		daybl = CDayBlotList([CDayBlot(self, arrow.get(date), self.mpDateSetMatch.get(date)) for date in sorted(setDate)])
+
+		dXCell = daybl.dXDayb + dSMargin
+		dYCell = daybl.dYDayb + dSMargin
 
 		for row in range(4):
 			for col in range(7):
 				try:
-					dayb = lDayb[row * 7 + col]
+					dayb = daybl.lDayb[row * 7 + col]
 				except IndexError:
 					continue
 				pos = SPoint(
-						dSMargin + col * dXGrid,
-						dSMargin + row * dYGrid)
-				dayb.Draw(pos)
+						dSMargin + col * dXCell,
+						dSMargin + row * dYCell)
+				dayb.Draw(pos, daybl)
 
 class CGroupSetBlot(CBlot): # tag = gsetb
 
@@ -1082,7 +1096,7 @@ class CGroupSetBlot(CBlot): # tag = gsetb
 
 class CHeaderBlot(CBlot): # tag = headerb
 
-	s_dY = CDayBlot.s_dY * 0.6
+	s_dY = CDayBlot.s_dYMin * 0.6
 
 	s_dYFontTitle = s_dY / 2
 	s_dYFontSides = s_dYFontTitle / 2
@@ -1163,7 +1177,7 @@ class CHeaderBlot(CBlot): # tag = headerb
 
 class CFooterBlot(CBlot): # tag = headerb
 
-	s_dY = CDayBlot.s_dY * 0.2
+	s_dY = CDayBlot.s_dYMin * 0.2
 
 	s_dYFont = s_dY / 4
 
@@ -1248,25 +1262,29 @@ class CCalendarBlot(CBlot): # tag = calb
 		assert cDay % 7 == 0
 		cWeek: int = cDay // 7
 
-		self.dX = 7 * CDayBlot.s_dX
-		self.dY = self.s_dYDayOfWeek + cWeek * CDayBlot.s_dY
+		lDayb: list[CDayBlot] = []
+
+		for tDay in arrow.Arrow.range('day', arrow.get(dateMin), arrow.get(dateMax)):
+			setMatchDate = self.page.mpDateSetMatch.get(tDay.date(), set()).intersection(setMatch)
+			lDayb.append(CDayBlot(self.page, tDay, iterMatch = setMatchDate))
+
+		self.daybl = CDayBlotList(lDayb)
+
+		self.dX = 7 * self.daybl.dXDayb
+		self.dY = self.s_dYDayOfWeek + cWeek * self.daybl.dYDayb
 
 		# build a list of all day blots and their relative positions
 
 		self.lTuDPosDayb: list[tuple[SPoint, CDayBlot]] = []
 
-		for iDay, tDay in enumerate(arrow.Arrow.range('day', arrow.get(dateMin), arrow.get(dateMax))):
-			setMatchDate = self.page.mpDateSetMatch.get(tDay.date(), set()).intersection(setMatch)
-
-			dayb = CDayBlot(self.page, tDay, iterMatch = setMatchDate)
-
+		for iDay, dayb in enumerate(self.daybl.lDayb):
 			iWeekday = iDay % 7
 			iWeek = iDay // 7
 
 			if not self.page.FIsLeftToRight():
 				iWeekday = 6 - iWeekday
 
-			dPosDayb = SPoint(iWeekday * CDayBlot.s_dX, iWeek * CDayBlot.s_dY)
+			dPosDayb = SPoint(iWeekday * self.daybl.dXDayb, iWeek * self.daybl.dYDayb)
 			self.lTuDPosDayb.append((dPosDayb, dayb))
 
 	def Draw(self, pos: SPoint) -> None:
@@ -1276,11 +1294,11 @@ class CCalendarBlot(CBlot): # tag = calb
 		mpIdayStrDayOfWeek = babel.dates.get_day_names('abbreviated', locale=self.page.locale)
 
 		if self.page.FIsLeftToRight():
-			rectDayOfWeek = SRect(x = pos.x, y = pos.y, dX = CDayBlot.s_dX, dY = self.s_dYDayOfWeek)
-			dXShift = CDayBlot.s_dX
+			rectDayOfWeek = SRect(x = pos.x, y = pos.y, dX = self.daybl.dXDayb, dY = self.s_dYDayOfWeek)
+			dXShift = self.daybl.dXDayb
 		else:
-			rectDayOfWeek = SRect(x = pos.x + self.dX - CDayBlot.s_dX, y = pos.y, dX = CDayBlot.s_dX, dY = self.s_dYDayOfWeek)
-			dXShift = -CDayBlot.s_dX
+			rectDayOfWeek = SRect(x = pos.x + self.dX - self.daybl.dXDayb, y = pos.y, dX = self.daybl.dXDayb, dY = self.s_dYDayOfWeek)
+			dXShift = -self.daybl.dXDayb
 
 		for iDay in range(7):
 			strDayOfWeek = mpIdayStrDayOfWeek[(iDay + self.weekdayFirst) % 7]
@@ -1297,7 +1315,7 @@ class CCalendarBlot(CBlot): # tag = calb
 
 			posDayb = SPoint(rectDays.x + dPosDayb.x, rectDays.y + dPosDayb.y)
 
-			dayb.Draw(posDayb, tPrev)
+			dayb.Draw(posDayb, self.daybl, tPrev)
 
 			tPrev = dayb.tDay
 
