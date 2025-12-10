@@ -1356,37 +1356,40 @@ class CBracketBlot(CBlot): # tag = bracketb
 		self.cCol: int = len(lStage) * 2
 		self.cRow: int = max(mpStageCRow.values())
 
-		self.dX = self.cCol * CElimBlot.s_dX + (self.cCol - 1) * self.s_dXStageGap
-		self.dY = self.cRow * CElimBlot.s_dY + (self.cRow - 1) * self.s_dYStageGap
+		dXGrid = self.cCol * CElimBlot.s_dX + (self.cCol - 1) * self.s_dXStageGap
+		dYGrid = self.cRow * CElimBlot.s_dY + (self.cRow - 1) * self.s_dYStageGap
+
+		self.dX = dXGrid
+		self.dY = self.s_dYStageLabel + dYGrid # earliest stage label pops up above grid
 
 		# figure out offsets for bracket layout
 
-		dXGrid = CElimBlot.s_dX + self.s_dXStageGap
-		dYGrid = CElimBlot.s_dY + self.s_dYStageGap
+		dXCell = CElimBlot.s_dX + self.s_dXStageGap
+		dYCell = CElimBlot.s_dY + self.s_dYStageGap
 
-		mpColX: dict[int, float] = {col : col * dXGrid for col in range(self.cCol)}
+		mpColX: dict[int, float] = {col : col * dXCell for col in range(self.cCol)}
 
 		mpStageRowY: dict[tuple[STAGE, int], float] = {}
-		yElimbGridMax = (self.dY - CElimBlot.s_dY) / 2
-		dYElimbGridPerStage = yElimbGridMax / (len(lStage) - 1)
+		dYElimbGridMax = (dYGrid - CElimBlot.s_dY) / 2
+		dYElimbGridPerStage = dYElimbGridMax / (len(lStage) - 1)
 
 		for iStage, (stage, cRowStage) in enumerate(mpStageCRow.items()):
 			if cRowStage >= self.cRow:
 				dYStageMin = 0
-				dYGridStage = dYGrid
+				dYGridStage = dYCell
 			else:
 				dYStageMin = iStage * dYElimbGridPerStage
 
 				if cRowStage > 1:
 					dYGridBlots = cRowStage * CElimBlot.s_dY
-					dYGridUnused = self.dY - (dYGridBlots + 2 * dYStageMin)
+					dYGridUnused = dYGrid - (dYGridBlots + 2 * dYStageMin)
 					dYMarginGap = dYGridUnused / (cRowStage - 1)
 					dYGridStage = dYMarginGap + CElimBlot.s_dY
 				else:
 					dYGridStage = 0
 
 			for row in range(cRowStage):
-				mpStageRowY[(stage, row)] = dYStageMin + row * dYGridStage
+				mpStageRowY[(stage, row)] = self.s_dYStageLabel + dYStageMin + row * dYGridStage
 
 		# allot blots to rows and columns
 
@@ -1415,7 +1418,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 			# center directly below semis, with vertical midpoint even with
 			# bottom of last quarters row.
 
-			xThird = (self.dX - elimbThird.s_dX) / 2
+			xThird = (dXGrid - elimbThird.s_dX) / 2
 			yThird = mpStageRowY[(STAGE.Quarters, 1)] + (CElimBlot.s_dY / 2)
 
 			# add extra space for small bracket with a third place match
@@ -1447,7 +1450,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 		for stage, (rectStageLocal, strStage) in self.mpStageTuRectStr.items():
 
 			rectStageGlobal = rectStageLocal.Copy().Shift(dX = pos.x, dY = pos.y)
-			rectStageText = SRect(rectStageGlobal.x, rectStageGlobal.y - (self.s_dYFontStage * 2), rectStageGlobal.dX, self.s_dYFontStage)
+			rectStageText = SRect(rectStageGlobal.x, rectStageGlobal.y - self.s_dYStageLabel, rectStageGlobal.dX, self.s_dYFontStage)
 
 			if stage == STAGE.Third:
 				rectStageText.Shift(dY = self.s_dYFontStage)
