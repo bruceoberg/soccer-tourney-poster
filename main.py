@@ -1340,6 +1340,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 	s_dYStageGap = CElimBlot.s_dY / 8
 
 	s_dYFontStage = CElimBlot.s_dYDate
+	s_dYStageLabel = s_dYFontStage * 2.0
 
 	def __init__(self, page: CPage, setMatch: set[CMatch]) -> None:
 		self.page = page
@@ -1429,15 +1430,9 @@ class CBracketBlot(CBlot): # tag = bracketb
 		self.mpStageTuRectStr: dict[STAGE, tuple[SRect, str]] = {}
 
 		for stage, lRect in mpStageLRect.items():
-			rectStage = lRect[0]
+			rectStage = RectBoundingBox(lRect)
 			strKey = 'stage.' + stage.name.lower()
 			strStage = self.page.StrTranslation(strKey).upper()
-			for rect in lRect[1:]:
-				# BB (bruceo) put this in SRect
-				rectStage.xMin = min(rectStage.xMin, rect.xMin)
-				rectStage.yMin = min(rectStage.yMin, rect.yMin)
-				rectStage.xMax = max(rectStage.xMax, rect.xMax)
-				rectStage.yMax = max(rectStage.yMax, rect.yMax)
 
 			self.mpStageTuRectStr[stage] = (rectStage, strStage)
 
@@ -1595,7 +1590,8 @@ class CCalElimPage(CPage): # tag = calelimp
 
 		finalb = CFinalBlot(self)
 
-		dXUnused = rectCanvas.dX - (calb.dX + gsetbLeft.dX + gsetbRight.dX)
+		#dXUnused = rectCanvas.dX - (calb.dX + gsetbLeft.dX + gsetbRight.dX)
+		dXUnused = rectCanvas.dX - (max(calb.dX, bracketb.dX, finalb.s_dX) + gsetbLeft.dX + gsetbRight.dX)
 		dXGap = dXUnused / 4.0 # both margins and both gaps between groups and calendar. same gap vertically for calendar/final
 
 		dYUnused = rectCanvas.dY - (calb.dY + bracketb.dY + finalb.s_dY)
@@ -1605,26 +1601,34 @@ class CCalElimPage(CPage): # tag = calelimp
 		yGroups = rectCanvas.y + (rectCanvas.dY - gsetbLeft.dY) / 2.0
 
 		xGroupsLeft = rectCanvas.x + dXGap
+		xGroupsRight = rectCanvas.xMax - (gsetbRight.dX + dXGap)
 
 		gsetbLeft.Draw(SPoint(xGroupsLeft, yGroups))
 
-		xCalendar = xGroupsLeft + gsetbLeft.dX + dXGap
-		yCalendar = rectCanvas.y + dYGap
+		xCalendar = rectCanvas.x + (rectCanvas.dX - calb.dX) / 2.0
+		if dYGap < 0:
+			yCalendar = rectCanvas.y
+		else:
+			yCalendar = rectCanvas.y + dYGap
 
 		calb.Draw(SPoint(xCalendar, yCalendar))
 		calb.DrawHeading(SPoint(xCalendar, yCalendar))
 
-		xBracket = rectCanvas.x + (rectCanvas.dX - bracketb.dX) / 2
-		yBracket = yCalendar + calb.dY + dYGap
+		xBracket = rectCanvas.x + (rectCanvas.dX - bracketb.dX) / 2.0
+		if dYGap < 0:
+			yBracket = rectCanvas.yMax - bracketb.dY
+		else:
+			yBracket = yCalendar + calb.dY + dYGap
 
 		bracketb.Draw(SPoint(xBracket, yBracket))
 
 		xFinal = rectCanvas.x + (rectCanvas.dX - finalb.s_dX) / 2.0
-		yFinal = yBracket + bracketb.dY + dYGap
+		if dYGap < 0:
+			yFinal = rectCanvas.yMax - finalb.s_dY
+		else:
+			yFinal = yBracket + bracketb.dY + dYGap
 
 		finalb.Draw(SPoint(xFinal, yFinal))
-
-		xGroupsRight = xCalendar + calb.dX + dXGap
 
 		gsetbRight.Draw(SPoint(xGroupsRight, yGroups))
 
