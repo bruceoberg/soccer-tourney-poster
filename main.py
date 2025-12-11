@@ -1611,7 +1611,6 @@ class CCalElimPage(CPage): # tag = calelimp
 
 		finalb = CFinalBlot(self)
 
-		#dXUnused = rectCanvas.dX - (calb.dX + gsetbLeft.dX + gsetbRight.dX)
 		dXUnused = rectCanvas.dX - (max(calb.dX, bracketb.dX, finalb.s_dX) + gsetbLeft.dX + gsetbRight.dX)
 		dXGap = dXUnused / 4.0 # both margins and both gaps between groups and calendar. same gap vertically for calendar/final
 
@@ -1637,7 +1636,7 @@ class CCalElimPage(CPage): # tag = calelimp
 
 		xBracket = rectCanvas.x + (rectCanvas.dX - bracketb.dX) / 2.0
 		if dYGap < 0:
-			yBracket = rectCanvas.yMax - bracketb.dY
+			yBracket = yCalendar + calb.dY + (rectCanvas.dY - (calb.dY + bracketb.dY)) / 2.0
 		else:
 			yBracket = yCalendar + calb.dY + dYGap
 
