@@ -369,10 +369,25 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			if fDrawFormLabels:
 
+				def TuStrFontStrLabelForm(strLabel: str) -> tuple[str, str]:
+					setStrLabelChars: set[str] = { ch for ch in strLabel }
+					if setStrLabelChars == self.tourn.setStrGroup:
+						return ('match.form.label', '·')
+					
+					if not setStrLabelChars.issubset(self.tourn.setStrGroup):
+						return ('match.form.label', strLabel)
+					   
+					if len(setStrLabelChars) <= len(self.tourn.setStrGroup) // 2:
+						return ('match.form.label', strLabel)
+						
+					strLabelInverse = '~' + ''.join(sorted(self.tourn.setStrGroup - setStrLabelChars)) + '~'
+					return ('match.form.label-inverse', strLabelInverse)
+
 				for xLineFormMin, strLabel in ((xLineFormLeftMin, strHome), (xLineFormRightMin, strAway)):
+					strFont, strLabelForm = TuStrFontStrLabelForm(strLabel)
 					rectLabelForm = SRect(xLineFormMin, yLineForm, self.dayb.s_dXLineForm, dYFontForm)
-					oltbLabelForm = self.Oltb(rectLabelForm, self.page.Fontkey('match.form.label'), dYFontForm)
-					oltbLabelForm.DrawText(strLabel, colorBlack, JH.Center)
+					oltbLabelForm = self.Oltb(rectLabelForm, self.page.Fontkey(strFont), dYFontForm)
+					oltbLabelForm.DrawText(strLabelForm, colorBlack, JH.Center)
 
 			# match label
 
