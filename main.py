@@ -1730,8 +1730,8 @@ if True:
 	docaDefault = SDocumentArgs(
 		strDestDir = 'playground',
 		iterPagea = (
-			SPageArgs(CCalOnlyPage, fmt=(23, 35), fmtCrop=None, strTz='US/Eastern'),
-			SPageArgs(CCalElimPage, fmt=(23, 35), fmtCrop=None, strTz='US/Eastern'),
+			#SPageArgs(CCalOnlyPage, fmt=(23, 35), fmtCrop=None, strTz='US/Eastern'),
+			SPageArgs(CCalElimPage, fmt=(23, 35), fmtCrop=None, strTz='US/Pacific'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='Asia/Qatar'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
