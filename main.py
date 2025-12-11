@@ -948,21 +948,35 @@ class CPage:
 		tzinfoTourney = tz.gettz(strTzTourney)
 		mpIdDateTourney: dict[int, datetime.date] = { id: match.tStart.to(tzinfoTourney).date() for id, match in self.tourn.mpIdMatch.items() }
 
+		# if all the matches are one day off their display dates, then reset the display dates
+		
+		fAllGroupMatchesAhead = True
+
+		for match in self.tourn.mpIdMatch.values():
+			if match.stage != STAGE.Group:
+				continue
+			tTimeTz = match.tStart.to(self.tzinfo)
+			dateDisplay = mpIdDateTourney[match.id]
+			if dateDisplay.day == tTimeTz.day:
+				fAllGroupMatchesAhead = False
+				break
+
+		if fAllGroupMatchesAhead:
+			mpIdDateTourneyAdjusted: dict[int, datetime.date] = {id: dateTourney + datetime.timedelta(days=1) for id, dateTourney in mpIdDateTourney.items() }
+			mpIdDateTourney = mpIdDateTourneyAdjusted
+
 		for match in self.tourn.mpIdMatch.values():
 			tTimeTz = match.tStart.to(self.tzinfo)
-			dateDisplay = tTimeTz.date()
 			strTime = babel.dates.format_time(tTimeTz.time(), 'short', locale=self.locale)
 
-			if match.stage == STAGE.Group and match.tStart.day != tTimeTz.day:
-				# for timezones behind the UTC start time, return the date in that timezone.
-				# for those ahead, return the UTC date, and StrTimeDidplay() will display a weirdo 48hr time.
-				# BB (bruceo) may need to do this on a per-locale basis. japan knows about 48hr times, but do others?
-				dSec = tTimeTz.utcoffset().total_seconds()
-				if dSec > 0:
-					dateDisplay = match.tStart.date()
+			if match.stage == STAGE.Group:
+				dateDisplay = mpIdDateTourney[match.id]
+				if dateDisplay.day != tTimeTz.day:
 					strHour, strRest = strTime.split(':', 1)
 					hourNew = 24 if tTimeTz.hour == 0 else int(strHour) + 24 # correct for 12am not always being "00"
 					strTime = f'{hourNew}:{strRest}'
+			else:
+				dateDisplay = tTimeTz.date()
 			
 			# hacks that probably violate the CLDR
 
@@ -1732,6 +1746,10 @@ if True:
 		iterPagea = (
 			#SPageArgs(CCalOnlyPage, fmt=(23, 35), fmtCrop=None, strTz='US/Eastern'),
 			SPageArgs(CCalElimPage, fmt=(23, 35), fmtCrop=None, strTz='US/Pacific'),
+			SPageArgs(CCalElimPage, fmt=(23, 35), fmtCrop=None, strTz='US/Eastern'),
+			SPageArgs(CCalElimPage, fmt=(23, 35), fmtCrop=None, strLocale='en_AU', strTz='Australia/Sydney'),
+			SPageArgs(CCalElimPage, fmt=(23, 35), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
+			SPageArgs(CCalElimPage, fmt=(23, 35), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strTz='Asia/Qatar'),
 			# SPageArgs(CCalElimPage, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
