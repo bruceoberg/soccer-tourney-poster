@@ -1202,7 +1202,7 @@ class CFooterBlot(CBlot): # tag = headerb
 
 		lStrCreditLeft: list[str] = [
 			'DESIGN/CODE BY BRUCE OBERG',
-			'BRUCE@OBERG.COM',
+			'BRUCE@OBERG.ORG',
 			'MADE IN PYTHON WITH FPDF2',
 			'GITHUB.COM/BRUCEOBERG/SOCCER-TOURNEY-POSTER',
 		]
