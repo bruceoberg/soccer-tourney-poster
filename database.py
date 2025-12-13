@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # 'annotations' allow typing hints to forward reference.
 #	e.g. Fn(fwd: CFwd) instead of Fn(fwd: 'CFwd')
 #	when CFwd is later in file.
@@ -5,14 +7,13 @@ from __future__ import annotations
 
 import arrow
 import copy
-import datetime
 import openpyxl
 import re
 
 from babel import Locale
 from enum import IntEnum, auto
 from pathlib import Path
-from typing import Optional, Iterable
+from typing import Optional
 
 from bolay import SColor, ColorFromStr, ColorResaturate, FIsSaturated
 
