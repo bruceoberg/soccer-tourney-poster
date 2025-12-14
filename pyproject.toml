@@ -23,5 +23,10 @@ dependencies = [
     "unicategories>=0.1.2",
 ]
 
+[tool.uv.workspace]
+members = [
+    "bolay",
+]
+
 [tool.uv.sources]
 bolay = { workspace = true, editable = true }
