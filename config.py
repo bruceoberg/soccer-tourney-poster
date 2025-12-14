@@ -68,8 +68,8 @@ docaDefault = SDocumentArgs(
 	strDestDir = 'playground',
 	iterPagea = (
 		#SPageArgs(CCalOnlyPage, fmt=(23, 35), fmtCrop=None, strTz='US/Eastern'),
-		SPageArgs(PAGEK.CalElim, fmt=(24, 36), fmtCrop=(23, 35), strTz='US/Pacific'),
-		SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strTz='US/Pacific'),
+		SPageArgs(PAGEK.CalElim, fmt='arch-d', fmtCrop=None, strTz='US/Pacific'),
+		SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strLocale='en_AU', strTz='Australia/Sydney'),
 		# SPageArgs(PAGEK.CalElim, fmt=(23, 35), fmtCrop=None, strTz='US/Pacific'),
 		# SPageArgs(PAGEK.CalElim, fmt=(23, 35), fmtCrop=None, strTz='US/Eastern'),
 		# SPageArgs(PAGEK.CalElim, fmt=(23, 35), fmtCrop=None, strLocale='en_AU', strTz='Australia/Sydney'),
