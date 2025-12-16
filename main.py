@@ -1437,7 +1437,12 @@ class CBracketBlot(CBlot): # tag = bracketb
 			xThird = (dXGrid - elimbThird.s_dX) / 2
 			yThird = mpStageRowY[(STAGE.Quarters, 1)] + (CElimBlot.s_dY / 2)
 
-			# add extra space for small bracket with a third place match
+			# small tournaments may need top push the third place match down further.
+			# bottom of semis (plus margin for the label) is a hard limit.
+
+			yThird = max(yThird, mpStageRowY[(STAGE.Semis, 0)] + CElimBlot.s_dY + 2 * self.s_dYStageLabel)
+
+			# be honest
 
 			self.dY = max(self.dY, yThird + CElimBlot.s_dY)
 
