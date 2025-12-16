@@ -16,10 +16,14 @@ from pathlib import Path
 from typing import Optional
 
 from bolay import SColor, ColorFromStr, ColorResaturate, FIsSaturated
+from config import g_pathTourn
 
 TExcelRow = dict[str, str]				# tag = xlrow
 TExcelSheet = list[TExcelRow]			# tag = xls
 TExcelBook = dict[str, TExcelSheet]		# tag = xlb
+
+g_pathHere = Path(__file__).parent
+g_pathLocalization = g_pathHere / 'database' / 'localization.xlsx'
 
 class CDataBase: # tag = db
 
@@ -101,6 +105,8 @@ class CLocalizationDataBase(CDataBase): # tag = loc
 				strKey = strKey.lower()
 
 				self.mpStrKeyStrLocaleStrText[strKey] = xlrow
+
+g_loc = CLocalizationDataBase(g_pathLocalization)
 
 class STAGE(IntEnum):
 	Group = auto()
@@ -425,3 +431,5 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 	def StrTeam(self, strKey: str, strLocale: str) -> str:
 		strKeyResolved = self.strKeyTeamPrefix + strKey
 		return self.StrTranslation(strKeyResolved, strLocale)
+
+g_tourn = CTournamentDataBase(g_pathTourn, g_loc)
