@@ -16,20 +16,21 @@ from pathlib import Path
 from typing import Optional
 
 from bolay import SColor, ColorFromStr, ColorResaturate, FIsSaturated
-from config import g_pathTourn
+from config import g_strNameTourn
 
 TExcelRow = dict[str, str]				# tag = xlrow
 TExcelSheet = list[TExcelRow]			# tag = xls
 TExcelBook = dict[str, TExcelSheet]		# tag = xlb
 
 g_pathHere = Path(__file__).parent
-g_pathLocalization = g_pathHere / 'database' / 'localization.xlsx'
 
 class CDataBase: # tag = db
 
-	def __init__(self, pathFile: Path) -> None:
+	s_pathDir = g_pathHere / 'database'
 
-		self.pathFile = pathFile
+	def __init__(self, strName: str) -> None:
+
+		self.pathFile = self.s_pathDir / (strName + '.xlsx')
 		self.mpStrKeyStrLocaleStrText: dict[str, dict[str, str]] = {}
 
 	def XlbLoad(self) -> TExcelBook:
@@ -85,9 +86,9 @@ class CDataBase: # tag = db
 
 class CLocalizationDataBase(CDataBase): # tag = loc
 
-	def __init__(self, pathFile: Path) -> None:
+	def __init__(self) -> None:
 
-		super().__init__(pathFile)
+		super().__init__('localization')
 
 		self.mpStrSectionSetStrSubkey: dict[str, set[str]] = {}
 
@@ -106,7 +107,7 @@ class CLocalizationDataBase(CDataBase): # tag = loc
 
 				self.mpStrKeyStrLocaleStrText[strKey] = xlrow
 
-g_loc = CLocalizationDataBase(g_pathLocalization)
+g_loc = CLocalizationDataBase()
 
 class STAGE(IntEnum):
 	Group = auto()
@@ -270,18 +271,28 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		64:	STAGE.Round32,
 	}
 
-	def __init__(self, pathFile: Path, loc: CLocalizationDataBase) -> None:
+	s_mpStrNameTourn: dict[str, CTournamentDataBase] = {}
 
-		super().__init__(pathFile)
+	@classmethod
+	def TournFromStrName(cls, strName: str):
+		tourn = cls.s_mpStrNameTourn.get(strName)
+		
+		if tourn is None:
+			tourn = cls(strName)
+			cls.s_mpStrNameTourn[strName] = tourn
 
-		self.loc = loc
+		return tourn
+	
+	def __init__(self, strName: str) -> None:
+
+		super().__init__(strName)
 
 		xlb: TExcelBook = self.XlbLoad()
 		
 		# translations come from both the tranlsations table (mostly unchanging) and the tournament table (new per contest)
 
 		for strKeyLocPrefix in self.s_lStrKeyLocPrefix:
-			assert strKeyLocPrefix not in loc.mpStrSectionSetStrSubkey
+			assert strKeyLocPrefix not in g_loc.mpStrSectionSetStrSubkey
 			for xlrow in xlb[strKeyLocPrefix]:
 				self.mpStrKeyStrLocaleStrText[(strKeyLocPrefix + '.' + xlrow['key']).lower()] = xlrow
 
@@ -420,16 +431,16 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 	def StrTranslation(self, strKey: str, strLocale: str) -> str:
 		for strKeyLocPrefix in self.s_lStrKeyLocPrefix:
 			if strKey.startswith(strKeyLocPrefix + '.'):
-				assert strKey not in self.loc.mpStrKeyStrLocaleStrText
+				assert strKey not in g_loc.mpStrKeyStrLocaleStrText
 				return super().StrTranslation(strKey, strLocale)
 
-		return self.loc.StrTranslation(strKey, strLocale)
+		return g_loc.StrTranslation(strKey, strLocale)
 	
 	def FLocSectionHasAllKeys(self, strSection: str, setStrKeys: set[str]) -> bool:
-		return setStrKeys.issubset(self.loc.mpStrSectionSetStrSubkey[strSection])
+		return setStrKeys.issubset(g_loc.mpStrSectionSetStrSubkey[strSection])
 
 	def StrTeam(self, strKey: str, strLocale: str) -> str:
 		strKeyResolved = self.strKeyTeamPrefix + strKey
 		return self.StrTranslation(strKeyResolved, strLocale)
 
-g_tourn = CTournamentDataBase(g_pathTourn, g_loc)
+g_tourn = CTournamentDataBase(g_strNameTourn)

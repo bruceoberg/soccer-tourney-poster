@@ -1685,7 +1685,7 @@ class CDocument: # tag = doc
 		setStrTtf: set[str] = set()
 		setStrLocale: set[str] = {pagea.strLocale for pagea in doca.iterPagea}
 
-		for strKey in tourn.loc.mpStrKeyStrLocaleStrText:
+		for strKey in g_loc.mpStrKeyStrLocaleStrText:
 			if not strKey.startswith(self.s_strKeyPrefixFonts):
 				continue
 			for strLocale in setStrLocale:

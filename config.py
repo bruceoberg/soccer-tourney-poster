@@ -18,14 +18,13 @@ from enum import StrEnum
 
 #from pydantic import BaseModel, ValidationError
 
-g_pathHere = Path(__file__).parent
-#g_pathTourn = g_pathHere / 'database' / '2018-mens-world-cup.xlsx'		# 32 teams
-#g_pathTourn = g_pathHere / 'database' / '2022-mens-world-cup.xlsx'		# 32 teams
-#g_pathTourn = g_pathHere / 'database' / '2023-womens-world-cup.xlsx'	# 32 teams
-#g_pathTourn = g_pathHere / 'database' / '2024-mens-euro.xlsx'			# 24 teams
-#g_pathTourn = g_pathHere / 'database' / '2024-mens-copa-america.xlsx'	# 16 teams
-#g_pathTourn = g_pathHere / 'database' / '2025-mens-club-world-cup.xlsx'	# 32 teams
-g_pathTourn = g_pathHere / 'database' / '2026-mens-world-cup.xlsx'		# 32 teams
+#g_strNameTourn = '2018-mens-world-cup'			# 32 teams
+#g_strNameTourn = '2022-mens-world-cup'			# 32 teams
+#g_strNameTourn = '2023-womens-world-cup'		# 32 teams
+#g_strNameTourn = '2024-mens-euro'				# 24 teams
+#g_strNameTourn = '2024-mens-copa-america'		# 16 teams
+#g_strNameTourn = '2025-mens-club-world-cup'	# 32 teams
+g_strNameTourn = '2026-mens-world-cup'			# 48 teams
 
 
 class PAGEK(StrEnum): # tag = pagek
@@ -136,8 +135,8 @@ docaDesigns = SDocumentArgs(
 	))
 
 docaRelease = SDocumentArgs(
-	#strDestDir = str(Path('releases') / (g_pathTourn.stem + '-patch1' )),
-	strDestDir = str(Path('releases') / g_pathTourn.stem),
+	#strDestDir = str(Path('releases') / (g_strNameTourn + '-patch1' )),
+	strDestDir = str(Path('releases') / g_strNameTourn),
 	strFileSuffix = 'all',
 	iterPagea = (
 		SPageArgs(PAGEK.CalElim, fmt=(20, 27), fmtCrop=None),
