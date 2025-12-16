@@ -1675,6 +1675,13 @@ class CCalElimPage(CPage): # tag = calelimp
 
 		self.DrawCropLines()
 
+		# print(' '.join([
+		# 	f"cTeam: {len(self.tourn.mpStrTeamGroup)}",
+		# 	f"dX: {gsetbLeft.dX+gsetbRight.dX+max(calb.dX, bracketb.dX, finalb.s_dX)+1:0.3f}",
+		# 	f"dY2: {headerb.s_dY+footerb.s_dY+calb.dY+bracketb.dY:0.3f}",
+		# 	f"dY3: {headerb.s_dY+footerb.s_dY+calb.dY+bracketb.dY+finalb.s_dY+1:0.3f}",
+		# ]))
+
 class CDocument: # tag = doc
 	s_strKeyPrefixFonts = 'fonts.'
 	s_pathDirFonts = Path('fonts')
