@@ -274,7 +274,7 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 	s_mpStrNameTourn: dict[str, CTournamentDataBase] = {}
 
 	@classmethod
-	def TournFromStrName(cls, strName: str):
+	def TournFromStrName(cls, strName: str) -> CTournamentDataBase:
 		tourn = cls.s_mpStrNameTourn.get(strName)
 		
 		if tourn is None:
@@ -283,7 +283,7 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 
 		return tourn
 	
-	def __init__(self, strName: str) -> None:
+	def __init__(self, strName: str):
 
 		super().__init__(strName)
 

@@ -38,9 +38,9 @@ class CGroupBlot(CBlot): # tag = groupb
 
 	def __init__(self, page: CPage, group: CGroup) -> None:
 		self.page = page
-		self.doc = self.page.doc
-		self.pdf = self.doc.pdf
-		self.tourn = self.doc.tourn
+		self.tourn = page.tourn
+		self.doc = page.doc
+		self.pdf = page.pdf
 
 		super().__init__(self.pdf)
 
@@ -457,9 +457,9 @@ class CDayBlot(CBlot): # tag = dayb
 
 	def __init__(self, page: CPage, tDay: arrow.Arrow, iterMatch: Optional[Iterable[CMatch]] = None) -> None:
 		self.page = page
-		self.doc = self.page.doc
-		self.pdf = self.doc.pdf
-		self.tourn = self.doc.tourn
+		self.tourn = page.tourn
+		self.doc = page.doc
+		self.pdf = page.pdf
 
 		self.tDay = tDay
 
@@ -567,9 +567,9 @@ class CElimBlot(CDayBlot): # tag = elimb
 
 	def __init__(self, page: CPage, match: CMatch) -> None:
 		self.page = page
+		self.tourn = page.tourn
 		self.doc = page.doc
-		self.pdf = page.doc.pdf
-		self.tourn = page.doc.tourn
+		self.pdf = page.pdf
 
 		super().__init__(page, arrow.get(self.page.DateDisplay(match)), set([match]))
 
@@ -642,9 +642,9 @@ class CFinalBlot(CBlot): # tag = finalb
 
 	def __init__(self, page: CPage) -> None:
 		self.page = page
+		self.tourn = page.tourn
 		self.doc = page.doc
-		self.pdf = page.doc.pdf
-		self.tourn = page.doc.tourn
+		self.pdf = page.pdf
 
 		super().__init__(self.pdf)
 
@@ -814,10 +814,13 @@ class CPage:
 
 	def __init__(self, doc: CDocument, pagea: SPageArgs):
 		self.doc = doc
+		self.pdf = doc.pdf
 		self.pagea = pagea
 
-		self.tourn = self.doc.tourn
-		self.pdf = self.doc.pdf
+		if pagea.strNameTourn:
+			self.tourn = CTournamentDataBase.TournFromStrName(pagea.strNameTourn)
+		else:
+			self.tourn = doc.tourn
 
 		self.strOrientation = self.pagea.strOrientation
 		self.fmt = self.pagea.fmt
@@ -1226,9 +1229,9 @@ class CCalendarBlot(CBlot): # tag = calb
 
 	def __init__(self, page: CPage, setMatch: set[CMatch]) -> None:
 		self.page = page
+		self.tourn = page.tourn
 		self.doc = page.doc
-		self.pdf = page.doc.pdf
-		self.tourn = page.doc.tourn
+		self.pdf = page.pdf
 
 		super().__init__(self.pdf)
 
@@ -1357,9 +1360,9 @@ class CBracketBlot(CBlot): # tag = bracketb
 
 	def __init__(self, page: CPage, setMatch: set[CMatch]) -> None:
 		self.page = page
+		self.tourn = page.tourn
 		self.doc = page.doc
-		self.pdf = page.doc.pdf
-		self.tourn = page.doc.tourn
+		self.pdf = page.pdf
 
 		super().__init__(self.pdf)
 
@@ -1663,16 +1666,23 @@ class CDocument: # tag = doc
 		PAGEK.CalElim:		CCalElimPage,
 	}
 
-	def __init__(self, tourn: CTournamentDataBase, doca: SDocumentArgs) -> None:
-		self.tourn = tourn
+	def __init__(self, doca: SDocumentArgs) -> None:
 		self.doca = doca
 		self.pdf = CPdf()
 
-		strSubject = tourn.StrTranslation('tournament.name', 'en')
-		lStrKeywords = strSubject.split() + self.tourn.pathFile.stem.split('-')
-		strKeywords = ' '.join(lStrKeywords)
+		if doca.strNameTourn:
+			strName = doca.strNameTourn
+			self.tourn = CTournamentDataBase.TournFromStrName(strName)
+			strSubject = self.tourn.StrTranslation('tournament.name', 'en')
+			lStrKeywords = strSubject.split() + strName.split('-')
+			strKeywords = ' '.join(lStrKeywords)
+		else:
+			strName = 'collection'
+			self.tourn = None
+			strSubject = 'collection'
+			strKeywords = ''
 
-		self.pdf.set_title(self.tourn.pathFile.stem)
+		self.pdf.set_title(strName)
 		self.pdf.set_author('bruce oberg')
 		self.pdf.set_subject(strSubject)
 		self.pdf.set_keywords(strKeywords)
@@ -1689,7 +1699,7 @@ class CDocument: # tag = doc
 			if not strKey.startswith(self.s_strKeyPrefixFonts):
 				continue
 			for strLocale in setStrLocale:
-				setStrTtf.add(tourn.StrTranslation(strKey, strLocale))
+				setStrTtf.add(g_loc.StrTranslation(strKey, strLocale))
 
 		for strTtf in setStrTtf:
 			assert strTtf
@@ -1699,7 +1709,7 @@ class CDocument: # tag = doc
 			self.s_mpPagekClsPage[pagea.pagek](self, pagea)
 
 		pathDirOutput = g_pathHere / self.doca.strDestDir if self.doca.strDestDir else g_pathHere
-		strFile = self.tourn.pathFile.stem + '-' + self.doca.strFileSuffix if self.doca.strFileSuffix else self.tourn.pathFile.stem
+		strFile = strName + '-' + self.doca.strFileSuffix if self.doca.strFileSuffix else strName
 
 		pathDirOutput.mkdir(parents=True, exist_ok=True)
 		pathOutput = (pathDirOutput / strFile).with_suffix('.pdf')
@@ -1710,5 +1720,5 @@ if __name__ == '__main__':
 
 	for lDoca in llDocaTodo:
 		for doca in lDoca:
-			doc = CDocument(g_tourn, doca)
+			doc = CDocument(doca)
 

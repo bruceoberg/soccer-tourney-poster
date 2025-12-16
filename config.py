@@ -79,6 +79,7 @@ class SPageArgs: # tag - pagea
 	#	https://arrow.readthedocs.io/en/latest/api-guide.html#module-arrow.locales
 
 	pagek: PAGEK
+	strNameTourn: str = ''
 	strOrientation: str = 'landscape'
 	fmt: str | tuple[float, float] = (22, 28)
 	strTz: str = 'US/Pacific'
@@ -96,15 +97,23 @@ class SPageArgs: # tag - pagea
 @dataclass
 class SDocumentArgs: # tag = doca
 	iterPagea: Iterable[SPageArgs]
+	strNameTourn: str = g_strNameTourn
 	strDestDir: str = ''
 	strFileSuffix: str = ''
 
 docaDefault = SDocumentArgs(
 	strDestDir = 'playground',
+	strNameTourn='',
 	iterPagea = (
 		#SPageArgs(CCalOnlyPage, fmt=(23, 35), fmtCrop=None, strTz='US/Eastern'),
-		SPageArgs(PAGEK.CalElim, fmt='arch-d', fmtCrop=None, strTz='US/Pacific'),
-		SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strLocale='en_AU', strTz='Australia/Sydney'),
+		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2026-mens-world-cup'),
+		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2025-mens-club-world-cup'),
+		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2024-mens-copa-america'),
+		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2024-mens-euro'		),
+		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2023-womens-world-cup'),
+		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2022-mens-world-cup'	),
+		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2018-mens-world-cup'	),
+		#SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strLocale='en_AU', strTz='Australia/Sydney'),
 		# SPageArgs(PAGEK.CalElim, fmt=(23, 35), fmtCrop=None, strTz='US/Pacific'),
 		# SPageArgs(PAGEK.CalElim, fmt=(23, 35), fmtCrop=None, strTz='US/Eastern'),
 		# SPageArgs(PAGEK.CalElim, fmt=(23, 35), fmtCrop=None, strLocale='en_AU', strTz='Australia/Sydney'),
