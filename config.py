@@ -19,13 +19,13 @@ from enum import StrEnum
 #from pydantic import BaseModel, ValidationError
 
 g_pathHere = Path(__file__).parent
-#g_pathTourn = g_pathHere / 'tournaments' / '2018-mens-world-cup.xlsx'		# 32 teams
-#g_pathTourn = g_pathHere / 'tournaments' / '2022-mens-world-cup.xlsx'		# 32 teams
-#g_pathTourn = g_pathHere / 'tournaments' / '2023-womens-world-cup.xlsx'	# 32 teams
-#g_pathTourn = g_pathHere / 'tournaments' / '2024-mens-euro.xlsx'			# 24 teams
-#g_pathTourn = g_pathHere / 'tournaments' / '2024-mens-copa-america.xlsx'	# 16 teams
-#g_pathTourn = g_pathHere / 'tournaments' / '2025-mens-club-world-cup.xlsx'	# 32 teams
-g_pathTourn = g_pathHere / 'tournaments' / '2026-mens-world-cup.xlsx'		# 32 teams
+#g_pathTourn = g_pathHere / 'database' / '2018-mens-world-cup.xlsx'		# 32 teams
+#g_pathTourn = g_pathHere / 'database' / '2022-mens-world-cup.xlsx'		# 32 teams
+#g_pathTourn = g_pathHere / 'database' / '2023-womens-world-cup.xlsx'	# 32 teams
+#g_pathTourn = g_pathHere / 'database' / '2024-mens-euro.xlsx'			# 24 teams
+#g_pathTourn = g_pathHere / 'database' / '2024-mens-copa-america.xlsx'	# 16 teams
+#g_pathTourn = g_pathHere / 'database' / '2025-mens-club-world-cup.xlsx'	# 32 teams
+g_pathTourn = g_pathHere / 'database' / '2026-mens-world-cup.xlsx'		# 32 teams
 
 
 class PAGEK(StrEnum): # tag = pagek

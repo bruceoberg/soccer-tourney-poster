@@ -22,7 +22,7 @@ from database import *
 from bolay import *
 
 g_pathHere = Path(__file__).parent
-g_pathLocalization = g_pathHere / 'tournaments' / 'localization.xlsx'
+g_pathLocalization = g_pathHere / 'database' / 'localization.xlsx'
 g_loc = CLocalizationDataBase(g_pathLocalization)
 g_tourn = CTournamentDataBase(g_pathTourn, g_loc)
 
