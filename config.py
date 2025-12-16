@@ -175,8 +175,8 @@ for pagea in docaRelease.iterPagea:
 
 		if pagea.strTz == 'Asia/Tehran':
 			lStrFileSuffix.append('irst')	# thanks arrow for not supporting iran
-		else:
-			tTz = arrow.utcnow().to(tz.gettz(pagea.strTz))
+		elif tzinfo := tz.gettz(pagea.strTz):
+			tTz = arrow.utcnow().to(tzinfo)
 			strTz = tTz.format('ZZZ') # GMT, PST, etc
 			lStrFileSuffix.append(strTz.lower())
 

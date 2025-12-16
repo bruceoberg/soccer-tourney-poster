@@ -13,7 +13,7 @@ import re
 from babel import Locale
 from enum import IntEnum, auto
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 
 from bolay import SColor, ColorFromStr, ColorResaturate, FIsSaturated
 from config import g_strNameTourn
@@ -51,7 +51,7 @@ class CDataBase: # tag = db
 					while not lValRow[-1]:
 						del lValRow[-1]
 					assert all(lValRow), f'header row has an empty value: {lValRow}'
-					lStrKey = [val.lower() for val in lValRow]
+					lStrKey = [cast(str, val).lower() for val in lValRow]
 					assert lStrKey
 					lStrFill = [''] * len(lStrKey)
 				else:
@@ -164,7 +164,7 @@ class CMatch:
 		self.scoreHomeTiebreaker: int = int(xlrow['home-tiebreaker']) if xlrow['home-tiebreaker'] else -1
 		self.scoreAwayTiebreaker: int = int(xlrow['away-tiebreaker']) if xlrow['away-tiebreaker'] else -1
 
-		self.stage: Optional[STAGE] = None
+		self.stage: STAGE = cast(STAGE, None)
 		self.lStrGroup: list[str] = []
 		self.lIdFeeders: list[int] = []
 		self.idFeeding: Optional[int] = None
@@ -173,7 +173,7 @@ class CMatch:
 		# as such, it starts with the most distant fed match (the final) and then
 		# ids matches closer to this match, ending with the match's own id.
 
-		self.tuIdFed: tuple[int] = ()
+		self.tuIdFed: tuple[int, ...] = ()
 
 		if self.strSeedHome in tourn.mpStrSeedStrTeam and \
 		   self.strSeedAway in tourn.mpStrSeedStrTeam:
@@ -220,6 +220,8 @@ class CMatch:
 
 		while matchFeeding:
 			lIdFeeding.append(matchFeeding.id)
+			if matchFeeding.idFeeding is None:
+				break
 			matchFeeding = mpIdMatch.get(matchFeeding.idFeeding)
 
 		self.tuIdFed = tuple(reversed(lIdFeeding))

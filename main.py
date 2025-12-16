@@ -5,8 +5,10 @@
 #	when CFwd is later in file.
 from __future__ import annotations
 
+import arrow
 import babel.dates
 import datetime
+import fpdf
 import logging
 import math
 import platform
@@ -15,11 +17,16 @@ from babel import Locale
 from dataclasses import dataclass
 from dateutil import tz
 from pathlib import Path
-from typing import Optional, Iterable
+from typing import Optional, Iterable, Type, cast
 
-from config import *
-from database import *
-from bolay import *
+from config import PAGEK, SPageArgs, SDocumentArgs, llDocaTodo
+from database import g_loc, CTournamentDataBase, CGroup, CMatch, STAGE
+from bolay import SFontKey, CFontInstance, CPdf, CBlot
+from bolay import JH, JV, SPoint, SRect, RectBoundingBox, SHaloArgs
+from bolay import ColorFromStr, SColor
+from bolay import colorBlack, colorWhite, colorGrey, colorDarkSlateGrey, colorLightGrey
+
+g_pathHere = Path(__file__).parent
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
@@ -345,6 +352,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			elif (
 					self.page.pagea.fEliminationHints and
 					isinstance(self.dayb, CElimBlot) and
+					self.match.stage is not None and
 					self.match.stage > self.tourn.stageElimFirst and
 					self.match.stage < STAGE.Third
 			     ):
@@ -610,7 +618,7 @@ class CElimBlot(CDayBlot): # tag = elimb
 
 		# draw border last to cover any alignment weirdness
 
-		if self.page.pagea.fMainBorders and self.page.pagea.fEliminationBorders:
+		if self.page.pagea.fMainBorders and self.page.pagea.fEliminationBorders and matchb.match.stage is not None:
 			try:
 				colorBorder = self.page.s_mpStageColorBorder[matchb.match.stage]
 			except KeyError:
@@ -820,13 +828,16 @@ class CPage:
 		if pagea.strNameTourn:
 			self.tourn = CTournamentDataBase.TournFromStrName(pagea.strNameTourn)
 		else:
-			self.tourn = doc.tourn
+			assert(doc.tourn)
+			self.tourn = cast(CTournamentDataBase, doc.tourn)
 
 		self.strOrientation = self.pagea.strOrientation
 		self.fmt = self.pagea.fmt
 		self.fmtCrop = self.pagea.fmtCrop
 		self.strTz = self.pagea.strTz
-		self.tzinfo = tz.gettz(self.strTz)
+		tzinfoOptional = cast(datetime.tzinfo, tz.gettz(self.strTz))
+		assert(tzinfoOptional is not None)
+		self.tzinfo = tzinfoOptional
 		self.strLocale = self.pagea.strLocale
 		self.locale = Locale.parse(self.strLocale)
 		self.strDateMMMMEEEEd = StrPatternDateMMMMEEEEd(self.locale)
@@ -835,7 +846,9 @@ class CPage:
 
 		self.mpDateSetMatch: dict[datetime.date, set[CMatch]] = self.MpDateSetMatch()
 
-		self.pdf.add_page(orientation=self.strOrientation, format=self.fmt)
+		# using type: ignore here because fpdf's typing stubs are known to be janky.
+
+		self.pdf.add_page(orientation=self.strOrientation, format=self.fmt)	# type: ignore[arg-type]
 		self.rect = SRect(0, 0, self.pdf.w, self.pdf.h)
 
 		if tuDxDyCrop := self.pdf.TuDxDyFromOrientationFmt(self.strOrientation, self.fmtCrop):
@@ -915,6 +928,7 @@ class CPage:
 
 		strTzTourney: str = self.StrTranslation('tournament.timezone')
 		tzinfoTourney = tz.gettz(strTzTourney)
+		assert(tzinfoTourney)
 		mpIdDateTourney: dict[int, datetime.date] = { id: match.tStart.to(tzinfoTourney).date() for id, match in self.tourn.mpIdMatch.items() }
 
 		# if all the matches are one day off their display dates, then reset the display dates
@@ -1143,6 +1157,7 @@ class CHeaderBlot(CBlot): # tag = headerb
 			strTz = f'UTC{strTz}'
 		else:
 			dT = tTz.utcoffset()
+			assert(dT)
 			if cSec := int(dT.total_seconds()):
 				if (cSec % (60*60)) == 0:
 					cHour = cSec // (60*60)
