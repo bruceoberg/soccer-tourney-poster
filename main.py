@@ -562,9 +562,11 @@ class CDayBlotList: # tag = daybl
 
 		cMatchMax = max([len(dayb.lMatch) for dayb in lDayb])
 
-		if cMatchMax >= 6:
+		if cMatchMax >= 5:
 			self.dXDayb *= 1.1
 			self.dYDayb *= 1.3
+		elif cMatchMax <= 2:
+			self.dYDayb *= 0.60
 
 class CElimBlot(CDayBlot): # tag = elimb
 
