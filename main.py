@@ -1657,6 +1657,11 @@ class CCalElimPage(CPage): # tag = calelimp
 
 		dYUnused = rectCanvas.dY - (calb.dY + bracketb.dY + finalb.s_dY)
 		dYGap = dYUnused / 4.0
+		dYGapFinal = dYGap
+		if dYGap < 0:
+			dYUnused = rectCanvas.dY - (calb.dY + bracketb.dY)
+			dYGap = max(0.0, dYUnused / 3.0)
+			dYGapFinal = 0.0
 
 		assert gsetbLeft.dY == gsetbRight.dY
 		yGroups = rectCanvas.y + (rectCanvas.dY - gsetbLeft.dY) / 2.0
@@ -1667,26 +1672,21 @@ class CCalElimPage(CPage): # tag = calelimp
 		gsetbLeft.Draw(SPoint(xGroupsLeft, yGroups))
 
 		xCalendar = rectCanvas.x + (rectCanvas.dX - calb.dX) / 2.0
-		if dYGap < 0:
-			yCalendar = rectCanvas.y
-		else:
-			yCalendar = rectCanvas.y + dYGap
+		yCalendar = rectCanvas.y + dYGap
 
 		calb.Draw(SPoint(xCalendar, yCalendar))
 
 		xBracket = rectCanvas.x + (rectCanvas.dX - bracketb.dX) / 2.0
-		if dYGap < 0:
-			yBracket = yCalendar + calb.dY + (rectCanvas.dY - (calb.dY + bracketb.dY)) / 2.0
-		else:
-			yBracket = yCalendar + calb.dY + dYGap
+		yBracket = yCalendar + calb.dY + dYGap
 
 		bracketb.Draw(SPoint(xBracket, yBracket))
 
 		xFinal = rectCanvas.x + (rectCanvas.dX - finalb.s_dX) / 2.0
-		if dYGap < 0:
-			yFinal = rectCanvas.yMax - finalb.s_dY
-		else:
-			yFinal = yBracket + bracketb.dY + dYGap
+
+		# backwards final y calculation deals with both the /4 and /3 cases of dYUnused above.
+		# when calendar + bracket are too tall, final gets skootched inside the bracket.
+
+		yFinal = rectCanvas.yMax - (finalb.s_dY + dYGapFinal)
 
 		finalb.Draw(SPoint(xFinal, yFinal))
 
