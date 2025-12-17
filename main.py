@@ -1259,7 +1259,8 @@ class CCalendarBlot(CBlot): # tag = calb
 
 	s_dYDayOfWeek = CDayBlot.s_dYDate * 2
 
-	s_dYFontTitle = CDayBlot.s_dYFontTime
+	s_dYFontStage = CDayBlot.s_dYFontTime
+	s_dYStageLabel = s_dYFontStage * 2.0
 
 	def __init__(self, page: CPage, setMatch: set[CMatch]) -> None:
 		self.page = page
@@ -1303,7 +1304,7 @@ class CCalendarBlot(CBlot): # tag = calb
 		self.daybl = CDayBlotList(lDayb)
 
 		self.dX = 7 * self.daybl.dXDayb
-		self.dY = self.s_dYDayOfWeek + cWeek * self.daybl.dYDayb
+		self.dY = self.s_dYStageLabel + self.s_dYDayOfWeek + cWeek * self.daybl.dYDayb
 
 		# build a list of all day blots and their relative positions
 
@@ -1321,15 +1322,46 @@ class CCalendarBlot(CBlot): # tag = calb
 
 	def Draw(self, pos: SPoint) -> None:
 
+		yStageTextMin = pos.y
+		yDaysOfWeekMin = yStageTextMin + self.s_dYStageLabel
+		yDaysMin = yDaysOfWeekMin + self.s_dYDayOfWeek
+		yDaysMax = pos.y + self.dY
+		dYDays = yDaysMax - yDaysMin
+
+		# stage heading
+
+		rectStageText = SRect(pos.x, yStageTextMin, self.dX, self.s_dYFontStage)
+		oltbStageText = self.Oltb(rectStageText, self.page.Fontkey('elim.stage'), rectStageText.dY)
+		strStageText = self.page.StrTranslation('stage.group').upper()
+		rectStageTextDrawn = oltbStageText.RectDrawText(strStageText, colorLightGrey, JH.Center)
+
+		yStageTextMiddle = rectStageTextDrawn.yMin + rectStageTextDrawn.dY / 2 # middle of text
+		dSStageGap = (yDaysOfWeekMin - yStageTextMiddle) / 2
+
+		xStageLineLeftMin = rectStageText.xMin
+		xStageLineLeftMax = rectStageTextDrawn.xMin - dSStageGap
+
+		xStageLineRightMin = rectStageTextDrawn.xMax + dSStageGap
+		xStageLineRightMax = rectStageText.xMax
+
+		self.pdf.set_line_width(CGroupBlot.s_dSLineStats)
+		self.pdf.set_draw_color(0) # black
+
+		self.pdf.line(xStageLineLeftMin, yStageTextMiddle, xStageLineLeftMax, yStageTextMiddle)
+		self.pdf.line(xStageLineRightMin, yStageTextMiddle, xStageLineRightMax, yStageTextMiddle)
+
+		# self.pdf.line(xLeftMin, yTitleTextMiddle, xLeftMin, yTitleTextMiddle + dSTitleGap)
+		# self.pdf.line(xRightMax, yTitleTextMiddle, xRightMax, yTitleTextMiddle + dSTitleGap)
+
 		# days of week
 
 		mpIdayStrDayOfWeek = babel.dates.get_day_names('abbreviated', locale=self.page.locale)
 
 		if self.page.FIsLeftToRight():
-			rectDayOfWeek = SRect(x = pos.x, y = pos.y, dX = self.daybl.dXDayb, dY = self.s_dYDayOfWeek)
+			rectDayOfWeek = SRect(x = pos.x, y = yDaysOfWeekMin, dX = self.daybl.dXDayb, dY = self.s_dYDayOfWeek)
 			dXShift = self.daybl.dXDayb
 		else:
-			rectDayOfWeek = SRect(x = pos.x + self.dX - self.daybl.dXDayb, y = pos.y, dX = self.daybl.dXDayb, dY = self.s_dYDayOfWeek)
+			rectDayOfWeek = SRect(x = pos.x + self.dX - self.daybl.dXDayb, y = yDaysOfWeekMin, dX = self.daybl.dXDayb, dY = self.s_dYDayOfWeek)
 			dXShift = -self.daybl.dXDayb
 
 		for iDay in range(7):
@@ -1340,7 +1372,7 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		# days
 
-		rectDays = SRect(x = pos.x, y = pos.y, dX = self.dX, dY = self.dY).Stretch(dYTop = rectDayOfWeek.dY)
+		rectDays = SRect(x = pos.x, y = yDaysMin, dX = self.dX, dY = dYDays)
 
 		tPrev: Optional[arrow.Arrow] = None
 		for dPosDayb, dayb in self.lTuDPosDayb:
@@ -1355,34 +1387,6 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		if self.page.pagea.fMainBorders:
 			self.DrawBox(rectDays, CDayBlot.s_dSLineOuter, colorBlack)
-
-	def DrawHeading(self, pos: SPoint) -> None:
-
-		# heading
-
-		rectAll = SRect(x = pos.x, y = pos.y, dX = self.dX, dY = self.dY)
-		rectTitleText = SRect(rectAll.x, rectAll.y - (self.s_dYFontTitle * 2), rectAll.dX, self.s_dYFontTitle)
-		oltbTitleText = self.Oltb(rectTitleText, self.page.Fontkey('elim.stage'), rectTitleText.dY)
-		strTitleText = self.page.StrTranslation('stage.group').upper()
-		rectTitleTextDrawn = oltbTitleText.RectDrawText(strTitleText, colorLightGrey, JH.Center)
-
-		yTitleTextMiddle = rectTitleTextDrawn.yMin + rectTitleTextDrawn.dY / 2 # middle of text
-		dSTitleGap = (rectAll.yMin - yTitleTextMiddle) / 2
-
-		xLeftMin = rectTitleText.xMin
-		xLeftMax = rectTitleTextDrawn.xMin - dSTitleGap
-
-		xRightMin = rectTitleTextDrawn.xMax + dSTitleGap
-		xRightMax = rectTitleText.xMax
-
-		self.pdf.set_line_width(CGroupBlot.s_dSLineStats)
-		self.pdf.set_draw_color(0) # black
-
-		self.pdf.line(xLeftMin, yTitleTextMiddle, xLeftMax, yTitleTextMiddle)
-		self.pdf.line(xRightMin, yTitleTextMiddle, xRightMax, yTitleTextMiddle)
-
-		# self.pdf.line(xLeftMin, yTitleTextMiddle, xLeftMin, yTitleTextMiddle + dSTitleGap)
-		# self.pdf.line(xRightMax, yTitleTextMiddle, xRightMax, yTitleTextMiddle + dSTitleGap)
 
 class CBracketBlot(CBlot): # tag = bracketb
 
@@ -1669,7 +1673,6 @@ class CCalElimPage(CPage): # tag = calelimp
 			yCalendar = rectCanvas.y + dYGap
 
 		calb.Draw(SPoint(xCalendar, yCalendar))
-		calb.DrawHeading(SPoint(xCalendar, yCalendar))
 
 		xBracket = rectCanvas.x + (rectCanvas.dX - bracketb.dX) / 2.0
 		if dYGap < 0:
