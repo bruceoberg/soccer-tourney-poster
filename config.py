@@ -69,6 +69,16 @@ lFmtIso216 = (
 	'd0',
 )
 
+# empirical minimum heights/widths of various tourney sizes.
+# see print() statement in CCalElimPage constructor.
+
+mpCTeamSizeMin: dict[int, tuple[float, float]] ={
+	16: (16.398, 25.750),
+	24: (18.068, 25.750),
+	32: (18.068, 25.750),
+	48: (22.665, 29.969),
+}
+
 @dataclass
 class SPageArgs: # tag - pagea
 

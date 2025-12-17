@@ -19,7 +19,7 @@ from dateutil import tz
 from pathlib import Path
 from typing import Optional, Iterable, Type, cast
 
-from config import PAGEK, SPageArgs, SDocumentArgs, llDocaTodo
+from config import PAGEK, SPageArgs, SDocumentArgs, llDocaTodo, mpCTeamSizeMin, mpStoreLFmt, lFmtIso216
 from database import g_loc, CTournamentDataBase, CGroup, CMatch, STAGE
 from bolay import SFontKey, CFontInstance, CPdf, CBlot
 from bolay import JH, JV, SPoint, SRect, RectBoundingBox, SHaloArgs
@@ -870,6 +870,25 @@ class CPage:
 			self.rectInside = self.rect
 			self.rectCropMarks = self.rect
 
+	def StrFmtBestFit(self) -> str:
+		dxInMin, dYInMin = mpCTeamSizeMin[len(self.tourn.mpStrTeamGroup)]
+		dXPtMin = dxInMin * 72
+		dYPtMin = dYInMin * 72
+		sAreaPtMin = dXPtMin * dYPtMin
+		strFmtBest = ''
+		sWastedBest = None
+		for strFmt in mpStoreLFmt['fedex']:
+		#for strFmt in lFmtIso216:
+			dXPt, dYPt = CPdf.s_mpStrFormatWH[strFmt]
+			if dXPt < dXPtMin or dYPt < dYPtMin:
+				continue
+			sWastedFmt = (dXPt * dYPt) - sAreaPtMin
+			if sWastedBest is None or sWastedFmt < sWastedBest:
+				sWastedBest = sWastedFmt
+				strFmtBest = strFmt
+
+		return strFmtBest if strFmtBest else 'unknown'
+
 	def StrTranslation(self, strKey: str) -> str:
 		return self.tourn.StrTranslation(strKey, self.strLocale)
 
@@ -1681,6 +1700,8 @@ class CCalElimPage(CPage): # tag = calelimp
 		# 	f"dY2: {headerb.s_dY+footerb.s_dY+calb.dY+bracketb.dY:0.3f}",
 		# 	f"dY3: {headerb.s_dY+footerb.s_dY+calb.dY+bracketb.dY+finalb.s_dY+1:0.3f}",
 		# ]))
+
+		# print(f"cTeam: {len(self.tourn.mpStrTeamGroup)} fmt: {self.StrFmtBestFit()}")
 
 class CDocument: # tag = doc
 	s_strKeyPrefixFonts = 'fonts.'
