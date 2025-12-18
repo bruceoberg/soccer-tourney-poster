@@ -1659,35 +1659,37 @@ class CCalElimPage(CPage): # tag = calelimp
 
 		dYUnused = rectCanvas.dY - (calb.dY + bracketb.dY + finalb.s_dY)
 		dYGap = dYUnused / 4.0
-		dYGapFinal = dYGap
-		if dYGap < 0:
+		fVerticalOverflow = dYGap < 0
+		if fVerticalOverflow:
 			dYUnused = rectCanvas.dY - (calb.dY + bracketb.dY)
 			dYGap = max(0.0, dYUnused / 3.0)
 			dYGapFinal = 0.0
+		else:
+			dYGapFinal = dYGap
 
 		dXColumns = max(calb.dX, bracketb.dX, finalb.s_dX) + gsetbLeft.dX + gsetbRight.dX
 		dXUnused = rectCanvas.dX - dXColumns
 		dXGap = dXUnused / 4.0 # both margins and both gaps between groups and calendar. same gap vertically for calendar/final
+		fHorzontalOverflow = dXGap < 0
 
-		if dXGap < 0:
+		if fHorzontalOverflow:
 			# paper to narrow: slide the groups below the calendar and closer to the bracket.
 			dXColumns = max(bracketb.dX, finalb.s_dX) + gsetbLeft.dX + gsetbRight.dX
 			dXUnused = rectCanvas.dX - dXColumns
 
-			dYBelowCal = rectCanvas.dY - (calb.dY + dYGap)
-			dYBelowCalUnused = dYBelowCal - gsetbLeft.dY
+			dYUnused = rectCanvas.dY - (calb.dY + gsetbLeft.dY + finalb.s_dY)	# NOTE bruceo: could possibly move final's up
 
-			if dXUnused < 0 and dYBelowCalUnused < 0:
-				sys.exit(f"{doc.tourn.strName}: groups don't fit. x over by {-dXUnused:0.2f}. y over by {-dYBelowCalUnused:0.2f}")
+			if dXUnused < 0 and dYUnused < 0:
+				sys.exit(f"{doc.tourn.strName}: groups don't fit. x over by {-dXUnused:0.2f}. y over by {-dYUnused:0.2f}")
 			if dXUnused < 0:
 				sys.exit(f"{doc.tourn.strName}: groups too wide; over by {-dXUnused:0.2f}.")
-			if dYBelowCalUnused < 0:
-				sys.exit(f"{doc.tourn.strName}: groups tall; over by {-dYBelowCalUnused:0.2f}")
+			if dYUnused < 0:
+				sys.exit(f"{doc.tourn.strName}: groups tall; over by {-dYUnused:0.2f}")
 
 			dXGap = dXUnused / 4.0
-			dYGroupGap = dYBelowCalUnused / 2.0
-
-			yGroups = rectCanvas.y + calb.dY + dYGroupGap
+			dYGap = dYUnused / 4.0
+			
+			yGroups = rectCanvas.y + calb.dY + dYGap
 
 		else:
 			# normal: groups to either side of vertical cal/bracket/final stack
@@ -1706,7 +1708,11 @@ class CCalElimPage(CPage): # tag = calelimp
 		calb.Draw(SPoint(xCalendar, yCalendar))
 
 		xBracket = rectCanvas.x + (rectCanvas.dX - bracketb.dX) / 2.0
-		yBracket = yCalendar + calb.dY + dYGap
+
+		if fHorzontalOverflow:
+			yBracket = yGroups + (gsetbLeft.dY - bracketb.dY) / 2.0
+		else:
+			yBracket = yCalendar + calb.dY + dYGap
 
 		bracketb.Draw(SPoint(xBracket, yBracket))
 
