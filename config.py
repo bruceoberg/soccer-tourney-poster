@@ -73,7 +73,7 @@ lFmtIso216 = (
 # see print() statement in CCalElimPage constructor.
 
 mpCTeamSizeMin: dict[int, tuple[float, float]] ={
-	16: (16.398, 25.750),
+	16: (16.398, 21.250),
 	24: (18.068, 25.750),
 	32: (18.068, 25.750),
 	48: (22.665, 29.969),
@@ -116,13 +116,13 @@ docaDefault = SDocumentArgs(
 	strNameTourn='',
 	iterPagea = (
 		#SPageArgs(CCalOnlyPage, fmt=(23, 35), fmtCrop=None, strTz='US/Eastern'),
-		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2026-mens-world-cup'),
-		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2025-mens-club-world-cup'),
-		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2024-mens-copa-america'),
-		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2024-mens-euro'		),
-		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2023-womens-world-cup'),
-		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2022-mens-world-cup'	),
-		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2018-mens-world-cup'	),
+		# SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2026-mens-world-cup'),
+		# SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2025-mens-club-world-cup'),
+		SPageArgs(PAGEK.CalElim, fmt='18x24', fmtCrop=None, strTz='US/Pacific', strNameTourn='2024-mens-copa-america'),
+		# SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2024-mens-euro'		),
+		# SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2023-womens-world-cup'),
+		# SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2022-mens-world-cup'	),
+		# SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2018-mens-world-cup'	),
 		#SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strLocale='en_AU', strTz='Australia/Sydney'),
 		# SPageArgs(PAGEK.CalElim, fmt=(23, 35), fmtCrop=None, strTz='US/Pacific'),
 		# SPageArgs(PAGEK.CalElim, fmt=(23, 35), fmtCrop=None, strTz='US/Eastern'),

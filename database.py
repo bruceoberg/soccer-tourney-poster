@@ -30,6 +30,7 @@ class CDataBase: # tag = db
 
 	def __init__(self, strName: str) -> None:
 
+		self.strName = strName
 		self.pathFile = self.s_pathDir / (strName + '.xlsx')
 		self.mpStrKeyStrLocaleStrText: dict[str, dict[str, str]] = {}
 
