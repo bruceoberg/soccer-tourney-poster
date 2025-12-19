@@ -20,7 +20,8 @@ from dateutil import tz
 from pathlib import Path
 from typing import Optional, Iterable, Type, cast
 
-from config import PAGEK, SPageArgs, SDocumentArgs, llDocaTodo, mpCTeamSizeMin, mpStoreLFmt, lFmtIso216
+from config import PAGEK, SPageArgs, SDocumentArgs, llDocaTodo
+from loc import StrTzAbbrev, StrFmtBestFit
 from database import g_loc, CTournamentDataBase, CGroup, CMatch, STAGE
 from bolay import SFontKey, CFontInstance, CPdf, CBlot
 from bolay import JH, JV, SPoint, SRect, RectBoundingBox, SHaloArgs
@@ -835,8 +836,6 @@ class CPage:
 			self.tourn = cast(CTournamentDataBase, doc.tourn)
 
 		self.strOrientation = self.pagea.strOrientation
-		self.fmt = self.pagea.fmt
-		self.fmtCrop = self.pagea.fmtCrop
 		self.strTz = self.pagea.strTz
 		tzinfoOptional = cast(datetime.tzinfo, tz.gettz(self.strTz))
 		assert(tzinfoOptional is not None)
@@ -844,10 +843,23 @@ class CPage:
 		self.strLocale = self.pagea.strLocale
 		self.locale = Locale.parse(self.strLocale)
 		self.strDateMMMMEEEEd = StrPatternDateMMMMEEEEd(self.locale)
+		if self.pagea.fmt is None:
+			assert(self.pagea.fmtCrop == None)
+			self.fmt = StrFmtBestFit(len(self.tourn.mpStrTeamGroup), self.locale)
+			print(f"{self.tourn.strName}: choosing {self.fmt}")
+		else: 
+			self.fmt = self.pagea.fmt
+		self.fmtCrop = self.pagea.fmtCrop
 
 		self.BuildDisplayDatesTimes()
 
 		self.mpDateSetMatch: dict[datetime.date, set[CMatch]] = self.MpDateSetMatch()
+
+		# with our dates set, we can calucate out short timezone name
+
+		tMin = arrow.get(min(self.mpDateSetMatch))
+		tTz = tMin.to(self.tzinfo)
+		self.strTzAbbrev = StrTzAbbrev(tTz)
 
 		# using type: ignore here because fpdf's typing stubs are known to be janky.
 
@@ -872,25 +884,6 @@ class CPage:
 		else:
 			self.rectInside = self.rect
 			self.rectCropMarks = self.rect
-
-	def StrFmtBestFit(self) -> str:
-		dxInMin, dYInMin = mpCTeamSizeMin[len(self.tourn.mpStrTeamGroup)]
-		dXPtMin = dxInMin * 72
-		dYPtMin = dYInMin * 72
-		sAreaPtMin = dXPtMin * dYPtMin
-		strFmtBest = ''
-		sWastedBest = None
-		for strFmt in mpStoreLFmt['fedex']:
-		#for strFmt in lFmtIso216:
-			dXPt, dYPt = CPdf.s_mpStrFormatWH[strFmt]
-			if dXPt < dXPtMin or dYPt < dYPtMin:
-				continue
-			sWastedFmt = (dXPt * dYPt) - sAreaPtMin
-			if sWastedBest is None or sWastedFmt < sWastedBest:
-				sWastedBest = sWastedFmt
-				strFmtBest = strFmt
-
-		return strFmtBest if strFmtBest else 'unknown'
 
 	def StrTranslation(self, strKey: str) -> str:
 		return self.tourn.StrTranslation(strKey, self.strLocale)
@@ -1190,30 +1183,9 @@ class CHeaderBlot(CBlot): # tag = headerb
 
 		# time zone
 
-		tTz = tMin.to(self.page.tzinfo)
-		
-		if self.page.pagea.strTz == 'Asia/Tehran':
-			strTz = 'IRST'	# thanks arrow for not supporting iran
-		else:
-			strTz = tTz.format('ZZZ', self.page.strLocale)
-
-		if strTz.startswith('+'):
-			strTz = f'UTC{strTz}'
-		else:
-			dT = tTz.utcoffset()
-			assert(dT)
-			if cSec := int(dT.total_seconds()):
-				if (cSec % (60*60)) == 0:
-					cHour = cSec // (60*60)
-					strTz += f' (UTC{cHour:+d})'
-				else:
-					cHour = cSec // (60*60)
-					cMin = (cSec % (60*60)) // 60
-					strTz += f' (UTC{cHour:+d}:{cMin:02d})'
-
 		strLabelTimeZone = self.page.StrTranslation('page.timezone.label')
 		strFormatTimeZone = self.page.StrTranslation('page.format.timezone')
-		strTimeZone = strFormatTimeZone.format(label=strLabelTimeZone, timezone=strTz)
+		strTimeZone = strFormatTimeZone.format(label=strLabelTimeZone, timezone=self.page.strTzAbbrev)
 
 		# notes left and right
 
@@ -1822,11 +1794,21 @@ class CDocument: # tag = doc
 			assert strTtf
 			self.pdf.AddFont(strTtf, '', self.s_pathDirFonts / strTtf)
 
-		for pagea in self.doca.iterPagea:
-			self.s_mpPagekClsPage[pagea.pagek](self, pagea)
+		self.lPage: list[CPage] = [self.s_mpPagekClsPage[pagea.pagek](self, pagea) for pagea in self.doca.iterPagea]
 
 		pathDirOutput = g_pathHere / self.doca.strDestDir if self.doca.strDestDir else g_pathHere
-		strFile = strName + '-' + self.doca.strFileSuffix if self.doca.strFileSuffix else strName
+
+		lStrFile = [strName]
+		
+		if self.doca.strFileSuffix:
+			lStrFile.append(self.doca.strFileSuffix)
+
+		if self.doca.fAddLangTzSuffix:
+			for page in self.lPage:
+				lStrFile.append(page.locale.language.lower())
+				lStrFile.append(page.strTzAbbrev)
+
+		strFile = '-'.join(lStrFile)
 
 		pathDirOutput.mkdir(parents=True, exist_ok=True)
 		pathOutput = (pathDirOutput / strFile).with_suffix('.pdf')

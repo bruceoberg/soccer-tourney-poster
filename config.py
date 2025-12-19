@@ -62,11 +62,13 @@ mpStoreLFmt = {
 	),
 }
 
-lFmtIso216 = (
-	'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8',
+setFmtUS = {fmt for strStore, lFmt in mpStoreLFmt.items() for fmt in lFmt }
+lFmtUS = sorted(setFmtUS)
+
+lFmtIso = (
+	'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10',
 	'b0', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8', 'b9', 'b10',
-	'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6',
-	'd0',
+	'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10',
 )
 
 # empirical minimum heights/widths of various tourney sizes.
@@ -91,11 +93,11 @@ class SPageArgs: # tag - pagea
 	pagek: PAGEK
 	strNameTourn: str = ''
 	strOrientation: str = 'landscape'
-	fmt: str | tuple[float, float] = (22, 28)
 	strTz: str = 'US/Pacific'
-	fmtCrop: Optional[str | tuple[float, float]] = (18, 27)
 	strLocale: str = 'en_US'
 	strVariant: str = ''
+	fmt: Optional[str | tuple[float, float]] = None
+	fmtCrop: Optional[str | tuple[float, float]] = None
 	fMainBorders: bool = True
 	fEliminationBorders: bool = True
 	fMatchNumbers: bool = False
@@ -110,30 +112,31 @@ class SDocumentArgs: # tag = doca
 	strNameTourn: str = g_strNameTourn
 	strDestDir: str = ''
 	strFileSuffix: str = ''
+	fAddLangTzSuffix: bool = False
 
 docaDefault = SDocumentArgs(
 	strDestDir = 'playground',
 	strNameTourn='',
 	iterPagea = (
-		#SPageArgs(CCalOnlyPage, fmt=(23, 35), fmtCrop=None, strTz='US/Eastern'),
-		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2026-mens-world-cup'),
-		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2025-mens-club-world-cup'),
-		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2024-mens-copa-america'),
-		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2024-mens-euro'		),
-		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2023-womens-world-cup'),
-		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2022-mens-world-cup'	),
-		SPageArgs(PAGEK.CalElim, fmt='24x36', fmtCrop=None, strTz='US/Pacific', strNameTourn='2018-mens-world-cup'	),
-		#SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strLocale='en_AU', strTz='Australia/Sydney'),
-		# SPageArgs(PAGEK.CalElim, fmt=(23, 35), fmtCrop=None, strTz='US/Pacific'),
-		# SPageArgs(PAGEK.CalElim, fmt=(23, 35), fmtCrop=None, strTz='US/Eastern'),
-		# SPageArgs(PAGEK.CalElim, fmt=(23, 35), fmtCrop=None, strLocale='en_AU', strTz='Australia/Sydney'),
-		# SPageArgs(PAGEK.CalElim, fmt=(23, 35), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
-		# SPageArgs(PAGEK.CalElim, fmt=(23, 35), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
-		# SPageArgs(PAGEK.CalElim, fmt=(20, 27), fmtCrop=None, strLocale='nl', strTz='Europe/Amsterdam'),
-		# SPageArgs(PAGEK.CalElim, fmt=(20, 27), fmtCrop=None, strTz='Asia/Qatar'),
-		# SPageArgs(PAGEK.CalElim, fmt=(20, 27), fmtCrop=None, strLocale='ja', strTz='Asia/Tokyo'),
-		# SPageArgs(PAGEK.CalElim, fmt=(20, 27), fmtCrop=None, strLocale='fa', strTz='Asia/Tehran'),
-		# SPageArgs(PAGEK.CalElim, fmt=(20, 27), fmtCrop=None, strTz='Australia/Sydney'),
+		#SPageArgs(CCalOnlyPage, strTz='US/Eastern'),
+		SPageArgs(PAGEK.CalElim, strTz='US/Pacific', strNameTourn='2026-mens-world-cup'),
+		SPageArgs(PAGEK.CalElim, strTz='US/Pacific', strNameTourn='2025-mens-club-world-cup'),
+		SPageArgs(PAGEK.CalElim, strTz='US/Pacific', strNameTourn='2024-mens-copa-america'),
+		SPageArgs(PAGEK.CalElim, strTz='US/Pacific', strNameTourn='2024-mens-euro'		),
+		SPageArgs(PAGEK.CalElim, strTz='US/Pacific', strNameTourn='2023-womens-world-cup'),
+		SPageArgs(PAGEK.CalElim, strTz='US/Pacific', strNameTourn='2022-mens-world-cup'	),
+		SPageArgs(PAGEK.CalElim, strTz='US/Pacific', strNameTourn='2018-mens-world-cup'	),
+		#SPageArgs(PAGEK.CalElim, strLocale='en_AU', strTz='Australia/Sydney'),
+		# SPageArgs(PAGEK.CalElim, strTz='US/Pacific'),
+		# SPageArgs(PAGEK.CalElim, strTz='US/Eastern'),
+		# SPageArgs(PAGEK.CalElim, strLocale='en_AU', strTz='Australia/Sydney'),
+		# SPageArgs(PAGEK.CalElim, strLocale='ja', strTz='Asia/Tokyo'),
+		# SPageArgs(PAGEK.CalElim, strLocale='fa', strTz='Asia/Tehran'),
+		# SPageArgs(PAGEK.CalElim, strLocale='nl', strTz='Europe/Amsterdam'),
+		# SPageArgs(PAGEK.CalElim, strTz='Asia/Qatar'),
+		# SPageArgs(PAGEK.CalElim, strLocale='ja', strTz='Asia/Tokyo'),
+		# SPageArgs(PAGEK.CalElim, strLocale='fa', strTz='Asia/Tehran'),
+		# SPageArgs(PAGEK.CalElim, strTz='Australia/Sydney'),
 	))
 
 docaTests = SDocumentArgs(
@@ -147,10 +150,10 @@ docaDesigns = SDocumentArgs(
 	strDestDir = 'playground',
 	strFileSuffix = 'designs',
 	iterPagea = (
-		SPageArgs(PAGEK.CalOnly, fmt=(18, 27), fmtCrop=None, strVariant = 'alpha', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
-		SPageArgs(PAGEK.CalElim, fmt=(18, 27), fmtCrop=None, strVariant = 'beta', fEliminationBorders = False, fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
-		SPageArgs(PAGEK.CalElim, fmt=(18, 27), fmtCrop=None, strVariant = 'borderless', fMainBorders = False),
-		SPageArgs(PAGEK.CalElim, fmt=(18, 27), fmtCrop=None, strVariant = 'gold master'),
+		SPageArgs(PAGEK.CalOnly, strVariant = 'alpha', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
+		SPageArgs(PAGEK.CalElim, strVariant = 'beta', fEliminationBorders = False, fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
+		SPageArgs(PAGEK.CalElim, strVariant = 'borderless', fMainBorders = False),
+		SPageArgs(PAGEK.CalElim, strVariant = 'gold master'),
 	))
 
 docaRelease = SDocumentArgs(
@@ -158,42 +161,30 @@ docaRelease = SDocumentArgs(
 	strDestDir = str(Path('releases') / g_strNameTourn),
 	strFileSuffix = 'all',
 	iterPagea = (
-		SPageArgs(PAGEK.CalElim, fmt=(20, 27), fmtCrop=None),
 		SPageArgs(PAGEK.CalElim, strTz='US/Pacific'),
 		SPageArgs(PAGEK.CalElim, strTz='US/Mountain'),
 		SPageArgs(PAGEK.CalElim, strTz='US/Central'),
 		SPageArgs(PAGEK.CalElim, strTz='US/Eastern'),
-		SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strTz='Europe/London', strLocale='en'),
-		SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strTz='Europe/Paris', strLocale='fr'),
-		SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strTz='Europe/Rome', strLocale='it'),
-		SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strTz='Europe/Berlin', strLocale='de'),
-		SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strTz='Europe/Madrid', strLocale='es'),
-		SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strTz='Europe/Amsterdam', strLocale='nl'),
-		SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strTz='Asia/Tehran', strLocale='fa'),
-		SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strTz='Asia/Tokyo', strLocale='ja'),
-		SPageArgs(PAGEK.CalElim, fmt='a1', fmtCrop=None, strTz='Australia/Sydney', strLocale='en'),
+		SPageArgs(PAGEK.CalElim, strTz='Europe/London', strLocale='en_GB'),
+		SPageArgs(PAGEK.CalElim, strTz='Europe/Paris', strLocale='fr'),
+		SPageArgs(PAGEK.CalElim, strTz='Europe/Rome', strLocale='it'),
+		SPageArgs(PAGEK.CalElim, strTz='Europe/Berlin', strLocale='de'),
+		SPageArgs(PAGEK.CalElim, strTz='Europe/Madrid', strLocale='es_ES'),
+		SPageArgs(PAGEK.CalElim, strTz='Europe/Amsterdam', strLocale='nl'),
+		SPageArgs(PAGEK.CalElim, strTz='Asia/Tehran', strLocale='fa'),
+		SPageArgs(PAGEK.CalElim, strTz='Asia/Tokyo', strLocale='ja'),
+		SPageArgs(PAGEK.CalElim, strTz='Australia/Sydney', strLocale='en_AU'),
+		SPageArgs(PAGEK.CalElim, strTz='Pacific/Auckland', strLocale='en_NZ'),
 	))
 
 lDocaRelease: list[SDocumentArgs] = []
 
-for pagea in docaRelease.iterPagea:
+for iPagea, pagea in enumerate(docaRelease.iterPagea):
 	
-	if pagea.fmt == (20, 27) and pagea.fmtCrop == None:	# BB (bruceo) somehow glean this from the pagea more explicitly
-		lStrFileSuffix = []
-	else:
-		lStrFileSuffix = [Locale.parse(pagea.strLocale).language.lower()]
+	if iPagea == 0:
+		lDocaRelease.append(SDocumentArgs(strDestDir = docaRelease.strDestDir, iterPagea=(pagea,)))
 
-		if pagea.strTz == 'Asia/Tehran':
-			lStrFileSuffix.append('irst')	# thanks arrow for not supporting iran
-		elif tzinfo := tz.gettz(pagea.strTz):
-			tTz = arrow.utcnow().to(tzinfo)
-			strTz = tTz.format('ZZZ') # GMT, PST, etc
-			lStrFileSuffix.append(strTz.lower())
-
-
-	strFileSuffix = '-'.join(lStrFileSuffix)
-
-	lDocaRelease.append(SDocumentArgs(strDestDir = docaRelease.strDestDir, strFileSuffix = strFileSuffix, iterPagea=(pagea,)))
+	lDocaRelease.append(SDocumentArgs(strDestDir = docaRelease.strDestDir, fAddLangTzSuffix=True, iterPagea=(pagea,)))
 
 llDocaTodo = [
 	[
