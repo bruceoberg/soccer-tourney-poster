@@ -1077,19 +1077,33 @@ class CDaysTestPage(CPage): # gtp
 
 class CGroupSetBlot(CBlot): # tag = gsetb
 
+	s_dSGridGapMin = min(CGroupBlot.s_dX, CGroupBlot.s_dY) / 6
 	s_dSGridGapMax = min(CGroupBlot.s_dX, CGroupBlot.s_dY) / 2
 
-	def __init__(self, doc: CDocument, lGroupb: list[CGroupBlot], rectCanvas: SRect, cCol: int = 0, cRow: int = 0) -> None:
+	def __init__(self, doc: CDocument, lGroupb: list[CGroupBlot], rectCanvas: SRect, cCol: int = 0, cRow: int = 0, fAddOuterMargin: bool = True) -> None:
 		super().__init__(doc.pdf)
 
 		self.doc = doc
 		self.lGroupb = lGroupb
 
+		self.cCol = 0
+		self.cRow = 0
+
+		self.dXGridGap = 0
+		self.dYGridGap = 0
+
+		self.dX = 0
+		self.dY = 0
+
 		if not lGroupb:
 			return
+		
+		self.Layout(rectCanvas, cCol, cRow, fAddOuterMargin)
+
+	def Layout(self, rectCanvas: SRect, cCol: int = 0, cRow: int = 0, fAddOuterMargin: bool = True):
 
 		if cCol == 0 and cRow == 0:
-			self.cCol = round(math.sqrt(len(lGroupb))) + 1
+			self.cCol = round(math.sqrt(len(self.lGroupb))) + 1
 			self.cRow = cCol
 		elif cCol == 0:
 			self.cCol = (len(self.lGroupb) + cRow - 1) // cRow
@@ -1104,16 +1118,24 @@ class CGroupSetBlot(CBlot): # tag = gsetb
 		dXGroups = (self.cCol * CGroupBlot.s_dX)
 		dYGroups = (self.cRow * CGroupBlot.s_dY) 
 
-		self.dXGridGap = 0 if self.cCol <= 1 else (rectCanvas.dX - dXGroups) / self.cCol
-		self.dYGridGap = 0 if self.cRow <= 1 else (rectCanvas.dY - dYGroups) / self.cRow
+		if fAddOuterMargin:
+			self.dXGridGap = 0 if self.cCol <= 1 else (rectCanvas.dX - dXGroups) / self.cCol
+			self.dYGridGap = 0 if self.cRow <= 1 else (rectCanvas.dY - dYGroups) / self.cRow
+		else:
+			self.dXGridGap = 0 if self.cCol <= 2 else (rectCanvas.dX - dXGroups) / (self.cCol - 1)
+			self.dYGridGap = 0 if self.cRow <= 2 else (rectCanvas.dY - dYGroups) / (self.cRow - 1)
 
 		# gaps could be negative if rectInside is too small
 
-		self.dXGridGap = min(max(0, self.dXGridGap), self.s_dSGridGapMax)
-		self.dYGridGap = min(max(0, self.dYGridGap), self.s_dSGridGapMax)
+		self.dXGridGap = 0 if self.cCol <= 1 else min(max(self.s_dSGridGapMin, self.dXGridGap), self.s_dSGridGapMax)
+		self.dYGridGap = 0 if self.cRow <= 1 else min(max(self.s_dSGridGapMin, self.dYGridGap), self.s_dSGridGapMax)
 
-		self.dX = dXGroups + (self.cCol * self.dXGridGap)
-		self.dY = dYGroups + (self.cRow * self.dYGridGap)
+		if fAddOuterMargin:
+			self.dX = dXGroups + (self.cCol * self.dXGridGap)
+			self.dY = dYGroups + (self.cRow * self.dYGridGap)
+		else:
+			self.dX = dXGroups + max(0, ((self.cCol - 1) * self.dXGridGap))
+			self.dY = dYGroups + max(0, ((self.cRow - 1) * self.dYGridGap))
 
 	def Draw(self, pos: SPoint) -> None:
 		
@@ -1417,7 +1439,8 @@ class CBracketBlot(CBlot): # tag = bracketb
 		dYGrid = self.cRow * CElimBlot.s_dY + (self.cRow - 1) * self.s_dYStageGap
 
 		self.dX = dXGrid
-		self.dY = self.s_dYStageLabel + dYGrid # earliest stage label pops up above grid
+		self.dY = self.s_dYStageLabel + dYGrid				# earliest stage label pops up above grid
+		self.dYMidGrid = self.s_dYStageLabel + dYGrid / 2.0	# so CCalElim can center bracket with groups
 
 		# figure out offsets for bracket layout
 
@@ -1660,6 +1683,7 @@ class CCalElimPage(CPage): # tag = calelimp
 		dYUnused = rectCanvas.dY - (calb.dY + bracketb.dY + finalb.s_dY)
 		dYGap = dYUnused / 4.0
 		fVerticalOverflow = dYGap < 0
+
 		if fVerticalOverflow:
 			dYUnused = rectCanvas.dY - (calb.dY + bracketb.dY)
 			dYGap = max(0.0, dYUnused / 3.0)
@@ -1679,17 +1703,25 @@ class CCalElimPage(CPage): # tag = calelimp
 
 			dYUnused = rectCanvas.dY - (calb.dY + gsetbLeft.dY + finalb.s_dY)	# NOTE bruceo: could possibly move final's up
 
-			if dXUnused < 0 and dYUnused < 0:
-				sys.exit(f"{doc.tourn.strName}: groups don't fit. x over by {-dXUnused:0.2f}. y over by {-dYUnused:0.2f}")
-			if dXUnused < 0:
-				sys.exit(f"{doc.tourn.strName}: groups too wide; over by {-dXUnused:0.2f}.")
 			if dYUnused < 0:
-				sys.exit(f"{doc.tourn.strName}: groups tall; over by {-dYUnused:0.2f}")
+				# try shrinking group sets vertically
+				rectLayout = rectCanvas.Copy(dY = 0) # zero height to force group sets to minimum gaps
+				gsetbLeft.Layout(rectLayout, cCol = 1, fAddOuterMargin = False)
+				gsetbRight.Layout(rectLayout, cCol = 1, fAddOuterMargin = False)
+				dYUnused = rectCanvas.dY - (calb.dY + gsetbLeft.dY + finalb.s_dY)	# NOTE bruceo: could possibly move final's up
+				dYGapFinal = 0.0
+
+			if dXUnused < 0 and dYUnused < 0:
+				sys.exit(f"{self.tourn.strName}: groups don't fit. x over by {-dXUnused:0.2f}. y over by {-dYUnused:0.2f}")
+			if dXUnused < 0:
+				sys.exit(f"{self.tourn.strName}: groups too wide; over by {-dXUnused:0.2f}.")
+			if dYUnused < 0:
+				sys.exit(f"{self.tourn.strName}: groups too tall; over by {-dYUnused:0.2f}")
 
 			dXGap = dXUnused / 4.0
-			dYGap = dYUnused / 4.0
+			dYGap = dYUnused / 3.0
 			
-			yGroups = rectCanvas.y + calb.dY + dYGap
+			yGroups = rectCanvas.y + calb.dY + 2 * dYGap
 
 		else:
 			# normal: groups to either side of vertical cal/bracket/final stack
@@ -1710,7 +1742,7 @@ class CCalElimPage(CPage): # tag = calelimp
 		xBracket = rectCanvas.x + (rectCanvas.dX - bracketb.dX) / 2.0
 
 		if fHorzontalOverflow:
-			yBracket = yGroups + (gsetbLeft.dY - bracketb.dY) / 2.0
+			yBracket = yGroups + (gsetbLeft.dY / 2.0) - bracketb.dYMidGrid
 		else:
 			yBracket = yCalendar + calb.dY + dYGap
 
@@ -1732,7 +1764,8 @@ class CCalElimPage(CPage): # tag = calelimp
 
 		# print(' '.join([
 		# 	f"cTeam: {len(self.tourn.mpStrTeamGroup)}",
-		# 	f"dX: {gsetbLeft.dX+gsetbRight.dX+max(calb.dX, bracketb.dX, finalb.s_dX)+1:0.3f}",
+		# 	f"dX2: {gsetbLeft.dX+gsetbRight.dX+max(bracketb.dX, finalb.s_dX)+1:0.3f}",
+		# 	f"dX3: {gsetbLeft.dX+gsetbRight.dX+max(calb.dX, bracketb.dX, finalb.s_dX)+1:0.3f}",
 		# 	f"dY2: {headerb.s_dY+footerb.s_dY+calb.dY+bracketb.dY:0.3f}",
 		# 	f"dY3: {headerb.s_dY+footerb.s_dY+calb.dY+bracketb.dY+finalb.s_dY+1:0.3f}",
 		# ]))
