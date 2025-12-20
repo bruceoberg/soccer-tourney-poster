@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import sys
+
 from babel import Locale
 from datetime import datetime
 from dataclasses import dataclass
@@ -19,8 +21,8 @@ def FUsesIsoPaperSizes(locale: Locale) -> bool:
 		'pa',  # Panama
 		'ph',  # Philippines
 		'pr',  # Puerto Rico
-		'sv',  # El Salvador
 		've',  # Venezuela
+		'sv',  # El Salvador
 	}
   
 	return not locale.territory or not locale.territory.lower() in setStrTerritoryUsLetter
@@ -50,42 +52,51 @@ class STZs:  # tag = tzs
 	strDst: str
 
 # Comprehensive mapping of IANA timezone -> abbreviations
-g_mpStrTimezoneToAbbrevs: dict[str, STZs] = {
+g_mpStrTzTzs: dict[str, STZs] = {
 	# Pacific
-	"Pacific/Auckland":        STZs("NZST", "NZDT"),
-	"Pacific/Fiji":            STZs("FJT",  "FJST"),
-	"Pacific/Honolulu":        STZs("HST",  "HDT"),
+	"Pacific/Auckland":		STZs("NZST", "NZDT"),
+	"Pacific/Fiji":			STZs("FJT", "FJST"),
+	"Pacific/Honolulu":		STZs("HST", "HDT"),
 	
 	# Asia
-	"Asia/Tehran":             STZs("IRST", "IRDT"),
-	"Asia/Dubai":              STZs("GST",  "GST"),   # No DST
-	"Asia/Shanghai":           STZs("CST",  "CST"),   # No DST
-	"Asia/Tokyo":              STZs("JST",  "JST"),   # No DST
-	"Asia/Kolkata":            STZs("IST",  "IST"),   # No DST
+	"Asia/Tehran":			STZs("IRST", "IRDT"),
+	"Asia/Dubai":			STZs("GST", "GST"),	# No DST
+	"Asia/Shanghai":		STZs("CST", "CST"),	# No DST
+	"Asia/Tokyo":			STZs("JST", "JST"),	# No DST
+	"Asia/Kolkata":			STZs("IST", "IST"),	# No DST
 	
 	# Americas
-	"America/New_York":        STZs("EST",  "EDT"),
-	"America/Chicago":         STZs("CST",  "CDT"),
-	"America/Denver":          STZs("MST",  "MDT"),
-	"America/Los_Angeles":     STZs("PST",  "PDT"),
-	"America/Sao_Paulo":       STZs("BRT",  "BRST"),
-	
+	"America/New_York":		STZs("EST", "EDT"),
+	"America/Chicago":		STZs("CST", "CDT"),
+	"America/Denver":		STZs("MST", "MDT"),
+	"America/Los_Angeles":	STZs("PST", "PDT"),
+	"America/Sao_Paulo":	STZs("BRT", "BRST"),
+
+	"US/Eastern":			STZs("EST", "EDT"),
+	"US/Central":			STZs("CST", "CDT"),
+	"US/Mountain":			STZs("MST", "MDT"),
+	"US/Pacific":			STZs("PST", "PDT"),
+
 	# Europe
-	"Europe/London":           STZs("GMT",  "BST"),
-	"Europe/Paris":            STZs("CET",  "CEST"),
-	"Europe/Athens":           STZs("EET",  "EEST"),
-	"Europe/Moscow":           STZs("MSK",  "MSK"),   # No DST
+	"Europe/London":		STZs("GMT", "BST"),
+	"Europe/Paris":			STZs("CET", "CEST"),
+	"Europe/Rome":			STZs("CET", "CEST"),
+	"Europe/Berlin":		STZs("CET", "CEST"),
+	"Europe/Madrid":		STZs("CET", "CEST"),
+	"Europe/Amsterdam":		STZs("CET", "CEST"),
+	"Europe/Athens":		STZs("EET", "EEST"),
+	"Europe/Moscow":		STZs("MSK", "MSK"),	# No DST
 	
 	# Africa
-	"Africa/Cairo":            STZs("EET",  "EEST"),
-	"Africa/Johannesburg":     STZs("SAST", "SAST"),  # No DST
+	"Africa/Cairo":			STZs("EET",	"EEST"),
+	"Africa/Johannesburg":	STZs("SAST", "SAST"),	# No DST
 	
 	# Australia
-	"Australia/Sydney":        STZs("AEST", "AEDT"),
-	"Australia/Perth":         STZs("AWST", "AWST"),  # No DST
+	"Australia/Sydney":		STZs("AEST", "AEDT"),
+	"Australia/Perth":		STZs("AWST", "AWST"),	# No DST
 }
 
-def StrTzAbbrev(t: datetime) -> str:
+def StrTzAbbrev(strTz: str, t: datetime) -> str:
 	"""
 	Get the timezone abbreviation for a datetime.
 	
@@ -95,27 +106,19 @@ def StrTzAbbrev(t: datetime) -> str:
 	"""
 
 	try:
-		tzs = g_mpStrTimezoneToAbbrevs[str(t.tzinfo)]
+		tzs = g_mpStrTzTzs[strTz]
 		fIsDst = t.dst() and t.dst().total_seconds() > 0
 		return tzs.strDst if fIsDst else tzs.strStd
 	except KeyError:
 		pass
 	
 	# Fallback to system abbreviation (might be offset like "+0330")
-	strTz = t.strftime('%Z')
 
-	if strTz.startswith('+'):
-		strTz = f'UTC{strTz}'
-	else:
-		dT = t.utcoffset()
-		assert(dT)
-		if cSec := int(dT.total_seconds()):
-			if (cSec % (60*60)) == 0:
-				cHour = cSec // (60*60)
-				strTz += f' (UTC{cHour:+d})'
-			else:
-				cHour = cSec // (60*60)
-				cMin = (cSec % (60*60)) // 60
-				strTz += f' (UTC{cHour:+d}:{cMin:02d})'
-	
-	return strTz
+	strTzAbbrev = t.strftime('%Z')
+
+	for ch in strTzAbbrev:
+		if ch.isdigit():
+			print(f"Warning: strTztimezone '{strTz}' abbreviated to '{strTzAbbrev}'")
+			break
+
+	return strTzAbbrev

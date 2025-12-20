@@ -846,7 +846,6 @@ class CPage:
 		if self.pagea.fmt is None:
 			assert(self.pagea.fmtCrop == None)
 			self.fmt = StrFmtBestFit(len(self.tourn.mpStrTeamGroup), self.locale)
-			print(f"{self.tourn.strName}: choosing {self.fmt}")
 		else: 
 			self.fmt = self.pagea.fmt
 		self.fmtCrop = self.pagea.fmtCrop
@@ -859,9 +858,26 @@ class CPage:
 
 		tMin = arrow.get(min(self.mpDateSetMatch))
 		tTz = tMin.to(self.tzinfo)
-		self.strTzAbbrev = StrTzAbbrev(tTz)
+		self.strTzAbbrev = StrTzAbbrev(self.strTz, tTz.datetime)
 
-		# using type: ignore here because fpdf's typing stubs are known to be janky.
+		if self.strTzAbbrev.startswith('+'):
+			self.strTzHeader = f'UTC{self.strTzAbbrev}'
+		else:
+			dT = tTz.utcoffset()
+			assert(dT)
+			if cSec := int(dT.total_seconds()):
+				if (cSec % (60*60)) == 0:
+					cHour = cSec // (60*60)
+					self.strTzHeader = f'{self.strTzAbbrev} (UTC{cHour:+d})'
+				else:
+					cHour = cSec // (60*60)
+					cMin = (cSec % (60*60)) // 60
+					self.strTzHeader = f'{self.strTzAbbrev} (UTC{cHour:+d}:{cMin:02d})'
+	
+		# if self.pagea.fmt is None:
+		# 	print(f"{self.tourn.strName} ({str(self.locale).lower()}/{self.strTzAbbrev}): choosing {self.fmt}")
+
+		# using "type: ignore" here because fpdf's typing stubs are known to be janky.
 
 		self.pdf.add_page(orientation=self.strOrientation, format=self.fmt)	# type: ignore[arg-type]
 		self.rect = SRect(0, 0, self.pdf.w, self.pdf.h)
@@ -1185,7 +1201,7 @@ class CHeaderBlot(CBlot): # tag = headerb
 
 		strLabelTimeZone = self.page.StrTranslation('page.timezone.label')
 		strFormatTimeZone = self.page.StrTranslation('page.format.timezone')
-		strTimeZone = strFormatTimeZone.format(label=strLabelTimeZone, timezone=self.page.strTzAbbrev)
+		strTimeZone = strFormatTimeZone.format(label=strLabelTimeZone, timezone=self.page.strTzHeader)
 
 		# notes left and right
 
@@ -1805,8 +1821,8 @@ class CDocument: # tag = doc
 
 		if self.doca.fAddLangTzSuffix:
 			for page in self.lPage:
-				lStrFile.append(page.locale.language.lower())
-				lStrFile.append(page.strTzAbbrev)
+				lStrFile.append(page.strLocale.lower())
+				lStrFile.append(page.strTzAbbrev.lower())
 
 		strFile = '-'.join(lStrFile)
 
