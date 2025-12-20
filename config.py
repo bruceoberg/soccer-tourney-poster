@@ -170,6 +170,7 @@ docaRelease = SDocumentArgs(
 		SPageArgs(PAGEK.CalElim, strTz='Europe/Berlin', strLocale='de'),
 		SPageArgs(PAGEK.CalElim, strTz='Europe/Madrid', strLocale='es_ES'),
 		SPageArgs(PAGEK.CalElim, strTz='Europe/Amsterdam', strLocale='nl'),
+		SPageArgs(PAGEK.CalElim, strTz='Europe/Amsterdam', strLocale='fa'),
 		SPageArgs(PAGEK.CalElim, strTz='Asia/Tehran', strLocale='fa'),
 		SPageArgs(PAGEK.CalElim, strTz='Asia/Tokyo', strLocale='ja'),
 		SPageArgs(PAGEK.CalElim, strTz='Australia/Sydney', strLocale='en_AU'),
@@ -190,8 +191,8 @@ llDocaTodo = [
 		docaDefault,
 		# docaTests,
 		# docaDesigns,
-		# docaRelease,
+		docaRelease,
 	],
-	#lDocaRelease,
+	lDocaRelease,
 ]
 
