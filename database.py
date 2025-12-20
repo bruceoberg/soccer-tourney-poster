@@ -445,5 +445,3 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 	def StrTeam(self, strKey: str, strLocale: str) -> str:
 		strKeyResolved = self.strKeyTeamPrefix + strKey
 		return self.StrTranslation(strKeyResolved, strLocale)
-
-g_tourn = CTournamentDataBase(g_strNameTourn)

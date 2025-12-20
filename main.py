@@ -22,6 +22,7 @@ from typing import Optional, Iterable, Type, cast
 
 from config import PAGEK, SPageArgs, SDocumentArgs, llDocaTodo
 from loc import StrTzAbbrev, StrFmtBestFit
+from versioning import g_repover
 from database import g_loc, CTournamentDataBase, CGroup, CMatch, STAGE
 from bolay import SFontKey, CFontInstance, CPdf, CBlot
 from bolay import JH, JV, SPoint, SRect, RectBoundingBox, SHaloArgs
@@ -1250,6 +1251,7 @@ class CFooterBlot(CBlot): # tag = headerb
 			'BRUCE@OBERG.ORG',
 			'MADE IN PYTHON WITH FPDF2',
 			'GITHUB.COM/BRUCEOBERG/SOCCER-TOURNEY-POSTER',
+			g_repover.StrVersionShort(),
 		]
 
 		lStrCreditCenter: list[str] = [
@@ -1259,6 +1261,8 @@ class CFooterBlot(CBlot): # tag = headerb
 		lStrCreditRight: list[str] = [
 			'ORIGINAL DESIGN BY BENJY TOCZYNSKI',
 			'BTOCZYNSKI@GMAIL.COM',
+			self.page.strLocale.lower(),
+			str(self.page.fmt),
 		]
 
 		strSpaceDotSpace = ' \u2022 '
