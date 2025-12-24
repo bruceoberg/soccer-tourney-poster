@@ -155,6 +155,28 @@ docaDesigns = SDocumentArgs(
 		SPageArgs(PAGEK.CalElim, strVariant = 'gold master'),
 	))
 
+docaAllLang = SDocumentArgs(
+	strDestDir = 'playground',
+	strNameTourn='2024-mens-copa-america',
+	strFileSuffix = 'all',
+	iterPagea = (
+		SPageArgs(PAGEK.CalElim, strTz='US/Pacific'),
+		SPageArgs(PAGEK.CalElim, strTz='US/Mountain'),
+		SPageArgs(PAGEK.CalElim, strTz='US/Central'),
+		SPageArgs(PAGEK.CalElim, strTz='US/Eastern'),
+		SPageArgs(PAGEK.CalElim, strTz='Europe/London', strLocale='en_GB'),
+		SPageArgs(PAGEK.CalElim, strTz='Europe/Paris', strLocale='fr'),
+		SPageArgs(PAGEK.CalElim, strTz='Europe/Rome', strLocale='it'),
+		SPageArgs(PAGEK.CalElim, strTz='Europe/Berlin', strLocale='de'),
+		SPageArgs(PAGEK.CalElim, strTz='Europe/Madrid', strLocale='es_ES'),
+		SPageArgs(PAGEK.CalElim, strTz='Europe/Amsterdam', strLocale='nl'),
+		SPageArgs(PAGEK.CalElim, strTz='Europe/Amsterdam', strLocale='fa'),
+		SPageArgs(PAGEK.CalElim, strTz='Asia/Tehran', strLocale='fa'),
+		SPageArgs(PAGEK.CalElim, strTz='Asia/Tokyo', strLocale='ja'),
+		SPageArgs(PAGEK.CalElim, strTz='Australia/Sydney', strLocale='en_AU'),
+		SPageArgs(PAGEK.CalElim, strTz='Pacific/Auckland', strLocale='en_NZ'),
+	))
+
 docaRelease = SDocumentArgs(
 	#strDestDir = str(Path('releases') / (g_strNameTourn + '-patch1' )),
 	strDestDir = str(Path('releases') / g_strNameTourn),
@@ -191,8 +213,9 @@ llDocaTodo = [
 		docaDefault,
 		# docaTests,
 		# docaDesigns,
-		docaRelease,
+		# docaAllLang,
+		# docaRelease,
 	],
-	lDocaRelease,
+	#lDocaRelease,
 ]
 
