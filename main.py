@@ -1098,6 +1098,7 @@ class CGroupSetBlot(CBlot): # tag = gsetb
 
 		self.cCol = 0
 		self.cRow = 0
+		self.fAddOuterMargin = fAddOuterMargin
 
 		self.dXGridGap = 0
 		self.dYGridGap = 0
@@ -1111,6 +1112,8 @@ class CGroupSetBlot(CBlot): # tag = gsetb
 		self.Layout(rectCanvas, cCol, cRow, fAddOuterMargin)
 
 	def Layout(self, rectCanvas: SRect, cCol: int = 0, cRow: int = 0, fAddOuterMargin: bool = True):
+
+		self.fAddOuterMargin = fAddOuterMargin
 
 		if cCol == 0 and cRow == 0:
 			self.cCol = round(math.sqrt(len(self.lGroupb))) + 1
@@ -1151,14 +1154,17 @@ class CGroupSetBlot(CBlot): # tag = gsetb
 		
 		# add margins if there is spacing
 
-		xGroupOrigin = pos.x + self.dXGridGap / 2
-		yGroupOrigin = pos.y + self.dYGridGap / 2
+		xGroupOrigin = pos.x + (self.dXGridGap / 2 if self.fAddOuterMargin else 0)
+		yGroupOrigin = pos.y + (self.dYGridGap / 2 if self.fAddOuterMargin else 0)
 		for iGroupb, groupb in enumerate(self.lGroupb):
 			iRow, iCol = divmod(iGroupb, self.cCol)
 			posGroup = SPoint(
 				xGroupOrigin + iCol * (CGroupBlot.s_dX + self.dXGridGap),
 				yGroupOrigin + iRow * (CGroupBlot.s_dY + self.dYGridGap))
 			groupb.Draw(posGroup)
+
+		# NOTE bruceo: debug drawing for any blot?
+		#self.DrawBox(SRect(pos.x, pos.y, self.dX, self.dY), CGroupBlot.s_dSLineStats, ColorFromStr('magenta'))
 
 class CHeaderBlot(CBlot): # tag = headerb
 
@@ -1686,9 +1692,9 @@ class CCalElimPage(CPage): # tag = calelimp
 		dXColumns = max(calb.dX, bracketb.dX, finalb.s_dX) + gsetbLeft.dX + gsetbRight.dX
 		dXUnused = rectCanvas.dX - dXColumns
 		dXGap = dXUnused / 4.0 # both margins and both gaps between groups and calendar. same gap vertically for calendar/final
-		fHorzontalOverflow = dXGap < 0
+		fHorizontalOverflow = dXGap < 0
 
-		if fHorzontalOverflow:
+		if fHorizontalOverflow:
 			# paper to narrow: slide the groups below the calendar and closer to the bracket.
 			dXColumns = max(bracketb.dX, finalb.s_dX) + gsetbLeft.dX + gsetbRight.dX
 			dXUnused = rectCanvas.dX - dXColumns
@@ -1733,7 +1739,7 @@ class CCalElimPage(CPage): # tag = calelimp
 
 		xBracket = rectCanvas.x + (rectCanvas.dX - bracketb.dX) / 2.0
 
-		if fHorzontalOverflow:
+		if fHorizontalOverflow:
 			yBracket = yGroups + (gsetbLeft.dY / 2.0) - bracketb.dYMidGrid
 		else:
 			yBracket = yCalendar + calb.dY + dYGap
