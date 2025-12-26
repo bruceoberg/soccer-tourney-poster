@@ -58,6 +58,10 @@ class CGroupBlot(CBlot): # tag = groupb
 
 	def Draw(self, pos: SPoint) -> None:
 
+		fLtR = self.page.FIsLeftToRight()
+		jhStart = JH.Left if fLtR else JH.Right
+		jhEnd = JH.Right if fLtR else JH.Left
+
 		rectBorder = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
 		rectInside = rectBorder.Copy().Inset(self.s_dSLineOuter / 2.0)
 
@@ -74,15 +78,17 @@ class CGroupBlot(CBlot): # tag = groupb
 		rectGroupName = oltbGroupName.RectDrawText(
 										self.group.strName,
 										self.group.colors.colorDarker,
-										JH.Right,
+										jhEnd,
 										JV.Middle)
 
 		rectGroupLabel = rectTitle.Copy(dX=rectGroupName.x - rectTitle.x)
+		if not fLtR:
+			rectGroupLabel = rectTitle.Shift(dX=rectGroupName.dX)
 
 		uGroupLabel = 0.65
 		strGroupTitle = self.page.StrTranslation('group.title')
 		oltbGroupLabel = self.Oltb(rectGroupLabel, self.page.Fontkey('group.label'), dYTitle * uGroupLabel, dSMargin = oltbGroupName.dSMargin)
-		oltbGroupLabel.DrawText(strGroupTitle, colorWhite, JH.Right) #, JV.Top)
+		oltbGroupLabel.DrawText(strGroupTitle, colorWhite, jhEnd) #, JV.Top)
 
 		# heading
 
