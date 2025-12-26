@@ -59,8 +59,6 @@ class CGroupBlot(CBlot): # tag = groupb
 	def Draw(self, pos: SPoint) -> None:
 
 		fLtR = self.page.FIsLeftToRight()
-		jhStart = JH.Left if fLtR else JH.Right
-		jhEnd = JH.Right if fLtR else JH.Left
 
 		rectBorder = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
 		rectInside = rectBorder.Copy().Inset(self.s_dSLineOuter / 2.0)
@@ -78,7 +76,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		rectGroupName = oltbGroupName.RectDrawText(
 										self.group.strName,
 										self.group.colors.colorDarker,
-										jhEnd,
+										self.page.JhEnd(),
 										JV.Middle)
 
 		rectGroupLabel = rectTitle.Copy(dX=rectGroupName.x - rectTitle.x)
@@ -88,7 +86,7 @@ class CGroupBlot(CBlot): # tag = groupb
 		uGroupLabel = 0.65
 		strGroupTitle = self.page.StrTranslation('group.title')
 		oltbGroupLabel = self.Oltb(rectGroupLabel, self.page.Fontkey('group.label'), dYTitle * uGroupLabel, dSMargin = oltbGroupName.dSMargin)
-		oltbGroupLabel.DrawText(strGroupTitle, colorWhite, jhEnd) #, JV.Top)
+		oltbGroupLabel.DrawText(strGroupTitle, colorWhite, self.page.JhEnd()) #, JV.Top)
 
 		# heading
 
@@ -110,15 +108,20 @@ class CGroupBlot(CBlot): # tag = groupb
 			rectTeam.Shift(dY=dYTeam)
 
 		rectTeam.dX = dYTeam * self.s_rSTeamName
+		if not fLtR:
+			rectTeam.Shift(dX=rectHeading.dX - rectTeam.dX)
 
 		for i, strSeed in enumerate(sorted(self.group.mpStrSeedStrTeam)):
 			rectTeam.y = rectHeading.y + rectHeading.dY + i * dYTeam
 			strTeam = self.group.mpStrSeedStrTeam[strSeed]
 
 			oltbAbbrev = self.Oltb(rectTeam, self.page.Fontkey('group.team.abbrev'), dYTeam)
-			rectAbbrev = oltbAbbrev.RectDrawText(strTeam, colorBlack, JH.Right)
+			rectAbbrev = oltbAbbrev.RectDrawText(strTeam, colorBlack, self.page.JhEnd())
 
-			rectName = rectTeam.Copy().Stretch(dXRight = -(rectAbbrev.dX + oltbAbbrev.dSMargin))
+			if fLtR:
+				rectName = rectTeam.Copy().Stretch(dXRight = -(rectAbbrev.dX + oltbAbbrev.dSMargin))
+			else:
+				rectName = rectTeam.Copy().Stretch(dXLeft = (rectAbbrev.dX + oltbAbbrev.dSMargin))
 
 			uTeamText = 0.75
 			oltbName = self.Oltb(rectName, self.page.Fontkey('group.team.name'), dYTeam * uTeamText, dSMargin = oltbAbbrev.dSMargin)
@@ -130,18 +133,30 @@ class CGroupBlot(CBlot): # tag = groupb
 		dXRank = (rectInside.dX - rectTeam.dX) / 7.0
 		dXStats = dXRank * 2
 
-		rectPoints = rectHeading.Copy(x=rectTeam.xMax, dX=dXStats)
-		rectGoalsFor = rectHeading.Copy(x=rectPoints.xMax, dX=dXStats)
-		rectGoalsAgainst = rectHeading.Copy(x=rectGoalsFor.xMax, dX=dXStats)
-		rectRank = rectHeading.Copy(x=rectGoalsAgainst.xMax, dX=dXRank)
+		if fLtR:
+			rectPoints = rectHeading.Copy(x=rectTeam.xMax, dX=dXStats)
+			rectGoalsFor = rectHeading.Copy(x=rectPoints.xMax, dX=dXStats)
+			rectGoalsAgainst = rectHeading.Copy(x=rectGoalsFor.xMax, dX=dXStats)
+			rectRank = rectHeading.Copy(x=rectGoalsAgainst.xMax, dX=dXRank)
+		else:
+			rectPoints = rectHeading.Copy(x=rectTeam.xMin - dXStats, dX=dXStats)
+			rectGoalsFor = rectHeading.Copy(x=rectPoints.xMin - dXStats, dX=dXStats)
+			rectGoalsAgainst = rectHeading.Copy(x=rectGoalsFor.xMin - dXStats, dX=dXStats)
+			rectRank = rectHeading.Copy(x=rectGoalsAgainst.xMin - dXRank, dX=dXRank)
 
 		self.pdf.set_line_width(self.s_dSLineStats)
 		self.pdf.set_draw_color(0) # black
 
-		self.pdf.line(rectPoints.xMin, rectHeading.yMax, rectPoints.xMin, rectInside.yMax)
-		self.pdf.line(rectGoalsFor.xMin, rectHeading.yMax, rectGoalsFor.xMin, rectInside.yMax)
-		self.pdf.line(rectGoalsAgainst.xMin, rectHeading.yMax, rectGoalsAgainst.xMin, rectInside.yMax)
-		self.pdf.line(rectRank.xMin, rectHeading.yMax, rectRank.xMin, rectInside.yMax)
+		if fLtR:
+			self.pdf.line(rectPoints.xMin, rectHeading.yMax, rectPoints.xMin, rectInside.yMax)
+			self.pdf.line(rectGoalsFor.xMin, rectHeading.yMax, rectGoalsFor.xMin, rectInside.yMax)
+			self.pdf.line(rectGoalsAgainst.xMin, rectHeading.yMax, rectGoalsAgainst.xMin, rectInside.yMax)
+			self.pdf.line(rectRank.xMin, rectHeading.yMax, rectRank.xMin, rectInside.yMax)
+		else:
+			self.pdf.line(rectPoints.xMax, rectHeading.yMax, rectPoints.xMax, rectInside.yMax)
+			self.pdf.line(rectGoalsFor.xMax, rectHeading.yMax, rectGoalsFor.xMax, rectInside.yMax)
+			self.pdf.line(rectGoalsAgainst.xMax, rectHeading.yMax, rectGoalsAgainst.xMax, rectInside.yMax)
+			self.pdf.line(rectRank.xMax, rectHeading.yMax, rectRank.xMax, rectInside.yMax)
 
 		# heading labels
 
@@ -150,7 +165,8 @@ class CGroupBlot(CBlot): # tag = groupb
 			(rectPoints,		self.page.StrTranslation('group.points')),
 			(rectGoalsFor,		self.page.StrTranslation('group.goals-for')),
 			(rectGoalsAgainst,	self.page.StrTranslation('group.goals-against')),
-			(rectRank,			"\u00bb"), # RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
+			 # RIGHT/LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
+			(rectRank,			"\u00bb" if fLtR else "\u00ab"),
 		)
 
 		for rectHeading, strHeading in lTuRectStr:
