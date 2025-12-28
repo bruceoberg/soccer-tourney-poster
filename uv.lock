@@ -5,7 +5,7 @@ requires-python = ">=3.13"
 [manifest]
 members = [
     "bolay",
-    "soccer-tourney-poster",
+    "stp",
 ]
 
 [[package]]
@@ -314,9 +314,9 @@ wheels = [
 ]
 
 [[package]]
-name = "soccer-tourney-poster"
+name = "stp"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
     { name = "arabic-reshaper" },

@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 
-import sys
+# 'annotations' allow typing hints to forward reference.
+#	e.g. Fn(fwd: CFwd) instead of Fn(fwd: 'CFwd')
+#	when CFwd is later in file.
+from __future__ import annotations
 
 from babel import Locale
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
 
-from config import mpCTeamSizeMin, lFmtIso, lFmtUS
 from bolay import CPdf
+
+from .config import mpCTeamSizeMin, lFmtIso, lFmtUS
 
 def FUsesIsoPaperSizes(locale: Locale) -> bool:
 	setStrTerritoryUsLetter = {

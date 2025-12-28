@@ -20,16 +20,17 @@ from dateutil import tz
 from pathlib import Path
 from typing import Optional, Iterable, Type, cast
 
-from config import PAGEK, SPageArgs, SDocumentArgs, llDocaTodo
-from loc import StrTzAbbrev, StrFmtBestFit
-from versioning import g_repover
-from database import g_loc, CTournamentDataBase, CGroup, CMatch, STAGE
 from bolay import SFontKey, CFontInstance, CPdf, CBlot
 from bolay import JH, JV, SPoint, SRect, RectBoundingBox, SHaloArgs
 from bolay import ColorFromStr, SColor
 from bolay import colorBlack, colorWhite, colorGrey, colorDarkSlateGrey, colorLightGrey
 
-g_pathHere = Path(__file__).parent
+from .config import PAGEK, SPageArgs, SDocumentArgs, llDocaTodo
+from .loc import StrTzAbbrev, StrFmtBestFit
+from .versioning import g_repover
+from .database import g_loc, CTournamentDataBase, CGroup, CMatch, STAGE
+
+g_pathCode = Path(__file__).parent
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
@@ -1794,7 +1795,7 @@ class CCalElimPage(CPage): # tag = calelimp
 
 class CDocument: # tag = doc
 	s_strKeyPrefixFonts = 'fonts.'
-	s_pathDirFonts = Path('fonts')
+	s_pathDirFonts = g_pathCode / 'fonts'
 
 	s_mpPagekClsPage: dict[PAGEK, Type[CPage]] = {
 		PAGEK.GroupsTest:	CGroupsTestPage,
@@ -1844,7 +1845,7 @@ class CDocument: # tag = doc
 
 		self.lPage: list[CPage] = [self.s_mpPagekClsPage[pagea.pagek](self, pagea) for pagea in self.doca.iterPagea]
 
-		pathDirOutput = g_pathHere / self.doca.strDestDir if self.doca.strDestDir else g_pathHere
+		pathDirOutput = Path.cwd() / self.doca.strDestDir if self.doca.strDestDir else Path.cwd()
 
 		lStrFile = [strName]
 		
@@ -1863,9 +1864,10 @@ class CDocument: # tag = doc
 
 		self.pdf.output(str(pathOutput))
 
-if __name__ == '__main__':
-
+def main():
 	for lDoca in llDocaTodo:
 		for doca in lDoca:
 			doc = CDocument(doca)
 
+if __name__ == '__main__':
+    main()

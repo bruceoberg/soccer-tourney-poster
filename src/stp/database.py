@@ -16,17 +16,16 @@ from pathlib import Path
 from typing import Optional, cast
 
 from bolay import SColor, ColorFromStr, ColorResaturate, FIsSaturated
-from config import g_strNameTourn
 
 TExcelRow = dict[str, str]				# tag = xlrow
 TExcelSheet = list[TExcelRow]			# tag = xls
 TExcelBook = dict[str, TExcelSheet]		# tag = xlb
 
-g_pathHere = Path(__file__).parent
+g_pathCode = Path(__file__).parent
 
 class CDataBase: # tag = db
 
-	s_pathDir = g_pathHere / 'database'
+	s_pathDir = g_pathCode / 'database'
 
 	def __init__(self, strName: str) -> None:
 

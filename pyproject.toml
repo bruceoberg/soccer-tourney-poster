@@ -1,7 +1,7 @@
 [project]
-name = "soccer-tourney-poster"
+name = "stp"
 version = "0.1.0"
-description = "Generates PDF posters of soccer tournament schedules"
+description = "Generate PDF posters for soccer tournament schedules"
 requires-python = ">=3.13"
 dependencies = [
     "appdirs>=1.4.4",
@@ -25,10 +25,18 @@ dependencies = [
     "unicategories>=0.1.2",
 ]
 
+[project.scripts]
+stp = "stp.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/stp"]
+
 [tool.uv.workspace]
-members = [
-    "bolay",
-]
+members = ["bolay"]
 
 [tool.uv.sources]
 bolay = { workspace = true }
