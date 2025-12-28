@@ -65,7 +65,7 @@ g_mpStrTzTzs: dict[str, STZs] = {
 	# Asia
 	"Asia/Tehran":			STZs("IRST", "IRDT"),
 	"Asia/Dubai":			STZs("GST", "GST"),	# No DST
-	"Asia/Shanghai":		STZs("CST", "CST"),	# No DST
+	"Asia/Shanghai":		STZs("CHST", "CHST"),	# No DST
 	"Asia/Tokyo":			STZs("JST", "JST"),	# No DST
 	"Asia/Kolkata":			STZs("IST", "IST"),	# No DST
 	
