@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
-# 'annotations' allow typing hints to forward reference.
-#	e.g. Fn(fwd: CFwd) instead of Fn(fwd: 'CFwd')
-#	when CFwd is later in file.
-from __future__ import annotations
+from __future__ import annotations  # Forward refs without quotes (eg foo: CFoo, not foo: 'CFoo')
 
 from babel import Locale
 from dataclasses import dataclass
