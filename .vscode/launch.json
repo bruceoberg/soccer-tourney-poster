@@ -9,6 +9,16 @@
             "justMyCode": true,
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Run stp (No Debug)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "stp.main",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "noDebug": true
         }
     ]
 }
