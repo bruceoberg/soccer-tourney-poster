@@ -1,9 +1,8 @@
 ## now
 
-- present known group stage points and goals.
-- full team names for third place?
 - command line with argparse.
-- lists of pages from database (or ?).
+- doc/page config via yaml file.
+- take results from spreadsheet and print them instead of boxes/forms.
 
 ## future
 
@@ -42,7 +41,6 @@
 - localized text from database.
 - get **ALL** text from spreadsheet.
 - more localization
-	- split non-tourney strings into their own db next to fonts.
+	- split generic strings into their own db.
 	- font choices in this non-tourney db.
 - print against 2018 data.
-- take results from spreadsheet and print them instead of boxes/forms.
