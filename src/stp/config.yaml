@@ -1,0 +1,106 @@
+# All document configurations
+# Top-level keys correspond to the Python variable names (docaDefault, docaTests, etc.)
+
+default:
+  destination_dir: playground
+  pages:
+    - { tz: US/Pacific  }
+
+navid:
+  destination_dir: playground
+  file_suffix: navid
+  pages:
+    - { tz: Asia/Tehran,         loc: fa    }
+    - { tz: Europe/Amsterdam,    loc: fa    }
+    - { tz: Europe/Amsterdam,    loc: en_GB }
+    - { tz: Europe/Amsterdam,    loc: nl    }
+
+tests:
+  destination_dir: playground
+  file_suffix: tests
+  pages:
+    - page_kind: groups_test
+    - page_kind: days_test
+
+designs:
+  destination_dir: playground
+  file_suffix: designs
+  pages:
+    - page_kind: cal_only
+      variant: alpha
+      match_numbers: true
+      elimination_hints: false
+      group_dots: false
+    
+    - variant: beta
+      elimination_borders: false
+      match_numbers: true
+      elimination_hints: false
+      group_dots: false
+    
+    - variant: borderless
+      main_borders: false
+    
+    - variant: gold master
+
+langs:
+  destination_dir: playground
+  tournament: 2024-mens-copa-america
+  file_suffix: langs
+  pages:
+    # US Timezones
+    - { tz: US/Pacific  }
+    - { tz: US/Mountain }
+    - { tz: US/Central  }
+    - { tz: US/Eastern  }
+    
+    # European languages
+    - { tz: Europe/London,       loc: en_GB }
+    - { tz: Europe/Paris,        loc: fr    }
+    - { tz: Europe/Rome,         loc: it    }
+    - { tz: Europe/Berlin,       loc: de    }
+    - { tz: Europe/Madrid,       loc: es_ES }
+    - { tz: Europe/Amsterdam,    loc: nl    }
+    
+    # Persian variants
+    - { tz: Asia/Tehran,         loc: fa    }
+    
+    # Asian/Pacific
+    - { tz: Asia/Tokyo,          loc: ja    }
+    - { tz: Australia/Sydney,    loc: en_AU }
+    - { tz: Pacific/Auckland,    loc: en_NZ }
+
+published:
+  destination_dir: published
+  file_suffix: all
+  unwind_pages: true
+  pages:
+    # US Timezones
+    - { tz: US/Pacific  }
+    - { tz: US/Mountain }
+    - { tz: US/Central  }
+    - { tz: US/Eastern  }
+
+    # US in other languages
+
+    - { tz: US/Pacific,          loc: ja    }
+    - { tz: US/Mountain,         loc: ja    }
+    - { tz: US/Central,          loc: ja    }
+    - { tz: US/Eastern,          loc: ja    }
+    
+    # European languages
+    - { tz: Europe/London,       loc: en_GB }
+    - { tz: Europe/Paris,        loc: fr    }
+    - { tz: Europe/Rome,         loc: it    }
+    - { tz: Europe/Berlin,       loc: de    }
+    - { tz: Europe/Madrid,       loc: es_ES }
+    - { tz: Europe/Amsterdam,    loc: nl    }
+    
+    # Persian variants
+    - { tz: Europe/Amsterdam,    loc: fa    }
+    - { tz: Asia/Tehran,         loc: fa    }
+    
+    # Asian/Pacific
+    - { tz: Asia/Tokyo,          loc: ja    }
+    - { tz: Australia/Sydney,    loc: en_AU }
+    - { tz: Pacific/Auckland,    loc: en_NZ }

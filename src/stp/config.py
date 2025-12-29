@@ -2,12 +2,16 @@
 
 from __future__ import annotations  # Forward refs without quotes (eg foo: CFoo, not foo: 'CFoo')
 
-from dataclasses import dataclass
+import sys
+import yaml
+
 from enum import StrEnum
 from pathlib import Path
-from typing import Optional, Iterable
+from typing import Optional, Iterator
 
-#from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ConfigDict
+
+g_pathCode = Path(__file__).parent
 
 #g_strNameTourn = '2018-mens-world-cup'			# 32 teams
 #g_strNameTourn = '2022-mens-world-cup'			# 32 teams
@@ -72,146 +76,88 @@ mpCTeamSizeMin: dict[int, tuple[float, float]] ={
 	48: (22.665, 29.969),
 }
 
-@dataclass
-class SPageArgs: # tag - pagea
+TFmt = Optional[str | tuple[float, float]]
 
-	# NOTE (bruceo) strLocale is a two letter ISO 639 language code, or
-	# one combined with a two letter ISO 3166-1 alpha-2 country code (e.g. en_GB/en_US/en_AU/en_NZ)
-	#	https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
-	# more importantly, it's a code honored by arrow
-	#	https://arrow.readthedocs.io/en/latest/api-guide.html#module-arrow.locales
-
-	pagek: PAGEK
-	strNameTourn: str = ''
-	strOrientation: str = 'landscape'
-	strTz: str = 'US/Pacific'
-	strLocale: str = 'en_US'
-	strVariant: str = ''
-	fmt: Optional[str | tuple[float, float]] = None
-	fmtCrop: Optional[str | tuple[float, float]] = None
-	fMainBorders: bool = True
-	fEliminationBorders: bool = True
-	fMatchNumbers: bool = False
-	fGroupHints: bool = False
-	fEliminationHints: bool = True
-	fGroupDots: bool = True
-	fResults: bool = False
-
-@dataclass
-class SDocumentArgs: # tag = doca
-	iterPagea: Iterable[SPageArgs]
-	strNameTourn: str = g_strNameTourn
-	strDestDir: str = ''
-	strFileSuffix: str = ''
-	fAddLangTzSuffix: bool = False
-
-docaDefault = SDocumentArgs(
-	strDestDir = 'playground',
-	strNameTourn='2026-mens-world-cup',
-	iterPagea = (
-		# SPageArgs(PAGEK.CalElim, strLocale='fa', strTz='Asia/Tehran', strNameTourn='2026-mens-world-cup'),
-		# SPageArgs(PAGEK.CalElim, strLocale='fa', strTz='Asia/Tehran', strNameTourn='2025-mens-club-world-cup'),
-		# SPageArgs(PAGEK.CalElim, strLocale='fa', strTz='Asia/Tehran', strNameTourn='2024-mens-copa-america'),
-		# SPageArgs(PAGEK.CalElim, strLocale='fa', strTz='Asia/Tehran', strNameTourn='2024-mens-euro'		),
-		# SPageArgs(PAGEK.CalElim, strLocale='fa', strTz='Asia/Tehran', strNameTourn='2023-womens-world-cup'),
-		# SPageArgs(PAGEK.CalElim, strLocale='fa', strTz='Asia/Tehran', strNameTourn='2022-mens-world-cup'	),
-		# SPageArgs(PAGEK.CalElim, strLocale='fa', strTz='Asia/Tehran', strNameTourn='2018-mens-world-cup'	),
-		# SPageArgs(PAGEK.CalElim, strTz='US/Pacific'),
-		# SPageArgs(PAGEK.CalElim, strTz='US/Eastern'),
-		# SPageArgs(PAGEK.CalElim, strLocale='en_AU', strTz='Australia/Sydney'),
-		# SPageArgs(PAGEK.CalElim, strLocale='ja', strTz='Asia/Tokyo'),
-		# SPageArgs(PAGEK.CalElim, strLocale='fa', strTz='Asia/Tehran'),
-		# SPageArgs(PAGEK.CalElim, strLocale='nl', strTz='Europe/Amsterdam'),
-		# SPageArgs(PAGEK.CalElim, strTz='Asia/Qatar'),
-		# SPageArgs(PAGEK.CalElim, strLocale='ja', strTz='Asia/Tokyo'),
-		SPageArgs(PAGEK.CalElim, strLocale='fa', strTz='Asia/Tehran'),
-		SPageArgs(PAGEK.CalElim, strLocale='fa', strTz='Europe/Amsterdam'),
-		SPageArgs(PAGEK.CalElim, strLocale='en_GB', strTz='Europe/Amsterdam'),
-		SPageArgs(PAGEK.CalElim, strLocale='nl', strTz='Europe/Amsterdam'),
-		# SPageArgs(PAGEK.CalElim, strTz='Australia/Sydney'),
-		# SPageArgs(PAGEK.GroupsTest, fmt='tabloid', strLocale='fa', strTz='Asia/Tehran', strNameTourn='2026-mens-world-cup'),
-		# SPageArgs(PAGEK.GroupsTest, fmt='tabloid', strLocale='en_US', strTz='US/Pacific', strNameTourn='2026-mens-world-cup'),
-		#SPageArgs(CCalOnlyPage, strTz='US/Eastern'),
-	))
-
-docaTests = SDocumentArgs(
-	strDestDir = 'playground',
-	iterPagea = (
-		SPageArgs(PAGEK.GroupsTest),
-		SPageArgs(PAGEK.DaysTest),
-	))
-
-docaDesigns = SDocumentArgs(
-	strDestDir = 'playground',
-	strFileSuffix = 'designs',
-	iterPagea = (
-		SPageArgs(PAGEK.CalOnly, strVariant = 'alpha', fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
-		SPageArgs(PAGEK.CalElim, strVariant = 'beta', fEliminationBorders = False, fMatchNumbers = True, fEliminationHints = False, fGroupDots = False),
-		SPageArgs(PAGEK.CalElim, strVariant = 'borderless', fMainBorders = False),
-		SPageArgs(PAGEK.CalElim, strVariant = 'gold master'),
-	))
-
-docaAllLang = SDocumentArgs(
-	strDestDir = 'playground',
-	strNameTourn='2024-mens-copa-america',
-	strFileSuffix = 'all',
-	iterPagea = (
-		SPageArgs(PAGEK.CalElim, strTz='US/Pacific'),
-		SPageArgs(PAGEK.CalElim, strTz='US/Mountain'),
-		SPageArgs(PAGEK.CalElim, strTz='US/Central'),
-		SPageArgs(PAGEK.CalElim, strTz='US/Eastern'),
-		SPageArgs(PAGEK.CalElim, strTz='Europe/London', strLocale='en_GB'),
-		SPageArgs(PAGEK.CalElim, strTz='Europe/Paris', strLocale='fr'),
-		SPageArgs(PAGEK.CalElim, strTz='Europe/Rome', strLocale='it'),
-		SPageArgs(PAGEK.CalElim, strTz='Europe/Berlin', strLocale='de'),
-		SPageArgs(PAGEK.CalElim, strTz='Europe/Madrid', strLocale='es_ES'),
-		SPageArgs(PAGEK.CalElim, strTz='Europe/Amsterdam', strLocale='nl'),
-		SPageArgs(PAGEK.CalElim, strTz='Europe/Amsterdam', strLocale='fa'),
-		SPageArgs(PAGEK.CalElim, strTz='Asia/Tehran', strLocale='fa'),
-		SPageArgs(PAGEK.CalElim, strTz='Asia/Tokyo', strLocale='ja'),
-		SPageArgs(PAGEK.CalElim, strTz='Australia/Sydney', strLocale='en_AU'),
-		SPageArgs(PAGEK.CalElim, strTz='Pacific/Auckland', strLocale='en_NZ'),
-	))
-
-docaRelease = SDocumentArgs(
-	#strDestDir = str(Path('releases') / (g_strNameTourn + '-patch1' )),
-	strDestDir = str(Path('releases') / g_strNameTourn),
-	strFileSuffix = 'all',
-	iterPagea = (
-		SPageArgs(PAGEK.CalElim, strTz='US/Pacific'),
-		SPageArgs(PAGEK.CalElim, strTz='US/Mountain'),
-		SPageArgs(PAGEK.CalElim, strTz='US/Central'),
-		SPageArgs(PAGEK.CalElim, strTz='US/Eastern'),
-		SPageArgs(PAGEK.CalElim, strTz='Europe/London', strLocale='en_GB'),
-		SPageArgs(PAGEK.CalElim, strTz='Europe/Paris', strLocale='fr'),
-		SPageArgs(PAGEK.CalElim, strTz='Europe/Rome', strLocale='it'),
-		SPageArgs(PAGEK.CalElim, strTz='Europe/Berlin', strLocale='de'),
-		SPageArgs(PAGEK.CalElim, strTz='Europe/Madrid', strLocale='es_ES'),
-		SPageArgs(PAGEK.CalElim, strTz='Europe/Amsterdam', strLocale='nl'),
-		SPageArgs(PAGEK.CalElim, strTz='Europe/Amsterdam', strLocale='fa'),
-		SPageArgs(PAGEK.CalElim, strTz='Asia/Tehran', strLocale='fa'),
-		SPageArgs(PAGEK.CalElim, strTz='Asia/Tokyo', strLocale='ja'),
-		SPageArgs(PAGEK.CalElim, strTz='Australia/Sydney', strLocale='en_AU'),
-		SPageArgs(PAGEK.CalElim, strTz='Pacific/Auckland', strLocale='en_NZ'),
-	))
-
-lDocaRelease: list[SDocumentArgs] = []
-
-for iPagea, pagea in enumerate(docaRelease.iterPagea):
+class SPageArgs(BaseModel): # tag - pagea
+	"""Page configuration arguments.
 	
-	if iPagea == 0:
-		lDocaRelease.append(SDocumentArgs(strDestDir = docaRelease.strDestDir, iterPagea=(pagea,)))
+	NOTE (bruceo) strLocale is a two letter ISO 639 language code, or
+	one combined with a two letter ISO 3166-1 alpha-2 country code (e.g. en_GB/en_US/en_AU/en_NZ)
+		https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+	more importantly, it's a code honored by arrow
+		https://arrow.readthedocs.io/en/latest/api-guide.html#module-arrow.locales
+	"""
+	
+	model_config = ConfigDict(frozen=True, populate_by_name=True)
 
-	lDocaRelease.append(SDocumentArgs(strDestDir = docaRelease.strDestDir, fAddLangTzSuffix=True, iterPagea=(pagea,)))
+	pagek:                  PAGEK       = Field(default=PAGEK.CalElim,	alias='page_kind')
+	strNameTourn:           str         = Field(default='',				alias='tournament')
+	strOrientation:         str         = Field(default='landscape',	alias='orientation')
+	strTz:                  str         = Field(default='US/Pacific',	alias='tz')
+	strLocale:              str         = Field(default='en_US',		alias='loc')
+	strVariant:             str         = Field(default='',				alias='variant')
+	fmt:                    TFmt        = Field(default=None,			alias='format')
+	fmtCrop:                TFmt        = Field(default=None,			alias='crop_format')
+	fMainBorders:           bool        = Field(default=True,			alias='main_borders')
+	fEliminationBorders:    bool        = Field(default=True,			alias='elimination_borders')
+	fMatchNumbers:          bool        = Field(default=False,			alias='match_numbers')
+	fGroupHints:            bool        = Field(default=False,			alias='group_hints')
+	fEliminationHints:      bool        = Field(default=True,			alias='elimination_hints')
+	fGroupDots:             bool        = Field(default=True,			alias='group_dots')
+	fResults:               bool        = Field(default=False,			alias='results')
 
-llDocaTodo = [
-	[
-		docaDefault,
-		# docaTests,
-		# docaDesigns,
-		# docaAllLang,
-		# docaRelease,
-	],
-	#lDocaRelease,
-]
+TTuPagea = tuple[SPageArgs, ...]
 
+class SDocumentArgs(BaseModel): # tag = doca
+	"""Document configuration arguments."""
+	
+	model_config = ConfigDict(frozen=True, populate_by_name=True)
+	
+	tuPagea:              	TTuPagea   = Field(							alias='pages')
+	strNameTourn:           str        = Field(default=g_strNameTourn,	alias='tournament')
+	pathDirDest:            Path       = Field(default=Path(),			alias='destination_dir')
+	strFileSuffix:          str        = Field(default='',				alias='file_suffix')
+	fAddLangTzSuffix:       bool       = Field(default=False,			alias='add_lang_tz_suffix')
+	fUnwindPages:           bool       = Field(default=False,			alias='unwind_pages')
+
+def MpStrDocaLoad(pathYaml: Path) -> dict[str, SDocumentArgs]:
+	"""Load all document configurations from a single YAML file."""
+
+	with open(pathYaml, encoding='utf-8') as file:
+		mpStrObjYaml = yaml.safe_load(file)
+	
+	return { strName: SDocumentArgs(**objYaml) for strName, objYaml in mpStrObjYaml.items() }
+
+def IterDoca(strName: str) -> Iterator[SDocumentArgs]:
+
+	mpStrDoca = MpStrDocaLoad(g_pathCode / 'config.yaml')
+
+	try:
+		doca = mpStrDoca[strName]
+
+		if doca.fUnwindPages:
+			assert(doca.strNameTourn)
+			assert(doca.strFileSuffix)
+			doca = doca.model_copy(update={'pathDirDest': doca.pathDirDest / doca.strNameTourn})
+
+		yield doca
+	except KeyError:
+		sys.exit(f"unknown document {strName}")
+	
+	if doca.fUnwindPages:
+		for iPagea, pagea in enumerate(doca.tuPagea):
+			assert(not pagea.strNameTourn)
+			
+			if iPagea == 0:
+				yield SDocumentArgs(
+						tournament = doca.strNameTourn,
+						destination_dir = doca.pathDirDest,
+						file_suffix='',
+						pages=(pagea,))
+
+			yield SDocumentArgs(
+					tournament = doca.strNameTourn,
+					destination_dir = doca.pathDirDest,
+					file_suffix='',
+					pages=(pagea,),
+					add_lang_tz_suffix=True)

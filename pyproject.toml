@@ -1,6 +1,6 @@
 [project]
 name = "stp"
-version = "0.1.0"
+version = "0.2.0"
 description = "Generate PDF posters for soccer tournament schedules"
 requires-python = ">=3.13"
 dependencies = [
@@ -20,6 +20,7 @@ dependencies = [
     "python-bidi>=0.6.7",
     "python-dateutil>=2.9.0.post0",
     "pytz>=2025.2",
+    "pyyaml>=6.0.3",
     "six>=1.17.0",
     "types-python-dateutil>=2.9.0.20251115",
     "tzdata>=2025.3",

@@ -22,7 +22,7 @@ from bolay import JH, JV, SPoint, SRect, RectBoundingBox, SHaloArgs
 from bolay import ColorFromStr, SColor
 from bolay import colorBlack, colorWhite, colorGrey, colorDarkSlateGrey, colorLightGrey
 
-from .config import PAGEK, SPageArgs, SDocumentArgs, llDocaTodo
+from .config import PAGEK, SPageArgs, SDocumentArgs, IterDoca
 from .loc import StrTzAbbrev, StrFmtBestFit
 from .versioning import g_repover
 from .database import g_loc, CTournamentDataBase, CGroup, CMatch, STAGE
@@ -1828,7 +1828,7 @@ class CDocument: # tag = doc
 		# load all fonts for all languages
 
 		setStrTtf: set[str] = set()
-		setStrLocale: set[str] = {pagea.strLocale for pagea in doca.iterPagea}
+		setStrLocale: set[str] = {pagea.strLocale for pagea in doca.tuPagea}
 
 		for strKey in g_loc.mpStrKeyStrLocaleStrText:
 			if not strKey.startswith(self.s_strKeyPrefixFonts):
@@ -1840,9 +1840,9 @@ class CDocument: # tag = doc
 			assert strTtf
 			self.pdf.AddFont(strTtf, '', self.s_pathDirFonts / strTtf)
 
-		self.lPage: list[CPage] = [self.s_mpPagekClsPage[pagea.pagek](self, pagea) for pagea in self.doca.iterPagea]
+		self.lPage: list[CPage] = [self.s_mpPagekClsPage[pagea.pagek](self, pagea) for pagea in self.doca.tuPagea]
 
-		pathDirOutput = Path.cwd() / self.doca.strDestDir if self.doca.strDestDir else Path.cwd()
+		pathDirOutput = Path.cwd() / self.doca.pathDirDest if self.doca.pathDirDest else Path.cwd()
 
 		lStrFile = [strName]
 		
@@ -1859,12 +1859,13 @@ class CDocument: # tag = doc
 		pathDirOutput.mkdir(parents=True, exist_ok=True)
 		pathOutput = (pathDirOutput / strFile).with_suffix('.pdf')
 
+		print(f"writing to {pathOutput.relative_to(Path.cwd())}")
+
 		self.pdf.output(str(pathOutput))
 
 def main():
-	for lDoca in llDocaTodo:
-		for doca in lDoca:
-			doc = CDocument(doca)
+	for doca in IterDoca('navid'):
+		CDocument(doca)
 
 if __name__ == '__main__':
     main()
