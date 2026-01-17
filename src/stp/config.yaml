@@ -2,12 +2,10 @@
 # Top-level keys correspond to the Python variable names (docaDefault, docaTests, etc.)
 
 default:
-  destination_dir: playground
   pages:
     - { tz: US/Pacific  }
 
 navid:
-  destination_dir: playground
   file_suffix: navid
   pages:
     - { tz: Asia/Tehran,         loc: fa    }
@@ -16,14 +14,12 @@ navid:
     - { tz: Europe/Amsterdam,    loc: nl    }
 
 tests:
-  destination_dir: playground
   file_suffix: tests
   pages:
     - page_kind: groups_test
     - page_kind: days_test
 
 designs:
-  destination_dir: playground
   file_suffix: designs
   pages:
     - page_kind: cal_only
@@ -44,8 +40,6 @@ designs:
     - variant: gold master
 
 langs:
-  destination_dir: playground
-  tournament: 2024-mens-copa-america
   file_suffix: langs
   pages:
     # US Timezones
@@ -71,7 +65,7 @@ langs:
     - { tz: Pacific/Auckland,    loc: en_NZ }
 
 published:
-  destination_dir: published
+  ouput_dir: published
   file_suffix: all
   unwind_pages: true
   pages:

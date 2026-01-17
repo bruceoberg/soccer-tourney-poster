@@ -2,25 +2,19 @@
 
 from __future__ import annotations  # Forward refs without quotes (eg foo: CFoo, not foo: 'CFoo')
 
+import os
 import sys
 import yaml
 
 from enum import StrEnum
 from pathlib import Path
+from pydantic import BaseModel, Field, ConfigDict
+from tap import Tap
 from typing import Optional, Iterator
 
-from pydantic import BaseModel, Field, ConfigDict
+from .database import CDataBase
 
 g_pathCode = Path(__file__).parent
-
-#g_strNameTourn = '2018-mens-world-cup'			# 32 teams
-#g_strNameTourn = '2022-mens-world-cup'			# 32 teams
-#g_strNameTourn = '2023-womens-world-cup'		# 32 teams
-#g_strNameTourn = '2024-mens-euro'				# 24 teams
-#g_strNameTourn = '2024-mens-copa-america'		# 16 teams
-#g_strNameTourn = '2025-mens-club-world-cup'	# 32 teams
-g_strNameTourn = '2026-mens-world-cup'			# 48 teams
-
 
 class PAGEK(StrEnum): # tag = pagek
 	GroupsTest = 'groups_test'
@@ -113,12 +107,12 @@ class SDocumentArgs(BaseModel): # tag = doca
 	
 	model_config = ConfigDict(frozen=True, populate_by_name=True)
 	
-	tuPagea:              	TTuPagea   = Field(							alias='pages')
-	strNameTourn:           str        = Field(default=g_strNameTourn,	alias='tournament')
-	pathDirDest:            Path       = Field(default=Path(),			alias='destination_dir')
-	strFileSuffix:          str        = Field(default='',				alias='file_suffix')
-	fAddLangTzSuffix:       bool       = Field(default=False,			alias='add_lang_tz_suffix')
-	fUnwindPages:           bool       = Field(default=False,			alias='unwind_pages')
+	tuPagea:			TTuPagea	= Field(				alias='pages')
+	strNameTourn:		str			= Field(default='',		alias='tournament')
+	strDirOutput:		str			= Field(default='',		alias='output_dir')
+	strFileSuffix:		str			= Field(default='',		alias='file_suffix')
+	fAddLangTzSuffix:	bool		= Field(default=False,	alias='add_lang_tz_suffix')
+	fUnwindPages:		bool		= Field(default=False,	alias='unwind_pages')
 
 def MpStrDocaLoad(pathYaml: Path) -> dict[str, SDocumentArgs]:
 	"""Load all document configurations from a single YAML file."""
@@ -128,21 +122,40 @@ def MpStrDocaLoad(pathYaml: Path) -> dict[str, SDocumentArgs]:
 	
 	return { strName: SDocumentArgs(**objYaml) for strName, objYaml in mpStrObjYaml.items() }
 
-def IterDoca(strName: str) -> Iterator[SDocumentArgs]:
+def IterDoca() -> Iterator[SDocumentArgs]:
 
 	mpStrDoca = MpStrDocaLoad(g_pathCode / 'config.yaml')
 
+	class ArgumentParser(Tap):
+		"""Soccer Tournament Poster Generator"""
+		tournament: str = CDataBase.StrNameLatest() # Tournament to generate for.
+		document: str = next(iter(mpStrDoca))  # Document to output.
+		output_dir: str = 'playground'  # Destination directory.
+
+		def configure(self):
+			self.add_argument('-t', '--tournament')
+			self.add_argument('-d', '--document')
+			self.add_argument('-o', '--output_dir')
+
+	args = ArgumentParser().parse_args()
+
 	try:
-		doca = mpStrDoca[strName]
+		doca = mpStrDoca[args.document]
+
+		if not doca.strNameTourn:
+			doca = doca.model_copy(update={'strNameTourn': args.tournament })
+
+		if not doca.strDirOutput:
+			doca = doca.model_copy(update={'strDirOutput': args.output_dir })
 
 		if doca.fUnwindPages:
 			assert(doca.strNameTourn)
 			assert(doca.strFileSuffix)
-			doca = doca.model_copy(update={'pathDirDest': doca.pathDirDest / doca.strNameTourn})
+			doca = doca.model_copy(update={'strDirOutput': doca.strDirOutput + os.sep + doca.strNameTourn})
 
 		yield doca
 	except KeyError:
-		sys.exit(f"unknown document {strName}")
+		sys.exit(f"unknown document {args.document}")
 	
 	if doca.fUnwindPages:
 		for iPagea, pagea in enumerate(doca.tuPagea):
@@ -151,13 +164,13 @@ def IterDoca(strName: str) -> Iterator[SDocumentArgs]:
 			if iPagea == 0:
 				yield SDocumentArgs(
 						tournament = doca.strNameTourn,
-						destination_dir = doca.pathDirDest,
+						output_dir = doca.strDirOutput,
 						file_suffix='',
 						pages=(pagea,))
 
 			yield SDocumentArgs(
 					tournament = doca.strNameTourn,
-					destination_dir = doca.pathDirDest,
+					output_dir = doca.strDirOutput,
 					file_suffix='',
 					pages=(pagea,),
 					add_lang_tz_suffix=True)

@@ -378,7 +378,7 @@ class CMatchBlot(CBlot): # tag = dayb
 					self.match.stage is not None and
 					self.match.stage > self.tourn.stageElimFirst and
 					self.match.stage < STAGE.Third
-			     ):
+				 ):
 				assert len(self.match.lIdFeeders) == 2
 				matchFeedLeft = self.tourn.mpIdMatch[self.match.lIdFeeders[0]]
 				matchFeedRight = self.tourn.mpIdMatch[self.match.lIdFeeders[1]]
@@ -1842,7 +1842,7 @@ class CDocument: # tag = doc
 
 		self.lPage: list[CPage] = [self.s_mpPagekClsPage[pagea.pagek](self, pagea) for pagea in self.doca.tuPagea]
 
-		pathDirOutput = Path.cwd() / self.doca.pathDirDest if self.doca.pathDirDest else Path.cwd()
+		pathDirOutput = Path.cwd() / self.doca.strDirOutput if self.doca.strDirOutput else Path.cwd()
 
 		lStrFile = [strName]
 		
@@ -1864,8 +1864,8 @@ class CDocument: # tag = doc
 		self.pdf.output(str(pathOutput))
 
 def main():
-	for doca in IterDoca('navid'):
+	for doca in IterDoca():
 		CDocument(doca)
 
 if __name__ == '__main__':
-    main()
+	main()
