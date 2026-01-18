@@ -1,7 +1,5 @@
 ## now
 
-- command line with argparse.
-- doc/page config via yaml file.
 - take results from spreadsheet and print them instead of boxes/forms.
 
 ## future
@@ -44,3 +42,5 @@
 	- split generic strings into their own db.
 	- font choices in this non-tourney db.
 - print against 2018 data.
+- command line with ~~argparse~~ typed-argument-parser.
+- doc/page config via yaml file.
