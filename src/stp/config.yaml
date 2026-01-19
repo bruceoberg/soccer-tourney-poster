@@ -65,7 +65,7 @@ langs:
     - { tz: Pacific/Auckland,    loc: en_NZ }
 
 published:
-  ouput_dir: published
+  output_dir: published
   file_suffix: all
   unwind_pages: true
   pages:
