@@ -1,5 +1,9 @@
-# All document configurations
-# Top-level keys correspond to the Python variable names (docaDefault, docaTests, etc.)
+
+results:
+  tournament: 2018-mens-world-cup
+  file_suffix: results
+  pages:
+    - { tz: US/Pacific, results: true  }
 
 default:
   pages:

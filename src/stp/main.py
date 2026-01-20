@@ -307,11 +307,11 @@ class CMatchBlot(CBlot): # tag = dayb
 		xHomeBox = self.rect.x + (self.rect.dX / 2.0) - ((dXLineGap / 2.0 ) + self.dayb.s_dSScore)
 		rectHomeBox = SRect(xHomeBox, yScore, self.dayb.s_dSScore, self.dayb.s_dSScore)
 
-		haloaScore = SHaloArgs(colorLightGrey, 0.1)
+		haloaScore = SHaloArgs(colorBlack, 0.1)
 
 		if self.page.pagea.fResults and self.match.scoreHome != -1:
 			oltbHomeScore = self.Oltb(rectHomeBox, self.page.Fontkey('match.score'), self.dayb.s_dSScore)
-			oltbHomeScore.DrawText(str(self.match.scoreHome), colorBlack, JH.Center, haloa = haloaScore)
+			oltbHomeScore.DrawText(str(self.match.scoreHome), colorWhite, JH.Center, haloa = haloaScore)
 		else:
 			self.DrawBox(rectHomeBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
 
@@ -320,7 +320,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 		if self.page.pagea.fResults and self.match.scoreAway != -1:
 			oltbAwayScore = self.Oltb(rectAwayBox, self.page.Fontkey('match.score'), self.dayb.s_dSScore)
-			oltbAwayScore.DrawText(str(self.match.scoreAway), colorBlack, JH.Center, haloa = haloaScore)
+			oltbAwayScore.DrawText(str(self.match.scoreAway), colorWhite, JH.Center, haloa = haloaScore)
 		else:
 			self.DrawBox(rectAwayBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
 
@@ -337,7 +337,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			strTiebreaker = f'({self.match.scoreHomeTiebreaker}-{self.match.scoreAwayTiebreaker})'
 			rectTiebreaker = SRect(rectHomePens.xMin, rectHomePens.yMin, rectAwayPens.xMax - rectHomePens.xMin, rectHomePens.dY)
 			oltbTiebreaker = self.Oltb(rectTiebreaker, self.page.Fontkey('match.score'), rectHomePens.dY)
-			oltbTiebreaker.DrawText(strTiebreaker, colorBlack, JH.Center, haloa = haloaScore)
+			oltbTiebreaker.DrawText(strTiebreaker, colorWhite, JH.Center, haloa = haloaScore)
 
 		if self.fElimination and not self.page.pagea.fResults:
 
@@ -428,15 +428,6 @@ class CMatchBlot(CBlot): # tag = dayb
 
 		else:
 
-			haloaHome: Optional[SHaloArgs] = None
-			haloaAway: Optional[SHaloArgs] = None
-
-			if self.page.pagea.fResults and self.fElimination:
-				groupHome = self.tourn.mpStrTeamGroup[self.match.strTeamHome]
-				haloaHome = SHaloArgs(groupHome.colors.colorDarker, 0.05)
-				groupAway = self.tourn.mpStrTeamGroup[self.match.strTeamAway]
-				haloaAway = SHaloArgs(groupAway.colors.colorDarker, 0.05)
-
 			# team names
 
 			dXTeams = self.rect.dX - (2 * self.dayb.s_dSScore) - dXLineGap
@@ -444,11 +435,11 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			rectHomeTeam = SRect(self.rect.x, yScore, dXTeam, self.dayb.s_dSScore)
 			oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('match.team.abbrev'), self.dayb.s_dSScore)
-			oltbHomeTeam.DrawText(self.match.strTeamHome, colorBlack, JH.Center, haloa = haloaHome)
+			oltbHomeTeam.DrawText(self.match.strTeamHome, colorBlack, JH.Center)
 
 			rectAwayTeam = SRect(self.rect.xMax - dXTeam, yScore, dXTeam, self.dayb.s_dSScore)
 			oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('match.team.abbrev'), self.dayb.s_dSScore)
-			oltbAwayTeam.DrawText(self.match.strTeamAway, colorBlack, JH.Center, haloa = haloaAway)
+			oltbAwayTeam.DrawText(self.match.strTeamAway, colorBlack, JH.Center)
 
 			# group name, subtly
 
@@ -727,11 +718,11 @@ class CFinalBlot(CBlot): # tag = finalb
 		xHomeBox = rectScore.x + (rectScore.dX / 2.0) - ((dXLineGap / 2.0 ) + self.s_dSScore)
 		rectHomeBox = SRect(xHomeBox, rectScore.y, self.s_dSScore, self.s_dSScore)
 
-		haloaScore = SHaloArgs(colorLightGrey, 0.1)
+		haloaScore = SHaloArgs(colorBlack, 0.1)
 
 		if self.page.pagea.fResults and self.match.scoreHome != -1:
 			oltbHomeScore = self.Oltb(rectHomeBox, self.page.Fontkey('match.score'), self.s_dSScore)
-			oltbHomeScore.DrawText(str(self.match.scoreHome), colorBlack, JH.Center, haloa = haloaScore)
+			oltbHomeScore.DrawText(str(self.match.scoreHome), colorWhite, JH.Center, haloa = haloaScore)
 		else:
 			self.DrawBox(rectHomeBox, self.s_dSLineScore, colorBlack, colorWhite)
 
@@ -740,7 +731,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		if self.page.pagea.fResults and self.match.scoreAway != -1:
 			oltbAwayScore = self.Oltb(rectAwayBox, self.page.Fontkey('match.score'), self.s_dSScore)
-			oltbAwayScore.DrawText(str(self.match.scoreAway), colorBlack, JH.Center, haloa = haloaScore)
+			oltbAwayScore.DrawText(str(self.match.scoreAway), colorWhite, JH.Center, haloa = haloaScore)
 		else:
 			self.DrawBox(rectAwayBox, self.s_dSLineScore, colorBlack, colorWhite)
 
@@ -759,25 +750,21 @@ class CFinalBlot(CBlot): # tag = finalb
 			strTiebreaker = f'({self.match.scoreHomeTiebreaker}-{self.match.scoreAwayTiebreaker})'
 			rectTiebreaker = SRect(rectHomePens.xMin, rectHomePens.yMin, rectAwayPens.xMax - rectHomePens.xMin, rectHomePens.dY)
 			oltbTiebreaker = self.Oltb(rectTiebreaker, self.page.Fontkey('match.score'), rectHomePens.dY)
-			oltbTiebreaker.DrawText(strTiebreaker, colorBlack, JH.Center, haloa = haloaScore)
+			oltbTiebreaker.DrawText(strTiebreaker, colorBlack, JH.Center)
 
 		if self.page.pagea.fResults:
 
 			# (full) team names
 
 			strHome = self.page.StrTeam(self.match.strTeamHome)
-			groupHome = self.tourn.mpStrTeamGroup[self.match.strTeamHome]
-			haloaHome = SHaloArgs(groupHome.colors.colorLighter, 0.05)
 			rectHomeTeam = SRect(rectAll.x, rectHomeBox.y, rectHomeBox.xMin - rectAll.x, rectHomeBox.dY)
 			oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('match.team.abbrev'), rectHomeBox.dY)
-			oltbHomeTeam.DrawText(strHome, colorBlack, JH.Right, haloa = haloaHome)
+			oltbHomeTeam.DrawText(strHome, colorBlack, JH.Right)
 
 			strAway = self.page.StrTeam(self.match.strTeamAway)
-			groupAway = self.tourn.mpStrTeamGroup[self.match.strTeamAway]
-			haloaAway = SHaloArgs(groupAway.colors.colorLighter, 0.05)
 			rectAwayTeam = SRect(rectAwayBox.xMax, rectAwayBox.y, rectAll.xMax - rectAwayBox.xMax, rectAwayBox.dY)
 			oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('match.team.abbrev'), rectAwayBox.dY)
-			oltbAwayTeam.DrawText(strAway, colorBlack, JH.Left, haloa = haloaAway)
+			oltbAwayTeam.DrawText(strAway, colorBlack, JH.Left)
 
 		else:
 
