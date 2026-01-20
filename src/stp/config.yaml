@@ -1,13 +1,14 @@
 
+default:
+  pages:
+    - { tz: US/Pacific  }
+
 results:
   tournament: 2018-mens-world-cup
   file_suffix: results
   pages:
     - { tz: US/Pacific, results: true  }
-
-default:
-  pages:
-    - { tz: US/Pacific  }
+    - { tz: US/Pacific, results: false  }
 
 navid:
   file_suffix: navid
@@ -43,14 +44,16 @@ designs:
     
     - variant: gold master
 
+tourneys:
+  all_tournaments: true
+  pages:
+    - { tz: US/Pacific  }
+    - { tz: US/Pacific, results: true  }
+
 langs:
   file_suffix: langs
   pages:
-    # US Timezones
     - { tz: US/Pacific  }
-    - { tz: US/Mountain }
-    - { tz: US/Central  }
-    - { tz: US/Eastern  }
     
     # European languages
     - { tz: Europe/London,       loc: en_GB }

@@ -25,9 +25,9 @@ class CDataBase: # tag = db
 	s_pathDir = g_pathCode / 'database'
 
 	@classmethod
-	def StrNameLatest(cls) -> str:
+	def LStrNameTournament(cls) -> list[str]:
 		lPath = cls.s_pathDir.glob('*.xlsx')
-		return [path.stem for path in sorted(lPath) if path.stem != 'localization'][-1]
+		return [path.stem for path in sorted(lPath) if path.stem != 'localization']
 
 	def __init__(self, strName: str) -> None:
 
@@ -36,7 +36,7 @@ class CDataBase: # tag = db
 		self.mpStrKeyStrLocaleStrText: dict[str, dict[str, str]] = {}
 
 	def XlbLoad(self) -> TExcelBook:
-		wb = openpyxl.load_workbook(filename = str(self.pathFile))
+		wb = openpyxl.load_workbook(filename = str(self.pathFile), data_only=True)
 		
 		xlb: TExcelBook = {}
 		

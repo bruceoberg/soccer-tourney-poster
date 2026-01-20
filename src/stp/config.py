@@ -113,6 +113,7 @@ class SDocumentArgs(BaseModel): # tag = doca
 	strFileSuffix:		str			= Field(default='',		alias='file_suffix')
 	fAddLangTzSuffix:	bool		= Field(default=False,	alias='add_lang_tz_suffix')
 	fUnwindPages:		bool		= Field(default=False,	alias='unwind_pages')
+	fAllTournaments:	bool		= Field(default=False,	alias='all_tournaments')
 
 def MpStrDocaLoad(pathYaml: Path) -> dict[str, SDocumentArgs]:
 	"""Load all document configurations from a single YAML file."""
@@ -125,10 +126,11 @@ def MpStrDocaLoad(pathYaml: Path) -> dict[str, SDocumentArgs]:
 def IterDoca() -> Iterator[SDocumentArgs]:
 
 	mpStrDoca = MpStrDocaLoad(g_pathCode / 'config.yaml')
+	lStrNameTournaments = CDataBase.LStrNameTournament()
 
 	class ArgumentParser(Tap):
 		"""Soccer Tournament Poster Generator"""
-		tournament: str = CDataBase.StrNameLatest() # Tournament to generate for.
+		tournament: str = lStrNameTournaments[-1] # Tournament to generate for.
 		document: str = next(iter(mpStrDoca))  # Document to output.
 		output_dir: str = 'playground'  # Destination directory.
 
@@ -142,11 +144,28 @@ def IterDoca() -> Iterator[SDocumentArgs]:
 	try:
 		doca = mpStrDoca[args.document]
 
-		if not doca.strNameTourn:
-			doca = doca.model_copy(update={'strNameTourn': args.tournament })
-
 		if not doca.strDirOutput:
 			doca = doca.model_copy(update={'strDirOutput': args.output_dir })
+
+		if doca.fAllTournaments:
+			assert(not doca.strNameTourn)
+			assert(not doca.fUnwindPages)
+
+			lPagea = []
+			
+			for strNameTourn in lStrNameTournaments:
+				for pagea in doca.tuPagea:
+					assert(not pagea.strNameTourn)
+					lPagea.append(pagea.model_copy(update={'strNameTourn': strNameTourn }))
+
+			doca = doca.model_copy(update={'tuPagea': tuple(lPagea)})
+
+			yield doca
+			
+			return
+
+		if not doca.strNameTourn:
+			doca = doca.model_copy(update={'strNameTourn': args.tournament })
 
 		if doca.fUnwindPages:
 			assert(doca.strNameTourn)

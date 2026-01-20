@@ -5,7 +5,8 @@
 - take results from spreadsheet and print them instead of boxes/forms.
   - full team names for third place match.
   - places instead of times.
-  - no timezone... host country to right side.
+  - dots in group stage reflecting results.
+  - layout of elimblots different for results/fixtures.
 
 ## future
 
@@ -51,3 +52,4 @@
 - doc/page config via yaml file.
 - take results from spreadsheet and print them instead of boxes/forms.
   - render scores
+  - no timezone... host country to right side.

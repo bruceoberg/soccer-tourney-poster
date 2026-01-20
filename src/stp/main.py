@@ -752,7 +752,7 @@ class CFinalBlot(CBlot): # tag = finalb
 			oltbTiebreaker = self.Oltb(rectTiebreaker, self.page.Fontkey('match.score'), rectHomePens.dY)
 			oltbTiebreaker.DrawText(strTiebreaker, colorBlack, JH.Center)
 
-		if self.page.pagea.fResults:
+		if self.page.pagea.fResults and self.match.strTeamHome and self.match.strTeamAway:
 
 			# (full) team names
 
@@ -914,6 +914,14 @@ class CPage:
 
 	def StrTeam(self, strKey: str) -> str:
 		return self.tourn.StrTeam(strKey, self.strLocale)
+
+	def StrTitle(self):
+		tMin = arrow.get(min(self.mpDateSetMatch))
+		strYear = tMin.strftime('%Y')
+		strName = self.StrTranslation('tournament.name')
+		strLabel = self.StrTranslation('page.title.results' if self.pagea.fResults else 'page.title.fixtures')
+		strFormatTitle = self.StrTranslation('page.format.title')
+		return strFormatTitle.format(year=strYear, name=strName, label=strLabel)
 
 	def Fontkey(self, strFont: str) -> SFontKey:
 		strTtf = self.StrTranslation(self.doc.s_strKeyPrefixFonts + strFont)
@@ -1198,7 +1206,7 @@ class CHeaderBlot(CBlot): # tag = headerb
 		# title
 
 		oltbTitle = self.Oltb(rectAll, self.page.Fontkey('page.header.title'), self.s_dYFontTitle)
-		strTitle = self.page.StrTranslation('tournament.title').upper()
+		strTitle = self.page.StrTitle()
 		rectTitle = oltbTitle.RectDrawText(strTitle, colorWhite, JH.Center, JV.Middle)
 		dSMarginSides = rectAll.yMax - rectTitle.yMax
 
@@ -1209,7 +1217,7 @@ class CHeaderBlot(CBlot): # tag = headerb
 		strDateRange = self.page.StrDateRangeForHeader(tMin, tMax)
 		strLocation = self.page.StrTranslation('tournament.location')
 		strFormatDates = self.page.StrTranslation('page.format.dates-and-location')
-		strDatesLocation = strFormatDates.format(dates=strDateRange, location=strLocation).upper()
+		strDatesLocation = strFormatDates.format(dates=strDateRange, location=strLocation)
 
 		# time zone
 
@@ -1219,12 +1227,17 @@ class CHeaderBlot(CBlot): # tag = headerb
 
 		# notes left and right
 
-		if self.page.FIsLeftToRight():
+		if self.page.pagea.fResults:
+			strNoteLeft = strDateRange
+			strNoteRight = strLocation
+		else:
 			strNoteLeft = strDatesLocation
 			strNoteRight = strTimeZone
-		else:
-			strNoteLeft = strTimeZone
-			strNoteRight = strDatesLocation
+
+		# swapping for RtL
+
+		if not self.page.FIsLeftToRight():
+			strNoteLeft, strNoteRight = strNoteRight, strNoteLeft
 
 		rectNoteLeft = rectAll.Copy().Stretch(dXLeft = self.s_dY) # yes, using height as left space
 		oltbNoteLeft = self.Oltb(rectNoteLeft, self.page.Fontkey('page.header.title'), self.s_dYFontSides, dSMargin = dSMarginSides)
@@ -1265,6 +1278,8 @@ class CFooterBlot(CBlot): # tag = headerb
 			'MADE IN PYTHON WITH FPDF2',
 			'GITHUB.COM/BRUCEOBERG/SOCCER-TOURNEY-POSTER',
 			g_repover.StrVersionShort(),
+			self.page.strLocale.lower(),
+			str(self.page.fmt),
 		]
 
 		lStrCreditCenter: list[str] = [
@@ -1274,8 +1289,6 @@ class CFooterBlot(CBlot): # tag = headerb
 		lStrCreditRight: list[str] = [
 			'ORIGINAL DESIGN BY BENJY TOCZYNSKI',
 			'BTOCZYNSKI@GMAIL.COM',
-			self.page.strLocale.lower(),
-			str(self.page.fmt),
 		]
 
 		strSpaceDotSpace = ' \u2022 '
@@ -1795,9 +1808,7 @@ class CDocument: # tag = doc
 		if doca.strNameTourn:
 			strName = doca.strNameTourn
 			self.tourn = CTournamentDataBase.TournFromStrName(strName)
-			strSubject = self.tourn.StrTranslation('tournament.name', 'en')
-			lStrKeywords = strSubject.split() + strName.split('-')
-			strKeywords = ' '.join(lStrKeywords)
+			strSubject = strKeywords = ' '.join(strName.split('-'))
 		else:
 			strName = 'collection'
 			self.tourn = None
