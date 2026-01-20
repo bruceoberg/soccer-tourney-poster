@@ -1,6 +1,11 @@
 ## now
 
+- composited titles.
+- language/paper to left footer.
 - take results from spreadsheet and print them instead of boxes/forms.
+  - full team names for third place match.
+  - places instead of times.
+  - no timezone... host country to right side.
 
 ## future
 
@@ -44,3 +49,5 @@
 - print against 2018 data.
 - command line with ~~argparse~~ typed-argument-parser.
 - doc/page config via yaml file.
+- take results from spreadsheet and print them instead of boxes/forms.
+  - render scores
