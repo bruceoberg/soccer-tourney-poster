@@ -439,12 +439,12 @@ class CMatchBlot(CBlot): # tag = dayb
 
 				strHome = self.page.StrTeam(self.match.strTeamHome)
 				rectHomeTeam = SRect(self.rect.x, rectHomeBox.y, rectHomeBox.xMin - self.rect.x, rectHomeBox.dY)
-				oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('match.team.abbrev'), rectHomeBox.dY)
+				oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('final.team.name'), rectHomeBox.dY)
 				oltbHomeTeam.DrawText(strHome, colorBlack, JH.Right)
 
 				strAway = self.page.StrTeam(self.match.strTeamAway)
 				rectAwayTeam = SRect(rectAwayBox.xMax, rectAwayBox.y, self.rect.xMax - rectAwayBox.xMax, rectAwayBox.dY)
-				oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('match.team.abbrev'), rectAwayBox.dY)
+				oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('final.team.name'), rectAwayBox.dY)
 				oltbAwayTeam.DrawText(strAway, colorBlack, JH.Left)
 
 			else:
@@ -783,12 +783,12 @@ class CFinalBlot(CBlot): # tag = finalb
 
 			strHome = self.page.StrTeam(self.match.strTeamHome)
 			rectHomeTeam = SRect(rectAll.x, rectHomeBox.y, rectHomeBox.xMin - rectAll.x, rectHomeBox.dY)
-			oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('match.team.abbrev'), rectHomeBox.dY)
+			oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('final.team.name'), rectHomeBox.dY)
 			oltbHomeTeam.DrawText(strHome, colorBlack, JH.Right)
 
 			strAway = self.page.StrTeam(self.match.strTeamAway)
 			rectAwayTeam = SRect(rectAwayBox.xMax, rectAwayBox.y, rectAll.xMax - rectAwayBox.xMax, rectAwayBox.dY)
-			oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('match.team.abbrev'), rectAwayBox.dY)
+			oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('final.team.name'), rectAwayBox.dY)
 			oltbAwayTeam.DrawText(strAway, colorBlack, JH.Left)
 
 		else:
