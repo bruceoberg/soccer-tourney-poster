@@ -27,7 +27,7 @@ class CDataBase: # tag = db
 	@classmethod
 	def LStrNameTournament(cls) -> list[str]:
 		lPath = cls.s_pathDir.glob('*.xlsx')
-		return [path.stem for path in sorted(lPath) if path.stem != 'localization']
+		return [path.stem for path in sorted(lPath) if path.stem != 'localization' and path.stem[0].isdigit()]
 
 	def __init__(self, strName: str) -> None:
 
@@ -142,7 +142,7 @@ class SColors: # tag = colors
 class CGroup:
 	def __init__(self, tourn: CTournamentDataBase, strGroup: str, mpStrSeedStrTeam: dict[str, str]) -> None:
 		self.strName: str = strGroup
-		self.colors: SColors = SColors(tourn.StrTranslation('colors.' + strGroup, 'en')) # BB (bruceo) delay this until necessary?
+		self.colors: SColors = SColors(tourn.StrColorGroup(strGroup))
 		self.mpStrSeedStrTeam: dict[str, str] = {strSeed:strTeam for strSeed, strTeam in mpStrSeedStrTeam.items() if strSeed[0] == strGroup}
 
 class CMatch:
@@ -263,8 +263,6 @@ class CMatch:
 
 class CTournamentDataBase(CDataBase): # tag = tourn
 
-	s_lStrKeyLocPrefix = ('tournament', 'colors')
-
 	s_mpCSeedStageElimFirst = {
 		8:	STAGE.Semis,
 		12:	STAGE.Quarters,
@@ -292,14 +290,11 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		super().__init__(strName)
 
 		xlb: TExcelBook = self.XlbLoad()
+
+		# properties come from the properties table
+
+		self.objProperties: dict[str, str] = {xlrow['key']:xlrow['value'] for xlrow in xlb['properties']}
 		
-		# translations come from both the tranlsations table (mostly unchanging) and the tournament table (new per contest)
-
-		for strKeyLocPrefix in self.s_lStrKeyLocPrefix:
-			assert strKeyLocPrefix not in g_loc.mpStrSectionSetStrSubkey
-			for xlrow in xlb[strKeyLocPrefix]:
-				self.mpStrKeyStrLocaleStrText[(strKeyLocPrefix + '.' + xlrow['key']).lower()] = xlrow
-
 		# both MpStrGroupGroup() and CMatch.__init__() depend on self.mpStrSeedTeam existing
 
 		self.mpStrSeedStrTeam: dict[str, str] = {xlrow['seed']:xlrow['team'] for xlrow in xlb['seeds']}
@@ -432,17 +427,23 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 
 		return {self.mpIdMatch[id] for id in setIdFeeding}
 
-	def StrTranslation(self, strKey: str, strLocale: str) -> str:
-		for strKeyLocPrefix in self.s_lStrKeyLocPrefix:
-			if strKey.startswith(strKeyLocPrefix + '.'):
-				assert strKey not in g_loc.mpStrKeyStrLocaleStrText
-				return super().StrTranslation(strKey, strLocale)
-
-		return g_loc.StrTranslation(strKey, strLocale)
-	
 	def FLocSectionHasAllKeys(self, strSection: str, setStrKeys: set[str]) -> bool:
 		return setStrKeys.issubset(g_loc.mpStrSectionSetStrSubkey[strSection])
 
-	def StrTeam(self, strKey: str, strLocale: str) -> str:
-		strKeyResolved = self.strKeyTeamPrefix + strKey
-		return self.StrTranslation(strKeyResolved, strLocale)
+	def StrKeyTeam(self, strKey: str) -> str:
+		return self.strKeyTeamPrefix + strKey
+	
+	def StrKeyCompetition(self) -> str:
+		return 'competition.' + self.objProperties['competition']
+
+	def StrKeyHost(self) -> str:
+		return 'host.' + self.objProperties['host']
+
+	def StrTimezone(self) -> str:
+		return self.objProperties['timezone']
+	
+	def StrColorGroup(self, strGroup: str) -> str:
+		return self.objProperties[f"color.{strGroup.lower()}"]
+	
+	def StrKeyVenue(self, venue: int) -> str:
+		return 'venue.' + self.objProperties[f"venue.{venue:02}"]

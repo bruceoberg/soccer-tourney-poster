@@ -910,15 +910,15 @@ class CPage:
 			self.rectCropMarks = self.rect
 
 	def StrTranslation(self, strKey: str) -> str:
-		return self.tourn.StrTranslation(strKey, self.strLocale)
+		return g_loc.StrTranslation(strKey, self.strLocale)
 
 	def StrTeam(self, strKey: str) -> str:
-		return self.tourn.StrTeam(strKey, self.strLocale)
+		return self.StrTranslation(self.tourn.StrKeyTeam(strKey))
 
 	def StrTitle(self):
 		tMin = arrow.get(min(self.mpDateSetMatch))
 		strYear = tMin.strftime('%Y')
-		strName = self.StrTranslation('tournament.name')
+		strName = self.StrTranslation(self.tourn.StrKeyCompetition())
 		strLabel = self.StrTranslation('page.title.results' if self.pagea.fResults else 'page.title.fixtures')
 		strFormatTitle = self.StrTranslation('page.format.title')
 		return strFormatTitle.format(year=strYear, name=strName, label=strLabel)
@@ -973,7 +973,7 @@ class CPage:
 		# the goal here is to have same-day matches appear on the same calendar day for all
 		# pages regardless of the page timezone.
 
-		strTzTourney: str = self.StrTranslation('tournament.timezone')
+		strTzTourney: str = self.tourn.StrTimezone()
 		tzinfoTourney = tz.gettz(strTzTourney)
 		assert(tzinfoTourney)
 		mpIdDateTourney: dict[int, datetime.date] = { id: match.tStart.to(tzinfoTourney).date() for id, match in self.tourn.mpIdMatch.items() }
@@ -1215,7 +1215,7 @@ class CHeaderBlot(CBlot): # tag = headerb
 		tMin = arrow.get(min(self.page.mpDateSetMatch))
 		tMax = arrow.get(max(self.page.mpDateSetMatch))
 		strDateRange = self.page.StrDateRangeForHeader(tMin, tMax)
-		strLocation = self.page.StrTranslation('tournament.location')
+		strLocation = self.page.StrTranslation(self.page.tourn.StrKeyHost())
 		strFormatDates = self.page.StrTranslation('page.format.dates-and-location')
 		strDatesLocation = strFormatDates.format(dates=strDateRange, location=strLocation)
 
