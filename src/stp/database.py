@@ -260,6 +260,9 @@ class CMatch:
 		self.stage = stage
 
 		return True
+	
+	def FHasResults(self) -> bool:
+		return self.scoreHome != -1 and self.scoreAway != -1
 
 class CTournamentDataBase(CDataBase): # tag = tourn
 

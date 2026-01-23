@@ -284,7 +284,10 @@ class CMatchBlot(CBlot): # tag = dayb
 			yTime = self.rect.y + self.dYOuterGap
 			yScore = yTime + self.dYTimeAndGap
 
-			strTime = self.page.StrTimeDisplay(self.match)
+			if self.page.pagea.fResults and self.match.FHasResults():
+				strTime = self.page.StrTranslation(self.tourn.StrKeyVenue(self.match.venue))
+			else:
+				strTime = self.page.StrTimeDisplay(self.match)
 			rectTime = SRect(self.rect.x, yTime, self.rect.dX, self.dayb.dYTime)
 			oltbTime = self.Oltb(rectTime, self.page.Fontkey('match.time'), self.dayb.s_dYFontTime)
 			oltbTime.DrawText(strTime, colorBlack, JH.Center)
@@ -339,7 +342,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			oltbTiebreaker = self.Oltb(rectTiebreaker, self.page.Fontkey('match.score'), rectHomePens.dY)
 			oltbTiebreaker.DrawText(strTiebreaker, colorWhite, JH.Center, haloa = haloaScore)
 
-		if self.fElimination and not self.page.pagea.fResults:
+		if self.fElimination and not (self.page.pagea.fResults and self.match.strTeamHome and self.match.strTeamAway):
 
 			# PK boxes
 
@@ -430,16 +433,32 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			# team names
 
-			dXTeams = self.rect.dX - (2 * self.dayb.s_dSScore) - dXLineGap
-			dXTeam = dXTeams / 2.0
+			if self.match.stage == STAGE.Third:
 
-			rectHomeTeam = SRect(self.rect.x, yScore, dXTeam, self.dayb.s_dSScore)
-			oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('match.team.abbrev'), self.dayb.s_dSScore)
-			oltbHomeTeam.DrawText(self.match.strTeamHome, colorBlack, JH.Center)
+				# (full) team names
 
-			rectAwayTeam = SRect(self.rect.xMax - dXTeam, yScore, dXTeam, self.dayb.s_dSScore)
-			oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('match.team.abbrev'), self.dayb.s_dSScore)
-			oltbAwayTeam.DrawText(self.match.strTeamAway, colorBlack, JH.Center)
+				strHome = self.page.StrTeam(self.match.strTeamHome)
+				rectHomeTeam = SRect(self.rect.x, rectHomeBox.y, rectHomeBox.xMin - self.rect.x, rectHomeBox.dY)
+				oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('match.team.abbrev'), rectHomeBox.dY)
+				oltbHomeTeam.DrawText(strHome, colorBlack, JH.Right)
+
+				strAway = self.page.StrTeam(self.match.strTeamAway)
+				rectAwayTeam = SRect(rectAwayBox.xMax, rectAwayBox.y, self.rect.xMax - rectAwayBox.xMax, rectAwayBox.dY)
+				oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('match.team.abbrev'), rectAwayBox.dY)
+				oltbAwayTeam.DrawText(strAway, colorBlack, JH.Left)
+
+			else:
+
+				dXTeams = self.rect.dX - (2 * self.dayb.s_dSScore) - dXLineGap
+				dXTeam = dXTeams / 2.0
+
+				rectHomeTeam = SRect(self.rect.x, yScore, dXTeam, self.dayb.s_dSScore)
+				oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('match.team.abbrev'), self.dayb.s_dSScore)
+				oltbHomeTeam.DrawText(self.match.strTeamHome, colorBlack, JH.Center)
+
+				rectAwayTeam = SRect(self.rect.xMax - dXTeam, yScore, dXTeam, self.dayb.s_dSScore)
+				oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('match.team.abbrev'), self.dayb.s_dSScore)
+				oltbAwayTeam.DrawText(self.match.strTeamAway, colorBlack, JH.Center)
 
 			# group name, subtly
 
@@ -538,6 +557,9 @@ class CDayBlot(CBlot): # tag = dayb
 		# coalesce matches at the same time
 
 		for matchbTop, matchbBottom in zip(lMatchb, lMatchb[1:]):
+			if self.page.pagea.fResults and matchbTop.match.FHasResults() and matchbTop.match.FHasResults():
+				continue
+
 			if not matchbTop.dYTimeAndGap:
 				continue
 
@@ -695,7 +717,10 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		# time
 
-		strTime = self.page.StrTimeDisplay(self.match)
+		if self.page.pagea.fResults and self.match.FHasResults():
+			strTime = self.page.StrTranslation(self.tourn.StrKeyVenue(self.match.venue))
+		else:
+			strTime = self.page.StrTimeDisplay(self.match)
 		rectTime = rectDate.Copy(dY=self.s_dYFontTime).Shift(dY = rectDate.dY + self.s_dYTextGap)
 		oltbTime = self.Oltb(rectTime, self.page.Fontkey('final.time'), rectTime.dY)
 		oltbTime.DrawText(strTime, colorBlack, JH.Center)
