@@ -1836,9 +1836,9 @@ class CDocument: # tag = doc
 			self.tourn = CTournamentDataBase.TournFromStrName(strName)
 			strSubject = strKeywords = ' '.join(strName.split('-'))
 		else:
-			strName = 'collection'
+			strName = doca.strName
 			self.tourn = None
-			strSubject = 'collection'
+			strSubject = doca.strName
 			strKeywords = ''
 
 		self.pdf.set_title(strName)

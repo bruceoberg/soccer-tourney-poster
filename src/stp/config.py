@@ -107,6 +107,7 @@ class SDocumentArgs(BaseModel): # tag = doca
 	
 	model_config = ConfigDict(frozen=True, populate_by_name=True)
 	
+	strName:			str			= Field(				alias='name')
 	tuPagea:			TTuPagea	= Field(				alias='pages')
 	strNameTourn:		str			= Field(default='',		alias='tournament')
 	strDirOutput:		str			= Field(default='',		alias='output_dir')
@@ -114,6 +115,7 @@ class SDocumentArgs(BaseModel): # tag = doca
 	fAddLangTzSuffix:	bool		= Field(default=False,	alias='add_lang_tz_suffix')
 	fUnwindPages:		bool		= Field(default=False,	alias='unwind_pages')
 	fAllTournaments:	bool		= Field(default=False,	alias='all_tournaments')
+	fDefault:			bool		= Field(default=False,	alias='default')
 
 def MpStrDocaLoad(pathYaml: Path) -> dict[str, SDocumentArgs]:
 	"""Load all document configurations from a single YAML file."""
@@ -121,17 +123,28 @@ def MpStrDocaLoad(pathYaml: Path) -> dict[str, SDocumentArgs]:
 	with open(pathYaml, encoding='utf-8') as file:
 		mpStrObjYaml = yaml.safe_load(file)
 	
-	return { strName: SDocumentArgs(**objYaml) for strName, objYaml in mpStrObjYaml.items() }
+	mpStrDoca = {}
+	for strName, objYaml in mpStrObjYaml.items():
+		objYaml['strName'] = strName  # Inject the dict key as the name
+		mpStrDoca[strName] = SDocumentArgs(**objYaml)
+	
+	return mpStrDoca
 
 def IterDoca() -> Iterator[SDocumentArgs]:
 
 	mpStrDoca = MpStrDocaLoad(g_pathCode / 'config.yaml')
+
+	strDocaDefault: str = ''
+	for strDoca, doca in mpStrDoca.items():
+		if not strDocaDefault or doca.fDefault:
+			strDocaDefault = strDoca
+
 	lStrNameTournaments = CDataBase.LStrNameTournament()
 
 	class ArgumentParser(Tap):
 		"""Soccer Tournament Poster Generator"""
 		tournament: str = lStrNameTournaments[-1] # Tournament to generate for.
-		document: str = next(iter(mpStrDoca))  # Document to output.
+		document: str = strDocaDefault  # Document to output.
 		output_dir: str = 'playground'  # Destination directory.
 
 		def configure(self):
