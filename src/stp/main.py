@@ -382,13 +382,14 @@ class CMatchBlot(CBlot): # tag = dayb
 					self.match.stage > self.tourn.stageElimFirst and
 					self.match.stage < STAGE.Third
 				 ):
-				assert len(self.match.lIdFeeders) == 2
-				matchFeedLeft = self.tourn.mpIdMatch[self.match.lIdFeeders[0]]
-				matchFeedRight = self.tourn.mpIdMatch[self.match.lIdFeeders[1]]
+				assert self.match.idFeederHome is not None
+				matchFeederHome = self.tourn.mpIdMatch[self.match.idFeederHome]
+				assert self.match.idFeederAway is not None
+				matchFeederAway = self.tourn.mpIdMatch[self.match.idFeederAway]
 
 				fDrawFormLabels = True
-				strHome = ''.join(sorted(matchFeedLeft.lStrGroup))
-				strAway = ''.join(sorted(matchFeedRight.lStrGroup))
+				strHome = ''.join(sorted(matchFeederHome.lStrGroup))
+				strAway = ''.join(sorted(matchFeederAway.lStrGroup))
 				dYFontForm = self.dayb.s_dYFontForm * 0.8
 
 			if fDrawFormLabels:
@@ -1516,7 +1517,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 
 		# allot blots to rows and columns
 
-		setMatchElimLeft = self.tourn.setMatchFirst if self.page.FIsLeftToRight() else self.tourn.setMatchSecond
+		setMatchElimLeft = self.tourn.setMatchElimHalfHome if self.page.FIsLeftToRight() else self.tourn.setMatchElimHalfAway
 
 		self.lTuXYElimb: list[tuple[float, float, CElimBlot]] = []
 		mpStageLRect: dict[STAGE, list[SRect]] = {}
@@ -1528,7 +1529,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 			tuTuColSetMatchCol = ((colLeft, setMatchLeft), (self.cCol-(1+colLeft), setMatchRight))
 			for col, setMatchCol in tuTuColSetMatchCol:
 				x = mpColX[col]
-				for row, matchCol in enumerate(sorted(setMatchCol, key=lambda match: match.tuIdFed)):
+				for row, matchCol in enumerate(sorted(setMatchCol, key=lambda match: match.sortElim)):
 					y = mpStageRowY[(stage, row)]
 					elimb = CElimBlot(self.page, matchCol)
 					self.lTuXYElimb.append((x, y, elimb))

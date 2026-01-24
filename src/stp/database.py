@@ -168,14 +168,14 @@ class CMatch:
 
 		self.stage: STAGE = cast(STAGE, None)
 		self.lStrGroup: list[str] = []
-		self.lIdFeeders: list[int] = []
+		self.idFeederHome: Optional[int] = None
+		self.idFeederAway: Optional[int] = None
 		self.idFeeding: Optional[int] = None
 
-		# this tuple is for sorting the columns of the elimination bracket.
-		# as such, it starts with the most distant fed match (the final) and then
-		# ids matches closer to this match, ending with the match's own id.
+		# display sort order of the elimination bracket. final is in the middle, with
+		# each match's home feeder being before and away feeder being after.
 
-		self.tuIdFed: tuple[int, ...] = ()
+		self.sortElim: int = 0
 
 		if self.strSeedHome in tourn.mpStrSeedStrTeam and \
 		   self.strSeedAway in tourn.mpStrSeedStrTeam:
@@ -191,53 +191,44 @@ class CMatch:
 			matAway = self.s_patAlphaNum.match(self.strSeedAway)
 			assert matAway
 			assert matHome[1] == matAway[1]
-			
-			if matHome[1] == 'RU' or matHome[1] == 'L':
+
+			self.idFeederHome = int(matHome[2])
+			self.idFeederAway = int(matAway[2])
+
+			if matHome[1] != 'W':
+				assert matHome[1] == 'RU' or matHome[1] == 'L'
 				self.stage = STAGE.Third
-				self.lIdFeeders = [int(matHome[2]), int(matAway[2])]
 			else:
-				# leaving self.stage as None, but setting ids so
-				# we can set it based on feeders' stages
-				assert matHome[1] == 'W'
-				self.lIdFeeders = [int(matHome[2]), int(matAway[2])]
+				# leaving self.stage as None. we'll set it based on feeders' stages
+				pass
 		else:
 			assert False
 
 	def LinkFeeders(self, mpIdMatch: dict[int, 'CMatch']) -> None:
 
 		# both the final and thiurd place match are fed by the semis.
-		# we use idFeeding for sorting the bracket, so it's ok to ign ore the third place match
+		# we use idFeeding for sorting the bracket, so it's ok to ignore the third place match
 		if self.stage == STAGE.Third:
 			return
 		
-		for idFeeder in self.lIdFeeders:
+		for idFeeder in (self.idFeederHome, self.idFeederAway):
+			if idFeeder is None:
+				continue
 			matchFeeder = mpIdMatch[idFeeder]
 			assert matchFeeder.idFeeding is None
 			matchFeeder.idFeeding = self.id
 
-	def BuildTuIdFed(self, mpIdMatch: dict[int, 'CMatch']) -> None:
-	
-		lIdFeeding: list[int] = []
-		matchFeeding: Optional[CMatch] = self
-
-		while matchFeeding:
-			lIdFeeding.append(matchFeeding.id)
-			if matchFeeding.idFeeding is None:
-				break
-			matchFeeding = mpIdMatch.get(matchFeeding.idFeeding)
-
-		self.tuIdFed = tuple(reversed(lIdFeeding))
-
 	def FTrySetStage(self, tourn: CTournamentDataBase, stagePrev: STAGE, stage: STAGE):
 		assert self.stage is None
-		assert self.lIdFeeders
+		assert self.idFeederHome is not None
+		assert self.idFeederAway is not None
 
 		# no ordered sets in python, and we want to preserve order in this case
 
 		setStrGroup: set[str] = set()
 		lStrGroup: list[str] = []
 
-		for id in self.lIdFeeders:
+		for id in (self.idFeederHome, self.idFeederAway):
 			match = tourn.mpIdMatch[id]
 
 			if match.stage != stagePrev:
@@ -320,9 +311,6 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		for match in self.mpIdMatch.values():
 			match.LinkFeeders(self.mpIdMatch)
 
-		for match in self.mpIdMatch.values():
-			match.BuildTuIdFed(self.mpIdMatch)
-
 		self.mpStageSetMatch: dict[STAGE, set[CMatch]] = self.MpStageSetMatch()
 
 		setMatchFinal = self.mpStageSetMatch[STAGE.Final]
@@ -339,12 +327,14 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 			del self.mpStageSetMatch[STAGE.Third]
 		except KeyError:
 			pass
+
+		self.AssignSortElim()
 		
 		self.setMatchGroup: set[CMatch] = self.mpStageSetMatch[STAGE.Group]
 		self.setMatchElimination: set[CMatch] = set().union(*[setMatch for stage, setMatch in self.mpStageSetMatch.items() if stage != STAGE.Group])
 		
-		self.setMatchFirst: set[CMatch] = self.SetMatchElimHalfFirst()
-		self.setMatchSecond: set[CMatch] = self.SetMatchElimHalfSecond()
+		self.setMatchElimHalfHome: set[CMatch] = self.SetMatchElimHalfHome()
+		self.setMatchElimHalfAway: set[CMatch] = self.SetMatchElimHalfAway()
 
 	def MpStrGroupGroup(self) -> dict[str, CGroup]:
 		""" build list of groups from team seedings. """
@@ -404,14 +394,36 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 			stagePrev = stageNext
 
 		return mpStageSetMatch
-
-	def SetMatchElimHalfFirst(self) -> set[CMatch]:
-		assert len(self.matchFinal.lIdFeeders) == 2
-		return self.SetMatchElimFeeding(self.matchFinal.lIdFeeders[0])
 	
-	def SetMatchElimHalfSecond(self) -> set[CMatch]:
-		assert len(self.matchFinal.lIdFeeders) == 2
-		return self.SetMatchElimFeeding(self.matchFinal.lIdFeeders[1])
+	def AssignSortElim(self):
+		sortElimNext: int = 1
+		lIdStack: list[int] = [self.matchFinal.id]
+		setIdVisited: set[int] = set()
+
+		while lIdStack:
+			idCur = lIdStack.pop()
+			matchCur = self.mpIdMatch[idCur]
+			assert matchCur.sortElim == 0
+
+			if matchCur.id in setIdVisited:
+				matchCur.sortElim = sortElimNext
+				sortElimNext += 1
+			else:
+				setIdVisited.add(idCur)
+
+				if matchCur.idFeederAway is not None:
+					lIdStack.append(matchCur.idFeederAway)
+				lIdStack.append(idCur)
+				if matchCur.idFeederHome is not None:
+					lIdStack.append(matchCur.idFeederHome)
+
+	def SetMatchElimHalfHome(self) -> set[CMatch]:
+		assert self.matchFinal.idFeederHome is not None
+		return self.SetMatchElimFeeding(self.matchFinal.idFeederHome)
+	
+	def SetMatchElimHalfAway(self) -> set[CMatch]:
+		assert self.matchFinal.idFeederAway is not None
+		return self.SetMatchElimFeeding(self.matchFinal.idFeederAway)
 
 	def SetMatchElimFeeding(self, id: int) -> set[CMatch]:
 		""" return emlimination matches that feed a particular match id. """
@@ -422,11 +434,12 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		while setIdVisit:
 			match = self.mpIdMatch[setIdVisit.pop()]
 
-			# NOTE (bruceo) setIdFeeders will be empty for group and first elimination round matches
+			for idFeeder in (match.idFeederHome, match.idFeederAway):
+				if idFeeder is None:
+					continue
 
-			setIdFeeders: set[int] = set(match.lIdFeeders)
-			setIdFeeding |= setIdFeeders
-			setIdVisit |= setIdFeeders
+				setIdFeeding.add(idFeeder)
+				setIdVisit.add(idFeeder)
 
 		return {self.mpIdMatch[id] for id in setIdFeeding}
 
