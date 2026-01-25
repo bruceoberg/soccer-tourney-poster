@@ -98,7 +98,7 @@ class SPageArgs(BaseModel): # tag - pagea
 	fGroupHints:            bool        = Field(default=False,			alias='group_hints')
 	fEliminationHints:      bool        = Field(default=True,			alias='elimination_hints')
 	fGroupDots:             bool        = Field(default=True,			alias='group_dots')
-	fResults:               bool        = Field(default=False,			alias='results')
+	fFixturesOnly:          bool        = Field(default=False,			alias='fixtures_only')
 
 TTuPagea = tuple[SPageArgs, ...]
 
@@ -195,12 +195,14 @@ def IterDoca() -> Iterator[SDocumentArgs]:
 			
 			if iPagea == 0:
 				yield SDocumentArgs(
+						name = doca.strName,
 						tournament = doca.strNameTourn,
 						output_dir = doca.strDirOutput,
 						file_suffix='',
 						pages=(pagea,))
 
 			yield SDocumentArgs(
+					name = doca.strName,
 					tournament = doca.strNameTourn,
 					output_dir = doca.strDirOutput,
 					file_suffix='',

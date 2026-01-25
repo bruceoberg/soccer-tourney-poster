@@ -220,7 +220,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 		self.dYInfo = dayb.dYTime + dayb.s_dSScore
 
-		if self.fElimination and not self.page.pagea.fResults:
+		if self.fElimination and not self.page.FMatchHasResults(self.match):
 			self.dYInfo += self.dayb.s_dYFontLabel + (self.dayb.s_dSPens / 2.0) - self.dayb.s_dSPensNudge
 
 		dYGaps = (self.rect.dY - self.dYInfo)
@@ -284,7 +284,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			yTime = self.rect.y + self.dYOuterGap
 			yScore = yTime + self.dYTimeAndGap
 
-			if self.page.pagea.fResults and self.match.FHasResults():
+			if self.page.FMatchHasResults(self.match):
 				strTime = self.page.StrTranslation(self.tourn.StrKeyVenue(self.match.venue))
 			else:
 				strTime = self.page.StrTimeDisplay(self.match)
@@ -312,7 +312,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 		haloaScore = SHaloArgs(colorBlack, 0.1)
 
-		if self.page.pagea.fResults and self.match.scoreHome != -1:
+		if self.page.FMatchHasResults(self.match):
 			oltbHomeScore = self.Oltb(rectHomeBox, self.page.Fontkey('match.score'), self.dayb.s_dSScore)
 			oltbHomeScore.DrawText(str(self.match.scoreHome), colorWhite, JH.Center, haloa = haloaScore)
 		else:
@@ -321,7 +321,7 @@ class CMatchBlot(CBlot): # tag = dayb
 		xAwayBox = self.rect.x + (self.rect.dX / 2.0) + (dXLineGap / 2.0 )
 		rectAwayBox = SRect(xAwayBox, yScore, self.dayb.s_dSScore, self.dayb.s_dSScore)
 
-		if self.page.pagea.fResults and self.match.scoreAway != -1:
+		if self.page.FMatchHasResults(self.match):
 			oltbAwayScore = self.Oltb(rectAwayBox, self.page.Fontkey('match.score'), self.dayb.s_dSScore)
 			oltbAwayScore.DrawText(str(self.match.scoreAway), colorWhite, JH.Center, haloa = haloaScore)
 		else:
@@ -335,14 +335,16 @@ class CMatchBlot(CBlot): # tag = dayb
 		rectAwayPens.Outset(self.dayb.s_dSPens / 2)
 		rectAwayPens.Shift(dX=self.dayb.s_dSPensNudge, dY=-self.dayb.s_dSPensNudge)
 
-		if self.page.pagea.fResults and self.match.scoreHomeTiebreaker != -1:
-			assert self.match.scoreAwayTiebreaker != -1
-			strTiebreaker = f'({self.match.scoreHomeTiebreaker}-{self.match.scoreAwayTiebreaker})'
-			rectTiebreaker = SRect(rectHomePens.xMin, rectHomePens.yMin, rectAwayPens.xMax - rectHomePens.xMin, rectHomePens.dY)
-			oltbTiebreaker = self.Oltb(rectTiebreaker, self.page.Fontkey('match.score'), rectHomePens.dY)
-			oltbTiebreaker.DrawText(strTiebreaker, colorWhite, JH.Center, haloa = haloaScore)
+		if self.page.FMatchHasResults(self.match):
+			if self.match.scoreHomeTiebreaker != -1:
+				assert self.match.scoreAwayTiebreaker != -1
+				strTiebreaker = f'({self.match.scoreHomeTiebreaker}-{self.match.scoreAwayTiebreaker})'
+				rectTiebreaker = SRect(rectHomePens.xMin, rectHomePens.yMin, rectAwayPens.xMax - rectHomePens.xMin, rectHomePens.dY)
+				oltbTiebreaker = self.Oltb(rectTiebreaker, self.page.Fontkey('match.score'), rectHomePens.dY)
+				oltbTiebreaker.DrawText(strTiebreaker, colorWhite, JH.Center, haloa = haloaScore)
 
-		if self.fElimination and not (self.page.pagea.fResults and self.match.strTeamHome and self.match.strTeamAway):
+
+		if self.fElimination and not self.page.FMatchHasResults(self.match):
 
 			# PK boxes
 
@@ -431,7 +433,6 @@ class CMatchBlot(CBlot): # tag = dayb
 				oltbLabel.DrawText(strLabel, colorBlack, JH.Center)
 
 		else:
-
 			# team names
 
 			if self.match.stage == STAGE.Third:
@@ -440,12 +441,12 @@ class CMatchBlot(CBlot): # tag = dayb
 
 				strHome = self.page.StrTeam(self.match.strTeamHome)
 				rectHomeTeam = SRect(self.rect.x, rectHomeBox.y, rectHomeBox.xMin - self.rect.x, rectHomeBox.dY)
-				oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('final.team.name'), rectHomeBox.dY)
+				oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('third.team.name'), rectHomeBox.dY)
 				oltbHomeTeam.DrawText(strHome, colorBlack, JH.Right)
 
 				strAway = self.page.StrTeam(self.match.strTeamAway)
 				rectAwayTeam = SRect(rectAwayBox.xMax, rectAwayBox.y, self.rect.xMax - rectAwayBox.xMax, rectAwayBox.dY)
-				oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('final.team.name'), rectAwayBox.dY)
+				oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('third.team.name'), rectAwayBox.dY)
 				oltbAwayTeam.DrawText(strAway, colorBlack, JH.Left)
 
 			else:
@@ -558,7 +559,7 @@ class CDayBlot(CBlot): # tag = dayb
 		# coalesce matches at the same time
 
 		for matchbTop, matchbBottom in zip(lMatchb, lMatchb[1:]):
-			if self.page.pagea.fResults and matchbTop.match.FHasResults() and matchbTop.match.FHasResults():
+			if self.page.FMatchHasResults(matchbTop.match) or self.page.FMatchHasResults(matchbTop.match):
 				continue
 
 			if not matchbTop.dYTimeAndGap:
@@ -718,7 +719,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		# time
 
-		if self.page.pagea.fResults and self.match.FHasResults():
+		if self.page.FMatchHasResults(self.match):
 			strTime = self.page.StrTranslation(self.tourn.StrKeyVenue(self.match.venue))
 		else:
 			strTime = self.page.StrTimeDisplay(self.match)
@@ -746,7 +747,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		haloaScore = SHaloArgs(colorBlack, 0.1)
 
-		if self.page.pagea.fResults and self.match.scoreHome != -1:
+		if self.page.FMatchHasResults(self.match):
 			oltbHomeScore = self.Oltb(rectHomeBox, self.page.Fontkey('match.score'), self.s_dSScore)
 			oltbHomeScore.DrawText(str(self.match.scoreHome), colorWhite, JH.Center, haloa = haloaScore)
 		else:
@@ -755,7 +756,7 @@ class CFinalBlot(CBlot): # tag = finalb
 		xAwayBox = rectScore.x + (rectScore.dX / 2.0) + (dXLineGap / 2.0 )
 		rectAwayBox = SRect(xAwayBox, rectScore.y, self.s_dSScore, self.s_dSScore)
 
-		if self.page.pagea.fResults and self.match.scoreAway != -1:
+		if self.page.FMatchHasResults(self.match):
 			oltbAwayScore = self.Oltb(rectAwayBox, self.page.Fontkey('match.score'), self.s_dSScore)
 			oltbAwayScore.DrawText(str(self.match.scoreAway), colorWhite, JH.Center, haloa = haloaScore)
 		else:
@@ -771,14 +772,13 @@ class CFinalBlot(CBlot): # tag = finalb
 		rectAwayPens.Outset(self.s_dSPens / 2)
 		rectAwayPens.Shift(dX=self.s_dSPensNudge, dY=-self.s_dSPensNudge)
 
-		if self.page.pagea.fResults and self.match.scoreHomeTiebreaker != -1:
-			assert self.match.scoreAwayTiebreaker != -1
-			strTiebreaker = f'({self.match.scoreHomeTiebreaker}-{self.match.scoreAwayTiebreaker})'
-			rectTiebreaker = SRect(rectHomePens.xMin, rectHomePens.yMin, rectAwayPens.xMax - rectHomePens.xMin, rectHomePens.dY)
-			oltbTiebreaker = self.Oltb(rectTiebreaker, self.page.Fontkey('match.score'), rectHomePens.dY)
-			oltbTiebreaker.DrawText(strTiebreaker, colorBlack, JH.Center)
-
-		if self.page.pagea.fResults and self.match.strTeamHome and self.match.strTeamAway:
+		if self.page.FMatchHasResults(self.match): 
+			if self.match.scoreHomeTiebreaker != -1:
+				assert self.match.scoreAwayTiebreaker != -1
+				strTiebreaker = f'({self.match.scoreHomeTiebreaker}-{self.match.scoreAwayTiebreaker})'
+				rectTiebreaker = SRect(rectHomePens.xMin, rectHomePens.yMin, rectAwayPens.xMax - rectHomePens.xMin, rectHomePens.dY)
+				oltbTiebreaker = self.Oltb(rectTiebreaker, self.page.Fontkey('match.score'), rectHomePens.dY)
+				oltbTiebreaker.DrawText(strTiebreaker, colorWhite, JH.Center, haloa = haloaScore)
 
 			# (full) team names
 
@@ -945,7 +945,7 @@ class CPage:
 		tMin = arrow.get(min(self.mpDateSetMatch))
 		strYear = tMin.strftime('%Y')
 		strName = self.StrTranslation(self.tourn.StrKeyCompetition())
-		strLabel = self.StrTranslation('page.title.results' if self.pagea.fResults else 'page.title.fixtures')
+		strLabel = self.StrTranslation('page.title.results' if self.FAllMatchesHaveResults() else 'page.title.fixtures')
 		strFormatTitle = self.StrTranslation('page.format.title')
 		return strFormatTitle.format(year=strYear, name=strName, label=strLabel)
 
@@ -1077,6 +1077,18 @@ class CPage:
 
 		self.pdf.line(self.rectInside.xMax,		self.rect.yMin, 			self.rectInside.xMax,		self.rectCropMarks.yMin)	# right
 		self.pdf.line(self.rectInside.xMax,		self.rectCropMarks.yMax,	self.rectInside.xMax,		self.rect.yMax)
+
+	def FMatchHasResults(self, match: CMatch) -> bool:
+		if self.pagea.fFixturesOnly:
+			return False
+		
+		return match.FHasResults()
+	
+	def FAllMatchesHaveResults(self) -> bool:
+		if self.pagea.fFixturesOnly:
+			return False
+
+		return self.tourn.fHasAllResults
 
 class CGroupsTestPage(CPage): # gtp
 	def __init__(self, doc: CDocument, pagea: SPageArgs):
@@ -1253,7 +1265,7 @@ class CHeaderBlot(CBlot): # tag = headerb
 
 		# notes left and right
 
-		if self.page.pagea.fResults:
+		if self.page.FAllMatchesHaveResults():
 			strNoteLeft = strDateRange
 			strNoteRight = strLocation
 		else:

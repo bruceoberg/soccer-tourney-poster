@@ -253,7 +253,7 @@ class CMatch:
 		return True
 	
 	def FHasResults(self) -> bool:
-		return self.scoreHome != -1 and self.scoreAway != -1
+		return self.strTeamHome and self.strTeamAway and self.scoreHome != -1 and self.scoreAway != -1
 
 class CTournamentDataBase(CDataBase): # tag = tourn
 
@@ -307,6 +307,8 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 		self.mpStrTeamGroup: dict[str, CGroup] = {strTeam:group for group in self.mpStrGroupGroup.values() for strTeam in group.mpStrSeedStrTeam.values()}
 
 		self.mpIdMatch: dict[int, CMatch] = {int(xlrow['match']):CMatch(self, xlrow) for xlrow in xlb['matches']}
+
+		self.fHasAllResults = all([match.FHasResults() for match in self.mpIdMatch.values()])
 
 		for match in self.mpIdMatch.values():
 			match.LinkFeeders(self.mpIdMatch)

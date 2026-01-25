@@ -4,13 +4,6 @@ simple:
   pages:
     - { tz: US/Pacific  }
 
-results:
-  tournament: 2018-mens-world-cup
-  file_suffix: results
-  pages:
-    - { tz: US/Pacific, results: true  }
-    - { tz: US/Pacific, results: false  }
-
 navid:
   file_suffix: navid
   pages:
@@ -48,8 +41,8 @@ designs:
 tourneys:
   all_tournaments: true
   pages:
+    - { tz: US/Pacific, fixtures_only: true  }
     - { tz: US/Pacific  }
-    - { tz: US/Pacific, results: true  }
 
 langs:
   file_suffix: langs
