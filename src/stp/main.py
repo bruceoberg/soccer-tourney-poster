@@ -1838,7 +1838,7 @@ class CDocument: # tag = doc
 		else:
 			strName = doca.strName
 			self.tourn = None
-			strSubject = doca.strName
+			strSubject = 'collection'
 			strKeywords = ''
 
 		self.pdf.set_title(strName)
