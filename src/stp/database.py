@@ -8,11 +8,12 @@ import openpyxl
 import re
 
 from babel import Locale
+from dataclasses import dataclass
 from enum import IntEnum, auto
 from pathlib import Path
 from typing import Optional, cast
 
-from bolay import SColor, ColorFromStr, ColorResaturate, FIsSaturated
+from bolay import IntEnum0, EnumTuple, SColor, ColorFromStr, ColorResaturate, FIsSaturated
 
 TExcelRow = dict[str, str]				# tag = xlrow
 TExcelSheet = list[TExcelRow]			# tag = xls
@@ -144,6 +145,52 @@ class CGroup:
 		self.strName: str = strGroup
 		self.colors: SColors = SColors(tourn.StrColorGroup(strGroup))
 		self.mpStrSeedStrTeam: dict[str, str] = {strSeed:strTeam for strSeed, strTeam in mpStrSeedStrTeam.items() if strSeed[0] == strGroup}
+
+class MATCHSTAT(IntEnum0):
+	Points = auto()
+	GoalsFor = auto()
+	GoalsAgainst = auto()	# may not be used, depending on tourney size
+
+class SResult(EnumTuple[MATCHSTAT, int]):
+	def __init__(self, cPoint: int, cGoalFor: int, cGoalAgainst: int):
+		super().__init__(MATCHSTAT, (cPoint, cGoalFor, cGoalAgainst))
+
+class CResults:
+	
+	def __init__(self, stageElimFirst: STAGE, strTeam: str, setMatch: set[CMatch]):
+		self.lResult: list[SResult] = []
+		self.strPlace = ''
+
+		for match in sorted(setMatch, key=lambda match: match.tStart):
+			if match.stage == stageElimFirst:
+				if strTeam == match.strTeamHome:
+					strSeed = match.strSeedHome
+				else:
+					assert strTeam == match.strTeamAway
+					strSeed = match.strSeedAway
+
+				if strSeed[0].isdigit() and not self.strPlace:
+					self.strPlace = strSeed[0]
+
+				continue
+			
+			elif match.stage == STAGE.Group:
+				if strTeam == match.strTeamHome:
+					cGoalFor, cGoalAgainst = match.scoreHome, match.scoreAway
+				else:
+					assert strTeam == match.strTeamAway
+					cGoalFor, cGoalAgainst = match.scoreAway, match.scoreHome
+
+				if cGoalFor > cGoalAgainst:
+					cPoint = 3
+				elif cGoalFor == cGoalAgainst:
+					cPoint = 1
+				else:
+					cPoint = 0
+
+				assert len(self.lResult) < 3
+
+				self.lResult.append(SResult(cPoint, cGoalFor, cGoalAgainst))
 
 class CMatch:
 	s_patAlphaNum = re.compile('([a-zA-Z]+)-*([0-9]+)')
@@ -314,6 +361,7 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 			match.LinkFeeders(self.mpIdMatch)
 
 		self.mpStageSetMatch: dict[STAGE, set[CMatch]] = self.MpStageSetMatch()
+		self.mpStrTeamResults: dict[str, CResults] = self.MpStrTeamResults()
 
 		setMatchFinal = self.mpStageSetMatch[STAGE.Final]
 		assert len(setMatchFinal) == 1
@@ -397,6 +445,23 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 
 		return mpStageSetMatch
 	
+	def MpStrTeamResults(self) -> dict[str, CResults]:
+		""" allot matches to stages. """
+
+		mpStrTeamSetMatch: dict[str, set[CMatch]] = {}
+
+		for match in self.mpIdMatch.values():
+			if not match.FHasResults():
+				continue
+
+			mpStrTeamSetMatch.setdefault(match.strTeamHome, set()).add(match)
+			mpStrTeamSetMatch.setdefault(match.strTeamAway, set()).add(match)
+
+		return {
+			strTeam: CResults(self.stageElimFirst, strTeam, setMatch)
+				for strTeam, setMatch in mpStrTeamSetMatch.items()
+		}
+
 	def AssignSortElim(self):
 		sortElimNext: int = 1
 		lIdStack: list[int] = [self.matchFinal.id]

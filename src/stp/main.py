@@ -21,11 +21,12 @@ from bolay import SFontKey, CFontInstance, CPdf, CBlot
 from bolay import JH, JV, SPoint, SRect, RectBoundingBox, SHaloArgs
 from bolay import ColorFromStr, SColor
 from bolay import colorBlack, colorWhite, colorGrey, colorDarkSlateGrey, colorLightGrey
+from bolay import EnumTuple
 
 from .config import PAGEK, SPageArgs, SDocumentArgs, IterDoca
 from .loc import StrTzAbbrev, StrFmtBestFit
 from .versioning import g_repover
-from .database import g_loc, CTournamentDataBase, CGroup, CMatch, STAGE
+from .database import g_loc, CTournamentDataBase, CGroup, CMatch, STAGE, MATCHSTAT
 
 g_pathCode = Path(__file__).parent
 
@@ -113,16 +114,16 @@ class CGroupBlot(CBlot): # tag = groupb
 			rectTeam.y = rectHeading.y + rectHeading.dY + i * dYTeam
 			strTeam = self.group.mpStrSeedStrTeam[strSeed]
 
-			oltbAbbrev = self.Oltb(rectTeam, self.page.Fontkey('group.team.abbrev'), dYTeam)
-			rectAbbrev = oltbAbbrev.RectDrawText(strTeam, colorBlack, self.page.JhEnd())
+			oltbPlace = self.Oltb(rectTeam, self.page.Fontkey('group.team.abbrev'), dYTeam)
+			rectPlace = oltbPlace.RectDrawText(strTeam, colorBlack, self.page.JhEnd())
 
 			if fLtR:
-				rectName = rectTeam.Copy().Stretch(dXRight = -(rectAbbrev.dX + oltbAbbrev.dSMargin))
+				rectName = rectTeam.Copy().Stretch(dXRight = -(rectPlace.dX + oltbPlace.dSMargin))
 			else:
-				rectName = rectTeam.Copy().Stretch(dXLeft = (rectAbbrev.dX + oltbAbbrev.dSMargin))
+				rectName = rectTeam.Copy().Stretch(dXLeft = (rectPlace.dX + oltbPlace.dSMargin))
 
 			uTeamText = 0.75
-			oltbName = self.Oltb(rectName, self.page.Fontkey('group.team.name'), dYTeam * uTeamText, dSMargin = oltbAbbrev.dSMargin)
+			oltbName = self.Oltb(rectName, self.page.Fontkey('group.team.name'), dYTeam * uTeamText, dSMargin = oltbPlace.dSMargin)
 			strTeam = self.page.StrTeam(strTeam)
 			oltbName.DrawText(strTeam, colorDarkSlateGrey, self.page.JhStart(), fShrinkToFit = True) #, JV.Top)
 
@@ -181,21 +182,54 @@ class CGroupBlot(CBlot): # tag = groupb
 			dYTeamDotGrid = dSDot + dYTeamDotGap
 			dYTeamDotMin = dYTeamDotGap
 
-			for iTeam in range(len(self.group.mpStrSeedStrTeam)):
+			for iTeam, strTeam in enumerate(self.group.mpStrSeedStrTeam.values()):
 				yTeam = rectHeading.yMax + iTeam * dYTeam
+				results = None if self.page.pagea.fFixturesOnly else self.tourn.mpStrTeamResults.get(strTeam)
 
-				for xStat, cDotAcross in ((rectPoints.xMin, cDotPtsAcross), (rectGoalsFor.xMin, cDotGoalsAcross), (rectGoalsAgainst.xMin, cDotGoalsAcross)):
-					dXStatDotUnused = dXStats - (cDotAcross * dSDot)
-					dXStatDotGap = dXStatDotUnused / (cDotAcross + 1)
-					dXStatDotGrid = dSDot + dXStatDotGap
-					dXStatDotMin = dXStatDotGap
+				# group rank
 
-					for col in range(cDotAcross):
-						for row in range(cDotDown):
+				if results and results.strPlace:
+					rectPlace = rectRank.Copy(y = yTeam, dY=dYTeam)
+					oltbPlace = self.Oltb(rectPlace, self.page.Fontkey('group.team.place'), dYTeam)
+					oltbPlace.DrawText(results.strPlace, colorBlack, JH.Center)
+
+				# dots
+
+				for row in range(cDotDown):
+
+					uOpacityDefault = 0.05
+					uOpacityFilled = 1.0
+
+					@dataclass
+					class SDotBox:
+						xStat: float
+						mpColUOpacity: list[float]
+
+					mpMatchstatDotbox: EnumTuple[MATCHSTAT, SDotBox] = EnumTuple(MATCHSTAT, (
+						SDotBox(rectPoints.xMin,		[uOpacityDefault] * cDotPtsAcross),
+						SDotBox(rectGoalsFor.xMin,		[uOpacityDefault] * cDotGoalsAcross),
+						SDotBox(rectGoalsAgainst.xMin,	[uOpacityDefault] * cDotGoalsAcross),
+					))
+
+					if results and row < len(results.lResult):
+						result = results.lResult[row]
+						for matchstat, dotbox in mpMatchstatDotbox.items():
+							for col in range(min(len(dotbox.mpColUOpacity), result[matchstat])):
+								dotbox.mpColUOpacity[col] = uOpacityFilled
+
+					for dotbox in mpMatchstatDotbox.values():
+						xStat = dotbox.xStat
+						cDotAcross = len(dotbox.mpColUOpacity)
+						dXStatDotUnused = dXStats - (cDotAcross * dSDot)
+						dXStatDotGap = dXStatDotUnused / (cDotAcross + 1)
+						dXStatDotGrid = dSDot + dXStatDotGap
+						dXStatDotMin = dXStatDotGap
+
+						for col in range(cDotAcross):
 							xDot = xStat + dXStatDotMin + dXStatDotGrid * col
 							yDot = yTeam + dYTeamDotMin + dYTeamDotGrid * row
 
-							with self.pdf.local_context(fill_opacity=0.05):
+							with self.pdf.local_context(fill_opacity=dotbox.mpColUOpacity[col]):
 								self.pdf.set_fill_color(0) # black
 								self.pdf.rect(xDot, yDot, dSDot, dSDot, style='F')
 
