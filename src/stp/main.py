@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Optional, Iterable, Type, cast
 
 from bolay import SFontKey, CFontInstance, CPdf, CBlot
-from bolay import JH, JV, SPoint, SRect, RectBoundingBox, SHaloArgs
+from bolay import JH, JV, SPoint, SRect, RectBoundingBox, SHaloArgs, SBox
 from bolay import ColorFromStr, SColor
 from bolay import colorBlack, colorWhite, colorGrey, colorDarkSlateGrey, colorLightGrey
 from bolay import EnumTuple
@@ -372,10 +372,13 @@ class CMatchBlot(CBlot): # tag = dayb
 		if self.page.FMatchHasResults(self.match):
 			if self.match.scoreHomeTiebreaker != -1:
 				assert self.match.scoreAwayTiebreaker != -1
+				#dSExpand = rectHomePens.dY * haloaScore.uPtLine
+				#boxTiebreaker = SBox(colorFill=colorBlack, dSExpand=dSExpand, dSRounded=dSExpand)
 				strTiebreaker = f'({self.match.scoreHomeTiebreaker}-{self.match.scoreAwayTiebreaker})'
 				rectTiebreaker = SRect(rectHomePens.xMin, rectHomePens.yMin, rectAwayPens.xMax - rectHomePens.xMin, rectHomePens.dY)
 				oltbTiebreaker = self.Oltb(rectTiebreaker, self.page.Fontkey('match.score'), rectHomePens.dY)
 				oltbTiebreaker.DrawText(strTiebreaker, colorWhite, JH.Center, haloa = haloaScore)
+				#oltbTiebreaker.DrawText(strTiebreaker, colorWhite, JH.Center, box = boxTiebreaker)
 
 
 		if self.fElimination and not self.page.FMatchHasResults(self.match):
