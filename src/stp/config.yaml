@@ -1,6 +1,5 @@
 
 simple:
-  default: true
   pages:
     - { tz: US/Pacific  }
 
@@ -40,6 +39,7 @@ designs:
 
 tourneys:
   all_tournaments: true
+  default: true
   pages:
     - { tz: US/Pacific, fixtures_only: true  }
     - { tz: US/Pacific  }
