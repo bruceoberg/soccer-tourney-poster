@@ -217,7 +217,7 @@ class CGroupBlot(CBlot): # tag = groupb
 								colFilled = col if self.page.FIsLeftToRight() else -(1+col)
 								dotbox.mpColUOpacity[colFilled] = uOpacityFilled
 
-					for dotbox in mpMatchstatDotbox.values():
+					for matchstat, dotbox in mpMatchstatDotbox.items():
 						xStat = dotbox.xStat
 						cDotAcross = len(dotbox.mpColUOpacity)
 						dXStatDotUnused = dXStats - (cDotAcross * dSDot)
@@ -231,7 +231,11 @@ class CGroupBlot(CBlot): # tag = groupb
 
 							with self.pdf.local_context(fill_opacity=dotbox.mpColUOpacity[col]):
 								self.pdf.set_fill_color(0) # black
-								self.pdf.rect(xDot, yDot, dSDot, dSDot, style='F')
+								if matchstat == MATCHSTAT.Points:
+									dSRadius = dSDot / 2.0
+									self.pdf.circle(xDot + dSRadius, yDot + dSRadius, dSRadius, style='F')
+								else:
+									self.pdf.rect(xDot, yDot, dSDot, dSDot, style='F')
 
 
 		# draw border last to cover any alignment weirdness
