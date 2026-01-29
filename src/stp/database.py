@@ -159,6 +159,7 @@ class CResults:
 	
 	def __init__(self, stageElimFirst: STAGE, strTeam: str, setMatch: set[CMatch]):
 		self.lResult: list[SResult] = []
+		self.cPoint = 0
 		self.strPlace = ''
 
 		for match in sorted(setMatch, key=lambda match: match.tStart):
@@ -187,6 +188,8 @@ class CResults:
 					cPoint = 1
 				else:
 					cPoint = 0
+
+				self.cPoint += cPoint
 
 				assert len(self.lResult) < 3
 

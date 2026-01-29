@@ -193,6 +193,16 @@ class CGroupBlot(CBlot): # tag = groupb
 					oltbPlace = self.Oltb(rectPlace, self.page.Fontkey('group.team.place'), dYTeam)
 					oltbPlace.DrawText(results.strPlace, colorBlack, JH.Center)
 
+				# total points
+
+				if results and results.cPoint:
+					dXDotsPoints = ((cDotPtsAcross * 2) + 1) * dSDot
+					xPointsTotal = rectPoints.xMin + dXDotsPoints if self.page.FIsLeftToRight() else rectPoints.xMin
+					dXPointsTotal =  rectPoints.dX - dXDotsPoints
+					rectPointTotal = SRect(xPointsTotal, yTeam, dXPointsTotal, dYTeam)
+					oltbPointTotal = self.Oltb(rectPointTotal, self.page.Fontkey('group.team.point-total'), dYTeam)
+					oltbPointTotal.DrawText(f"{results.cPoint:1}", colorLightGrey, JH.Center)
+
 				# dots
 
 				for row in range(cDotDown):
