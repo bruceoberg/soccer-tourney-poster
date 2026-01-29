@@ -1,12 +1,10 @@
 ## now
 
-- composited titles.
-- language/paper to left footer.
+- language/paper to center footer.
 - take results from spreadsheet and print them instead of boxes/forms.
-  - full team names for third place match.
-  - places instead of times.
-  - dots in group stage reflecting results.
-  - layout of elimblots different for results/fixtures.
+  - move points dots next to rank in group area.
+  - slide points dots together and use space for a "total" number.
+  - fix dots for RtL layout.
 
 ## future
 
@@ -50,6 +48,12 @@
 - print against 2018 data.
 - command line with ~~argparse~~ typed-argument-parser.
 - doc/page config via yaml file.
+- composited titles.
+- language/paper to left footer.
 - take results from spreadsheet and print them instead of boxes/forms.
   - render scores
   - no timezone... host country to right side.
+  - full team names for third place match.
+  - places instead of times.
+  - dots in group stage reflecting results.
+  - layout of elimblots different for results/fixtures.
