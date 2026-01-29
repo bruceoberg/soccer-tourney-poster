@@ -147,13 +147,13 @@ class CGroup:
 		self.mpStrSeedStrTeam: dict[str, str] = {strSeed:strTeam for strSeed, strTeam in mpStrSeedStrTeam.items() if strSeed[0] == strGroup}
 
 class MATCHSTAT(IntEnum0):
-	Points = auto()
 	GoalsFor = auto()
 	GoalsAgainst = auto()	# may not be used, depending on tourney size
+	Points = auto()
 
 class SResult(EnumTuple[MATCHSTAT, int]):
-	def __init__(self, cPoint: int, cGoalFor: int, cGoalAgainst: int):
-		super().__init__(MATCHSTAT, (cPoint, cGoalFor, cGoalAgainst))
+	def __init__(self, cGoalFor: int, cGoalAgainst: int, cPoint: int):
+		super().__init__(MATCHSTAT, (cGoalFor, cGoalAgainst, cPoint))
 
 class CResults:
 	
@@ -190,7 +190,7 @@ class CResults:
 
 				assert len(self.lResult) < 3
 
-				self.lResult.append(SResult(cPoint, cGoalFor, cGoalAgainst))
+				self.lResult.append(SResult(cGoalFor, cGoalAgainst, cPoint))
 
 class CMatch:
 	s_patAlphaNum = re.compile('([a-zA-Z]+)-*([0-9]+)')

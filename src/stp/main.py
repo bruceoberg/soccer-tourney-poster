@@ -214,7 +214,8 @@ class CGroupBlot(CBlot): # tag = groupb
 						result = results.lResult[row]
 						for matchstat, dotbox in mpMatchstatDotbox.items():
 							for col in range(min(len(dotbox.mpColUOpacity), result[matchstat])):
-								dotbox.mpColUOpacity[col] = uOpacityFilled
+								colFilled = col if self.page.FIsLeftToRight() else -(1+col)
+								dotbox.mpColUOpacity[colFilled] = uOpacityFilled
 
 					for dotbox in mpMatchstatDotbox.values():
 						xStat = dotbox.xStat
