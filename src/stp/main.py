@@ -133,37 +133,36 @@ class CGroupBlot(CBlot): # tag = groupb
 		dXStats = dXRank * 2
 
 		if fLtR:
-			rectPoints = rectHeading.Copy(x=rectTeam.xMax, dX=dXStats)
-			rectGoalsFor = rectHeading.Copy(x=rectPoints.xMax, dX=dXStats)
+			rectGoalsFor = rectHeading.Copy(x=rectTeam.xMax, dX=dXStats)
 			rectGoalsAgainst = rectHeading.Copy(x=rectGoalsFor.xMax, dX=dXStats)
-			rectRank = rectHeading.Copy(x=rectGoalsAgainst.xMax, dX=dXRank)
+			rectPoints = rectHeading.Copy(x=rectGoalsAgainst.xMax, dX=dXStats)
+			rectRank = rectHeading.Copy(x=rectPoints.xMax, dX=dXRank)
 		else:
-			rectPoints = rectHeading.Copy(x=rectTeam.xMin - dXStats, dX=dXStats)
-			rectGoalsFor = rectHeading.Copy(x=rectPoints.xMin - dXStats, dX=dXStats)
+			rectGoalsFor = rectHeading.Copy(x=rectTeam.xMin - dXStats, dX=dXStats)
 			rectGoalsAgainst = rectHeading.Copy(x=rectGoalsFor.xMin - dXStats, dX=dXStats)
-			rectRank = rectHeading.Copy(x=rectGoalsAgainst.xMin - dXRank, dX=dXRank)
+			rectPoints = rectHeading.Copy(x=rectGoalsAgainst.xMin - dXStats, dX=dXStats)
+			rectRank = rectHeading.Copy(x=rectPoints.xMin - dXRank, dX=dXRank)
 
 		self.pdf.set_line_width(self.s_dSLineStats)
 		self.pdf.set_draw_color(0) # black
 
 		if fLtR:
-			self.pdf.line(rectPoints.xMin, rectHeading.yMax, rectPoints.xMin, rectInside.yMax)
 			self.pdf.line(rectGoalsFor.xMin, rectHeading.yMax, rectGoalsFor.xMin, rectInside.yMax)
 			self.pdf.line(rectGoalsAgainst.xMin, rectHeading.yMax, rectGoalsAgainst.xMin, rectInside.yMax)
+			self.pdf.line(rectPoints.xMin, rectHeading.yMax, rectPoints.xMin, rectInside.yMax)
 			self.pdf.line(rectRank.xMin, rectHeading.yMax, rectRank.xMin, rectInside.yMax)
 		else:
-			self.pdf.line(rectPoints.xMax, rectHeading.yMax, rectPoints.xMax, rectInside.yMax)
 			self.pdf.line(rectGoalsFor.xMax, rectHeading.yMax, rectGoalsFor.xMax, rectInside.yMax)
 			self.pdf.line(rectGoalsAgainst.xMax, rectHeading.yMax, rectGoalsAgainst.xMax, rectInside.yMax)
+			self.pdf.line(rectPoints.xMax, rectHeading.yMax, rectPoints.xMax, rectInside.yMax)
 			self.pdf.line(rectRank.xMax, rectHeading.yMax, rectRank.xMax, rectInside.yMax)
 
 		# heading labels
 
 		lTuRectStr = (
-			#(rectTeam, "COUNTRY"),
-			(rectPoints,		self.page.StrTranslation('group.points')),
 			(rectGoalsFor,		self.page.StrTranslation('group.goals-for')),
 			(rectGoalsAgainst,	self.page.StrTranslation('group.goals-against')),
+			(rectPoints,		self.page.StrTranslation('group.points')),
 			 # RIGHT/LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
 			(rectRank,			"\u00bb" if fLtR else "\u00ab"),
 		)
@@ -206,9 +205,9 @@ class CGroupBlot(CBlot): # tag = groupb
 						mpColUOpacity: list[float]
 
 					mpMatchstatDotbox: EnumTuple[MATCHSTAT, SDotBox] = EnumTuple(MATCHSTAT, (
-						SDotBox(rectPoints.xMin,		[uOpacityDefault] * cDotPtsAcross),
 						SDotBox(rectGoalsFor.xMin,		[uOpacityDefault] * cDotGoalsAcross),
 						SDotBox(rectGoalsAgainst.xMin,	[uOpacityDefault] * cDotGoalsAcross),
+						SDotBox(rectPoints.xMin,		[uOpacityDefault] * cDotPtsAcross),
 					))
 
 					if results and row < len(results.lResult):
