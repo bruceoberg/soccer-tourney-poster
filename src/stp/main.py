@@ -254,7 +254,9 @@ class CMatchBlot(CBlot): # tag = dayb
 
 		self.dYInfo = dayb.dYTime + dayb.s_dSScore
 
-		if self.fElimination and not self.page.FMatchHasResults(self.match):
+		# elimination rounds get extra height for penalties/labels
+
+		if self.fElimination:
 			self.dYInfo += self.dayb.s_dYFontLabel + (self.dayb.s_dSPens / 2.0) - self.dayb.s_dSPensNudge
 
 		dYGaps = (self.rect.dY - self.dYInfo)
