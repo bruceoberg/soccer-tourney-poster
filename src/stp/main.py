@@ -175,6 +175,7 @@ class CGroupBlot(CBlot): # tag = groupb
 			cDotDown = 3
 			cDotPtsAcross = 3
 			cDotGoalsAcross = 5
+			# cDotAcrossMax = max(cDotPtsAcross, cDotGoalsAcross)
 			dSDot = dXStats / (2 * cDotGoalsAcross + 1)
 			dYTeamDotUnused = dYTeam - (cDotDown * dSDot)
 			dYTeamDotGap = dYTeamDotUnused / (cDotDown + 1)
@@ -214,19 +215,20 @@ class CGroupBlot(CBlot): # tag = groupb
 						result = results.lResult[row]
 						for matchstat, dotbox in mpMatchstatDotbox.items():
 							for col in range(min(len(dotbox.mpColUOpacity), result[matchstat])):
-								colFilled = col if self.page.FIsLeftToRight() else -(1+col)
-								dotbox.mpColUOpacity[colFilled] = uOpacityFilled
+								dotbox.mpColUOpacity[col] = uOpacityFilled
 
 					for matchstat, dotbox in mpMatchstatDotbox.items():
 						xStat = dotbox.xStat
 						cDotAcross = len(dotbox.mpColUOpacity)
-						dXStatDotUnused = dXStats - (cDotAcross * dSDot)
-						dXStatDotGap = dXStatDotUnused / (cDotAcross + 1)
-						dXStatDotGrid = dSDot + dXStatDotGap
-						dXStatDotMin = dXStatDotGap
+						dXStatDotGrid = dSDot * 2
+						dXStatDotMin = dSDot
 
 						for col in range(cDotAcross):
-							xDot = xStat + dXStatDotMin + dXStatDotGrid * col
+							dXDotMin = dXStatDotMin + dXStatDotGrid * col
+							if self.page.FIsLeftToRight():
+								xDot = xStat + dXDotMin
+							else:
+								xDot = xStat + dXStats - (dXDotMin + dSDot)
 							yDot = yTeam + dYTeamDotMin + dYTeamDotGrid * row
 
 							with self.pdf.local_context(fill_opacity=dotbox.mpColUOpacity[col]):
@@ -999,6 +1001,9 @@ class CPage:
 
 	def FIsLeftToRight(self) -> bool:
 		return self.locale.character_order == 'left-to-right'
+
+	def FIsRightToLeft(self) -> bool:
+		return not self.FIsLeftToRight()
 
 	def JhStart(self) -> JH:
 		return JH.Left if self.locale.character_order == 'left-to-right' else JH.Right
