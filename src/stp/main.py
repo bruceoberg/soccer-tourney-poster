@@ -32,6 +32,8 @@ g_pathCode = Path(__file__).parent
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
+g_sRadiusArea1 = math.sqrt(1 / math.pi)
+
 class CGroupBlot(CBlot): # tag = groupb
 
 	s_dX = 4.5
@@ -244,8 +246,9 @@ class CGroupBlot(CBlot): # tag = groupb
 							with self.pdf.local_context(fill_opacity=dotbox.mpColUOpacity[col]):
 								self.pdf.set_fill_color(0) # black
 								if matchstat == MATCHSTAT.Points:
-									dSRadius = dSDot / 2.0
-									self.pdf.circle(xDot + dSRadius, yDot + dSRadius, dSRadius, style='F')
+									dSCenter = dSDot / 2.0
+									dSRadius = dSDot * g_sRadiusArea1 # a circle with the same area as dSDot square
+									self.pdf.circle(xDot + dSCenter, yDot + dSCenter, dSRadius, style='F')
 								else:
 									self.pdf.rect(xDot, yDot, dSDot, dSDot, style='F')
 
