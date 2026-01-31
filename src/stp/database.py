@@ -213,6 +213,8 @@ class CMatch:
 		self.scoreHome: int = int(xlrow['home-score']) if xlrow['home-score'] else -1
 		self.scoreAway: int = int(xlrow['away-score']) if xlrow['away-score'] else -1
 
+		self.fAfterExtraTime: bool = bool(xlrow.get('after-extra-time'))
+
 		self.scoreHomeTiebreaker: int = int(xlrow['home-tiebreaker']) if xlrow['home-tiebreaker'] else -1
 		self.scoreAwayTiebreaker: int = int(xlrow['away-tiebreaker']) if xlrow['away-tiebreaker'] else -1
 

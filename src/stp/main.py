@@ -388,15 +388,21 @@ class CMatchBlot(CBlot): # tag = dayb
 		rectAwayPens.Shift(dX=self.dayb.s_dSPensNudge, dY=-self.dayb.s_dSPensNudge)
 
 		if self.page.FMatchHasResults(self.match):
+			strExtraTime = ''
 			if self.match.scoreHomeTiebreaker != -1:
 				assert self.match.scoreAwayTiebreaker != -1
-				#dSExpand = rectHomePens.dY * haloaScore.uPtLine
-				#boxTiebreaker = SBox(colorFill=colorBlack, dSExpand=dSExpand, dSRounded=dSExpand)
-				strTiebreaker = f'({self.match.scoreHomeTiebreaker}-{self.match.scoreAwayTiebreaker})'
-				rectTiebreaker = SRect(rectHomePens.xMin, rectHomePens.yMin, rectAwayPens.xMax - rectHomePens.xMin, rectHomePens.dY)
-				oltbTiebreaker = self.Oltb(rectTiebreaker, self.page.Fontkey('match.score'), rectHomePens.dY)
-				oltbTiebreaker.DrawText(strTiebreaker, colorWhite, JH.Center, haloa = haloaScore)
-				#oltbTiebreaker.DrawText(strTiebreaker, colorWhite, JH.Center, box = boxTiebreaker)
+				strExtraTime = f'({self.match.scoreHomeTiebreaker}-{self.match.scoreAwayTiebreaker})'
+			elif self.match.fAfterExtraTime:
+				strExtraTime = self.page.StrTranslation('match.after-extra-time')
+
+			if strExtraTime:
+				dYBelowBox = self.rect.yMax - rectHomeBox.yMax
+				yExtraTime = rectHomeBox.yMax - self.dayb.s_dSPensNudge
+				dYExtraTime = dYBelowBox
+				dYFontExtraTime = dYBelowBox # * 0.9
+				rectExtraTime = SRect(rectHomePens.xMin, yExtraTime, rectAwayPens.xMax - rectHomePens.xMin, dYExtraTime)
+				oltbExtraTime = self.Oltb(rectExtraTime, self.page.Fontkey('match.score'), dYFontExtraTime)
+				oltbExtraTime.DrawText(strExtraTime, colorWhite, JH.Center, JV.Bottom, haloa = haloaScore)
 
 
 		if self.fElimination and not self.page.FMatchHasResults(self.match):
