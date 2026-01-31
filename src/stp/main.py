@@ -177,7 +177,7 @@ class CGroupBlot(CBlot): # tag = groupb
 			cDotDown = 3
 			cDotPtsAcross = 3
 			cDotGoalsAcross = 5
-			# cDotAcrossMax = max(cDotPtsAcross, cDotGoalsAcross)
+			cDotAcrossMax = max(cDotPtsAcross, cDotGoalsAcross)
 			dSDot = dXStats / (2 * cDotGoalsAcross + 1)
 			dYTeamDotUnused = dYTeam - (cDotDown * dSDot)
 			dYTeamDotGap = dYTeamDotUnused / (cDotDown + 1)
@@ -226,13 +226,35 @@ class CGroupBlot(CBlot): # tag = groupb
 					if results and row < len(results.lResult):
 						result = results.lResult[row]
 						for matchstat, dotbox in mpMatchstatDotbox.items():
-							for col in range(min(len(dotbox.mpColUOpacity), result[matchstat])):
+							cColExtra = result[matchstat] - len(dotbox.mpColUOpacity)
+							if cColExtra > 0:
+								dotbox.mpColUOpacity.extend([uOpacityDefault] * cColExtra)
+							for col in range(result[matchstat]):
 								dotbox.mpColUOpacity[col] = uOpacityFilled
 
 					for matchstat, dotbox in mpMatchstatDotbox.items():
 						xStat = dotbox.xStat
 						cDotAcross = len(dotbox.mpColUOpacity)
-						dXStatDotGrid = dSDot * 2
+						if cDotAcross > cDotAcrossMax:
+							assert matchstat != MATCHSTAT.Points
+							dXDotsAndGaps = ((2 * cDotAcrossMax) - 1) * dSDot
+							dXDots = cDotAcross * dSDot
+							dXGaps = dXDotsAndGaps - dXDots
+
+							uGapsMin = 1.0 / 8.0
+							if dXGaps / dXDotsAndGaps < uGapsMin:
+								dXGaps = dXDotsAndGaps * dXDotsAndGaps
+								dXDots = dXDotsAndGaps - dXGaps
+								dXDot = dXDots / cDotAcross
+							else:
+								dXDot = dSDot
+
+							dXGap = dXGaps / (cDotAcross - 1)
+						else:
+							dXDot = dSDot
+							dXGap = dSDot
+
+						dXStatDotGrid = dXDot + dXGap
 						dXStatDotMin = dSDot
 
 						for col in range(cDotAcross):
@@ -240,7 +262,7 @@ class CGroupBlot(CBlot): # tag = groupb
 							if self.page.FIsLeftToRight():
 								xDot = xStat + dXDotMin
 							else:
-								xDot = xStat + dXStats - (dXDotMin + dSDot)
+								xDot = xStat + dXStats - (dXDotMin + dXDot)
 							yDot = yTeam + dYTeamDotMin + dYTeamDotGrid * row
 
 							with self.pdf.local_context(fill_opacity=dotbox.mpColUOpacity[col]):
@@ -250,7 +272,7 @@ class CGroupBlot(CBlot): # tag = groupb
 									dSRadius = dSDot * g_sRadiusArea1 # a circle with the same area as dSDot square
 									self.pdf.circle(xDot + dSCenter, yDot + dSCenter, dSRadius, style='F')
 								else:
-									self.pdf.rect(xDot, yDot, dSDot, dSDot, style='F')
+									self.pdf.rect(xDot, yDot, dXDot, dSDot, style='F')
 
 
 		# draw border last to cover any alignment weirdness
