@@ -62,9 +62,12 @@ g_mpStrTzTzs: dict[str, STZs] = {
 	# Asia
 	"Asia/Tehran":			STZs("IRST", "IRDT"),
 	"Asia/Dubai":			STZs("GST", "GST"),	# No DST
+	"Asia/Qatar":			STZs("AST", "AST"),	# No DST
+	"Asia/Riyadh":			STZs("AST", "AST"),	# No DST
+	"Asia/Kolkata":			STZs("IST", "IST"),	# No DST
 	"Asia/Shanghai":		STZs("CHST", "CHST"),	# No DST
 	"Asia/Tokyo":			STZs("JST", "JST"),	# No DST
-	"Asia/Kolkata":			STZs("IST", "IST"),	# No DST
+	"Asia/Seoul":			STZs("KST", "KST"),	# No DST
 	
 	# Americas
 	"America/New_York":		STZs("EST", "EDT"),
@@ -80,6 +83,7 @@ g_mpStrTzTzs: dict[str, STZs] = {
 
 	# Europe
 	"Europe/London":		STZs("GMT", "BST"),
+	"Europe/Lisbon":		STZs("WET", "WEST"),
 	"Europe/Paris":			STZs("CET", "CEST"),
 	"Europe/Rome":			STZs("CET", "CEST"),
 	"Europe/Berlin":		STZs("CET", "CEST"),
