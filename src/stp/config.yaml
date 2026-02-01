@@ -3,16 +3,6 @@ simple:
   pages:
     - { tz: US/Pacific  }
 
-wip:
-  default: true
-  file_suffix: wip
-  tournament: 2018-mens-world-cup
-  pages:
-    - { tz: US/Pacific, fixtures_only: true  }
-    - { tz: US/Pacific  }
-    - { tz: Asia/Tehran,         loc: fa, fixtures_only: true    }
-    - { tz: Asia/Tehran,         loc: fa    }
-
 navid:
   file_suffix: navid
   pages:
@@ -48,6 +38,7 @@ designs:
     - variant: gold master
 
 tourneys:
+  default: true
   all_tournaments: true
   pages:
     - { tz: US/Pacific  }

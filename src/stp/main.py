@@ -429,7 +429,6 @@ class CMatchBlot(CBlot): # tag = dayb
 				oltbExtraTime = self.Oltb(rectExtraTime, self.page.Fontkey('match.score'), dYFontExtraTime)
 				oltbExtraTime.DrawText(strExtraTime, colorWhite, JH.Center, JV.Bottom, haloa = haloaScore)
 
-
 		if self.fElimination and not self.page.FMatchHasResults(self.match):
 
 			# PK boxes
@@ -858,13 +857,22 @@ class CFinalBlot(CBlot): # tag = finalb
 		rectAwayPens.Outset(self.s_dSPens / 2)
 		rectAwayPens.Shift(dX=self.s_dSPensNudge, dY=-self.s_dSPensNudge)
 
-		if self.page.FMatchHasResults(self.match): 
+		if self.page.FMatchHasResults(self.match):
+			strExtraTime = ''
 			if self.match.scoreHomeTiebreaker != -1:
 				assert self.match.scoreAwayTiebreaker != -1
-				strTiebreaker = f'({self.match.scoreHomeTiebreaker}-{self.match.scoreAwayTiebreaker})'
-				rectTiebreaker = SRect(rectHomePens.xMin, rectHomePens.yMin, rectAwayPens.xMax - rectHomePens.xMin, rectHomePens.dY)
-				oltbTiebreaker = self.Oltb(rectTiebreaker, self.page.Fontkey('match.score'), rectHomePens.dY)
-				oltbTiebreaker.DrawText(strTiebreaker, colorWhite, JH.Center, haloa = haloaScore)
+				strExtraTime = f'({self.match.scoreHomeTiebreaker}-{self.match.scoreAwayTiebreaker})'
+			elif self.match.fAfterExtraTime:
+				strExtraTime = self.page.StrTranslation('match.after-extra-time')
+
+			if strExtraTime:
+				dYBelowBox = rectAll.yMax - rectHomeBox.yMax
+				yExtraTime = rectHomeBox.yMax - CDayBlot.s_dSPensNudge
+				dYExtraTime = dYBelowBox
+				dYFontExtraTime = dYBelowBox # * 0.9
+				rectExtraTime = SRect(rectHomePens.xMin, yExtraTime, rectAwayPens.xMax - rectHomePens.xMin, dYExtraTime)
+				oltbExtraTime = self.Oltb(rectExtraTime, self.page.Fontkey('match.score'), dYFontExtraTime)
+				oltbExtraTime.DrawText(strExtraTime, colorWhite, JH.Center, JV.Bottom, haloa = haloaScore)
 
 			# (full) team names
 
@@ -956,7 +964,7 @@ class CPage:
 			self.tourn = cast(CTournamentDataBase, doc.tourn)
 
 		self.strOrientation = self.pagea.strOrientation
-		self.strTz = self.pagea.strTz
+		self.strTz = self.tourn.StrTimezone() if self.FAllMatchesHaveResults() else self.pagea.strTz
 		tzinfoOptional = cast(datetime.tzinfo, tz.gettz(self.strTz))
 		assert(tzinfoOptional is not None)
 		self.tzinfo = tzinfoOptional
