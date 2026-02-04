@@ -413,21 +413,40 @@ class CMatchBlot(CBlot): # tag = dayb
 		rectAwayPens.Shift(dX=self.dayb.s_dSPensNudge, dY=-self.dayb.s_dSPensNudge)
 
 		if self.page.FMatchHasResults(self.match):
-			strExtraTime = ''
-			if self.match.scoreHomeTiebreaker != -1:
-				assert self.match.scoreAwayTiebreaker != -1
-				strExtraTime = f'({self.match.scoreHomeTiebreaker}-{self.match.scoreAwayTiebreaker})'
-			elif self.match.fAfterExtraTime:
-				strExtraTime = self.page.StrTranslation('match.after-extra-time')
-
-			if strExtraTime:
+			if self.match.scoreHomeTiebreaker != -1 or self.match.fAfterExtraTime:
+			
 				dYBelowBox = self.rect.yMax - rectHomeBox.yMax
 				yExtraTime = rectHomeBox.yMax - self.dayb.s_dSPensNudge
 				dYExtraTime = dYBelowBox
 				dYFontExtraTime = dYBelowBox # * 0.9
-				rectExtraTime = SRect(rectHomePens.xMin, yExtraTime, rectAwayPens.xMax - rectHomePens.xMin, dYExtraTime)
-				oltbExtraTime = self.Oltb(rectExtraTime, self.page.Fontkey('match.score'), dYFontExtraTime)
-				oltbExtraTime.DrawText(strExtraTime, colorWhite, JH.Center, JV.Bottom, haloa = haloaScore)
+
+				if self.match.scoreHomeTiebreaker != -1:
+					assert self.match.scoreAwayTiebreaker != -1
+
+					# line between penalties
+
+					yLine = yExtraTime + dYExtraTime / 2.0
+					self.pdf.set_line_width(self.dayb.s_dSLineScore)
+					self.pdf.set_draw_color(0) # black
+					self.pdf.line(rectHomePens.xMax, yLine, rectAwayPens.xMin, yLine)
+
+					# penalties on either side
+
+					strHomeTiebreaker = f'({self.match.scoreHomeTiebreaker}'
+					rectHomeTiebreaker = SRect(rectHomePens.xMin, yExtraTime, rectHomePens.dX, dYExtraTime)
+					oltbHomeTiebreaker = self.Oltb(rectHomeTiebreaker, self.page.Fontkey('match.score'), dYFontExtraTime)
+					oltbHomeTiebreaker.DrawText(strHomeTiebreaker, colorWhite, JH.Right, JV.Bottom, haloa = haloaScore)
+
+					strAwayTiebreaker = f'{self.match.scoreAwayTiebreaker})'
+					rectAwayTiebreaker = SRect(rectAwayPens.xMin, yExtraTime, rectAwayPens.dX, dYExtraTime)
+					oltbAwayTiebreaker = self.Oltb(rectAwayTiebreaker, self.page.Fontkey('match.score'), dYFontExtraTime)
+					oltbAwayTiebreaker.DrawText(strAwayTiebreaker, colorWhite, JH.Left, JV.Bottom, haloa = haloaScore)
+
+				elif self.match.fAfterExtraTime:
+					strExtraTime = self.page.StrTranslation('match.after-extra-time')
+					rectExtraTime = SRect(rectHomePens.xMin, yExtraTime, rectAwayPens.xMax - rectHomePens.xMin, dYExtraTime)
+					oltbExtraTime = self.Oltb(rectExtraTime, self.page.Fontkey('match.score'), dYFontExtraTime)
+					oltbExtraTime.DrawText(strExtraTime, colorWhite, JH.Center, JV.Bottom, haloa = haloaScore)
 
 		if self.fElimination and not self.page.FMatchHasResults(self.match):
 
@@ -858,21 +877,49 @@ class CFinalBlot(CBlot): # tag = finalb
 		rectAwayPens.Shift(dX=self.s_dSPensNudge, dY=-self.s_dSPensNudge)
 
 		if self.page.FMatchHasResults(self.match):
-			strExtraTime = ''
-			if self.match.scoreHomeTiebreaker != -1:
-				assert self.match.scoreAwayTiebreaker != -1
-				strExtraTime = f'({self.match.scoreHomeTiebreaker}-{self.match.scoreAwayTiebreaker})'
-			elif self.match.fAfterExtraTime:
-				strExtraTime = self.page.StrTranslation('match.after-extra-time')
-
-			if strExtraTime:
+			if self.match.scoreHomeTiebreaker != -1 or self.match.fAfterExtraTime:
+			
 				dYBelowBox = rectAll.yMax - rectHomeBox.yMax
 				yExtraTime = rectHomeBox.yMax - CDayBlot.s_dSPensNudge
 				dYExtraTime = dYBelowBox
 				dYFontExtraTime = dYBelowBox # * 0.9
+
+			if self.match.scoreHomeTiebreaker != -1:
+				assert self.match.scoreAwayTiebreaker != -1
+
+				# line between penalties
+
+				dXLineScore = xLineMax - xLineMin
+				uXPens = rectHomePens.dX / rectHomeBox.dX
+				dXLinePens = dXLineScore * uXPens
+				dXLinePensHalf = dXLinePens / 2.0
+				xMid = (rectHomePens.xMax + rectAwayPens.xMin) / 2.0
+				xLinePensMin = xMid - dXLinePensHalf
+				xLinePensMax = xMid + dXLinePensHalf
+
+				yLine = yExtraTime + dYExtraTime / 2.0
+				self.pdf.set_line_width(self.s_dSLineScore)
+				self.pdf.set_draw_color(0) # black
+				self.pdf.line(xLinePensMin, yLine, xLinePensMax, yLine)
+
+				# penalties on either side
+
+				strHomeTiebreaker = f'({self.match.scoreHomeTiebreaker}'
+				rectHomeTiebreaker = SRect(rectHomePens.xMin, yExtraTime, xLinePensMin - rectHomePens.xMin, dYExtraTime)
+				oltbHomeTiebreaker = self.Oltb(rectHomeTiebreaker, self.page.Fontkey('match.score'), dYFontExtraTime)
+				oltbHomeTiebreaker.DrawText(strHomeTiebreaker, colorWhite, JH.Right, JV.Bottom, haloa = haloaScore)
+
+				strAwayTiebreaker = f'{self.match.scoreAwayTiebreaker})'
+				rectAwayTiebreaker = SRect(xLinePensMax, yExtraTime, rectAwayPens.xMax - xLinePensMax, dYExtraTime)
+				oltbAwayTiebreaker = self.Oltb(rectAwayTiebreaker, self.page.Fontkey('match.score'), dYFontExtraTime)
+				oltbAwayTiebreaker.DrawText(strAwayTiebreaker, colorWhite, JH.Left, JV.Bottom, haloa = haloaScore)
+
+			elif self.match.fAfterExtraTime:
+				strExtraTime = self.page.StrTranslation('match.after-extra-time')
 				rectExtraTime = SRect(rectHomePens.xMin, yExtraTime, rectAwayPens.xMax - rectHomePens.xMin, dYExtraTime)
 				oltbExtraTime = self.Oltb(rectExtraTime, self.page.Fontkey('match.score'), dYFontExtraTime)
 				oltbExtraTime.DrawText(strExtraTime, colorWhite, JH.Center, JV.Bottom, haloa = haloaScore)
+
 
 			# (full) team names
 
