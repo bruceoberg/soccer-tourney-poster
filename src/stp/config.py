@@ -178,7 +178,7 @@ def IterDoca() -> Iterator[SDocumentArgs]:
 			return
 		
 		if doca.strNameTourn == 'latest':
-			doca.strNameTourn = lStrNameTournaments[-1]
+			doca = doca.model_copy(update={'strNameTourn': lStrNameTournaments[-1] })
 
 		if not doca.strNameTourn:
 			doca = doca.model_copy(update={'strNameTourn': args.tournament })
