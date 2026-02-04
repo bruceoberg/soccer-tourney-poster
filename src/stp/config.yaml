@@ -1,9 +1,11 @@
 
 simple:
+  tournament: latest
   pages:
     - { tz: US/Pacific  }
 
 navid:
+  tournament: latest
   file_suffix: navid
   pages:
     - { tz: Asia/Tehran,         loc: fa    }
@@ -12,12 +14,14 @@ navid:
     - { tz: Europe/Amsterdam,    loc: nl    }
 
 tests:
+  tournament: latest
   file_suffix: tests
   pages:
     - page_kind: groups_test
     - page_kind: days_test
 
 designs:
+  tournament: latest
   file_suffix: designs
   pages:
     - page_kind: cal_only
@@ -37,13 +41,23 @@ designs:
     
     - variant: gold master
 
-tourneys:
+results:
   default: true
+  pages:
+    - { tournament: 2018-mens-world-cup  }
+    - { tournament: 2022-mens-world-cup  }
+    - { tournament: 2023-womens-world-cup  }
+    - { tournament: 2024-mens-copa-america  }
+    - { tournament: 2024-mens-euro  }
+    - { tournament: 2025-mens-club-world-cup  }
+
+tourneys:
   all_tournaments: true
   pages:
     - { tz: US/Pacific  }
 
 langs:
+  tournament: latest
   file_suffix: langs
   pages:
     - { tz: US/Pacific  }
@@ -65,6 +79,7 @@ langs:
     - { tz: Pacific/Auckland,    loc: en_NZ }
 
 published:
+  tournament: latest
   output_dir: published
   file_suffix: all
   unwind_pages: true

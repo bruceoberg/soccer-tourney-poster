@@ -143,7 +143,7 @@ def IterDoca() -> Iterator[SDocumentArgs]:
 
 	class ArgumentParser(Tap):
 		"""Soccer Tournament Poster Generator"""
-		tournament: str = lStrNameTournaments[-1] # Tournament to generate for.
+		tournament: str = '' # Tournament to generate for.
 		document: str = strDocaDefault  # Document to output.
 		output_dir: str = 'playground'  # Destination directory.
 
@@ -176,6 +176,9 @@ def IterDoca() -> Iterator[SDocumentArgs]:
 			yield doca
 			
 			return
+		
+		if doca.strNameTourn == 'latest':
+			doca.strNameTourn = lStrNameTournaments[-1]
 
 		if not doca.strNameTourn:
 			doca = doca.model_copy(update={'strNameTourn': args.tournament })

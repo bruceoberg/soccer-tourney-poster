@@ -960,7 +960,8 @@ class CPage:
 		if pagea.strNameTourn:
 			self.tourn = CTournamentDataBase.TournFromStrName(pagea.strNameTourn)
 		else:
-			assert(doc.tourn)
+			if not doc.tourn:
+				sys.exit("page has no tournament")
 			self.tourn = cast(CTournamentDataBase, doc.tourn)
 
 		self.strOrientation = self.pagea.strOrientation
