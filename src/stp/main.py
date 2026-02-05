@@ -1461,13 +1461,15 @@ class CFooterBlot(CBlot): # tag = headerb
 			'MADE IN PYTHON WITH FPDF2',
 			'GITHUB.COM/BRUCEOBERG/SOCCER-TOURNEY-POSTER',
 			g_repover.StrVersionShort(),
+		]
+
+		lStrCreditCenter: list[str] = [
 			self.page.strLocale.lower(),
 			str(self.page.fmt),
 		]
 
-		lStrCreditCenter: list[str] = [
-			self.page.pagea.strVariant,
-		]
+		if self.page.pagea.strVariant:
+			lStrCreditCenter.append(self.page.pagea.strVariant)
 
 		lStrCreditRight: list[str] = [
 			'ORIGINAL DESIGN BY BENJY TOCZYNSKI',
@@ -1478,7 +1480,7 @@ class CFooterBlot(CBlot): # tag = headerb
 
 		for lStrCredit, jh in ((lStrCreditLeft, JH.Left), (lStrCreditCenter, JH.Center), (lStrCreditRight, JH.Right)):
 			strCredit = strSpaceDotSpace.join(lStrCredit)
-			oltbCredit = self.Oltb(rectCredits, self.page.Fontkey('page.header.title'), self.s_dYFont)
+			oltbCredit = self.Oltb(rectCredits, self.page.Fontkey('page.footer'), self.s_dYFont)
 			oltbCredit.DrawText(strCredit, colorWhite, jh, JV.Middle)
 
 class CCalendarBlot(CBlot): # tag = calb
