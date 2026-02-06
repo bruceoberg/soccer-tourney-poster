@@ -1,3 +1,5 @@
+![](readme.png)
+
 # Bruce's Soccer Tourney Poster Generator
 
 This python script generates posters for the soccer tournaments with group and elimination rounds. It shows all the matches, with spots to fill in scores. There are places to track group stage results. And the knockout stages have places to fill in the teams as they advance.
