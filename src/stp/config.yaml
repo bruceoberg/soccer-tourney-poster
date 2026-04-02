@@ -42,7 +42,6 @@ designs:
     - variant: gold master
 
 results:
-  default: true
   pages:
     - { tournament: 2018-mens-world-cup  }
     - { tournament: 2022-mens-world-cup  }
@@ -57,6 +56,7 @@ tourneys:
     - { tz: US/Pacific  }
 
 langs:
+  default: true
   tournament: latest
   file_suffix: langs
   pages:
