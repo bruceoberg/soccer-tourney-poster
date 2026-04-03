@@ -65,24 +65,27 @@ class CDataBase: # tag = db
 
 		return xlb
 
-	def StrTranslation(self, strKey: str, strLocale: str) -> str:
+	def StrTranslation(self, strKey: str, locale: Locale) -> str:
 		strKey = strKey.lower()
 
 		mpStrLocaleStrText = self.mpStrKeyStrLocaleStrText[strKey]
 
-		try:
-			if strText := mpStrLocaleStrText[strLocale]:
-				return strText
-		except KeyError:
-			pass
+		lStrLocale = [
+			str(locale),		# full name... en_US or zh_Hans_CN
+		]
 
-		strLanguage = Locale.parse(strLocale).language
+		if locale.script:
+			lStrLocale.append(f"{locale.language}_{locale.script}")
 
-		try:
-			if strText := mpStrLocaleStrText[strLanguage]:
-				return strText
-		except KeyError:
-			pass
+		if locale.language != 'en':
+			lStrLocale.append(locale.language)
+
+		for strLocale in lStrLocale:
+			try:
+				if strText := mpStrLocaleStrText[strLocale.lower()]:
+					return strText
+			except KeyError:
+				pass
 
 		return mpStrLocaleStrText['en']
 

@@ -981,7 +981,37 @@ def StrPatternDateMMMMEEEEd(locale: Locale) -> str:
 		lStrPatternNew.append(str)
 
 	return ''.join(lStrPatternNew)
-		
+
+class CTomorrowTime(datetime.time):  # tag = tmrt
+    """
+    datetime.time subclass expressing a post-midnight hour in extended-day notation,
+    where the hour is always represented as actual_hour + 24.
+
+    Constructed from a datetime.time whose hour must be < 24. The base stores
+    the real hour; the .hour property adds 24 on read. .replace() is overridden
+    to preserve CTomorrowTime identity through Babel's internal tz-attachment call.
+    """
+
+    @property
+    def hour(self) -> int:  # type: ignore[override]
+        return super().hour + 24
+
+    def replace(self, **kwargs: object) -> CTomorrowTime:  # type: ignore[override]
+        """
+        Preserve CTomorrowTime identity through Babel's internal replace() call.
+        Only tzinfo replacement is expected; anything touching hour would corrupt
+        the extended-hour value.
+        """
+        assert set(kwargs.keys()) <= {'tzinfo'}, \
+            f"CTomorrowTime.replace() called with unexpected keys: {set(kwargs.keys())}"
+        return CTomorrowTime(
+            super().hour,
+            self.minute,
+            self.second,
+            self.microsecond,
+            kwargs.get('tzinfo'),  # type: ignore[arg-type]
+        )
+			
 class CPage:
 
 	s_dSLineCropMarks = 0.008
@@ -1016,8 +1046,7 @@ class CPage:
 		tzinfoOptional = cast(datetime.tzinfo, tz.gettz(self.strTz))
 		assert(tzinfoOptional is not None)
 		self.tzinfo = tzinfoOptional
-		self.strLocale = self.pagea.strLocale
-		self.locale = Locale.parse(self.strLocale)
+		self.locale = Locale.parse(self.pagea.strLocale)
 		self.strDateMMMMEEEEd = StrPatternDateMMMMEEEEd(self.locale)
 		if self.pagea.fmt is None:
 			assert(self.pagea.fmtCrop == None)
@@ -1078,7 +1107,7 @@ class CPage:
 			self.rectCropMarks = self.rect
 
 	def StrTranslation(self, strKey: str) -> str:
-		return g_loc.StrTranslation(strKey, self.strLocale)
+		return g_loc.StrTranslation(strKey, self.locale)
 
 	def StrTeam(self, strKey: str) -> str:
 		return self.StrTranslation(self.tourn.StrKeyTeam(strKey))
@@ -1173,16 +1202,14 @@ class CPage:
 			if match.stage == STAGE.Group:
 				dateDisplay = mpIdDateTourney[match.id]
 				if dateDisplay.day != tTimeTz.day:
-					strHour, strRest = strTime.split(':', 1)
-					hourNew = 24 if tTimeTz.hour == 0 else int(strHour) + 24 # correct for 12am not always being "00"
-					strTime = f'{hourNew}:{strRest}'
+					ttTimeTz = CTomorrowTime(tTimeTz.hour, tTimeTz.minute, tTimeTz.second, tTimeTz.microsecond, tTimeTz.tzinfo)
+					strTime = babel.dates.format_time(ttTimeTz, 'short', locale=self.locale)
 			else:
 				dateDisplay = tTimeTz.date()
 			
 			# hacks that probably violate the CLDR
 
-			strTime = strTime.lower()
-			strTime = strTime.translate({ord(ch):'' for ch in ' \u00a0\u2009\u202f'}) # remove spaces for very narrow times, please
+			strTime = strTime.translate({ord(ch):' ' for ch in '\u00a0\u2009\u202f'}) # some of our fonts don't have weirdo spaces
 
 			self.mpIdDateDisplay[match.id] = dateDisplay
 			self.mpIdStrTimeDisplay[match.id] = strTime
@@ -1464,7 +1491,7 @@ class CFooterBlot(CBlot): # tag = headerb
 		]
 
 		lStrCreditCenter: list[str] = [
-			self.page.strLocale.lower(),
+			str(self.page.locale),
 			str(self.page.fmt),
 		]
 
@@ -1502,37 +1529,66 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		setDate: set[datetime.date] = {self.page.DateDisplay(match) for match in setMatch}
 
-		dateMin: datetime.date = min(setDate)
-		dateMax: datetime.date = max(setDate)
+		dateMatchesMin: datetime.date = min(setDate)
+		dateMatchesMax: datetime.date = max(setDate)
+		cDayMatches: int = (dateMatchesMax - dateMatchesMin).days + 1
+		cWeekMatches: int = (cDayMatches + 6) // 7
+
+		dateCalMin = dateMatchesMin
+		dateCalMax = dateMatchesMax
 
 		# ensure dateMin/dateMax are on week boundries
 
 		self.weekdayFirst: int = self.page.locale.first_week_day
 		self.weekdayLast = (self.weekdayFirst + 6) % 7
+		self.weekdayBreak: Optional[int] = None
 
-		if dateMin.weekday() != self.weekdayFirst:
+		if dateCalMin.weekday() != self.weekdayFirst:
 			# arrow.shift(weekday) always goes forward in time
-			dateMin = arrow.get(dateMin).shift(weeks=-1).shift(weekday=self.weekdayFirst).date()
+			dateCalMin = arrow.get(dateCalMin).shift(weeks=-1).shift(weekday=self.weekdayFirst).date()
 
 		# and always go all the way to saturday
 
-		if dateMax.weekday() != self.weekdayLast:
-			dateMax = arrow.get(dateMax).shift(weekday=self.weekdayLast).date()
+		if dateCalMax.weekday() != self.weekdayLast:
+			dateCalMax = arrow.get(dateCalMax).shift(weekday=self.weekdayLast).date()
 
-		cDay: int = (dateMax - dateMin).days + 1
-		assert cDay % 7 == 0
-		cWeek: int = cDay // 7
+		cDayCal: int = (dateCalMax - dateCalMin).days + 1
+		assert cDayCal % 7 == 0
+		cWeekCal: int = cDayCal // 7
+
+		if cWeekCal > cWeekMatches:
+			assert(cWeekCal - cWeekMatches == 1)
+
+			# to minimize vertical size, we will "rotate" the days of the week on our calendar to
+			# eliminate a weeks worth of match-less days. the first match of the tournament will be
+			# in the far left column no matter what day its on. we will most likely have a visual
+			# indicator of where the natural workweek break would be.
+
+			self.weekdayFirst = dateMatchesMin.weekday()
+			self.weekdayLast = (self.weekdayFirst + 6) % 7
+			self.weekdayBreak = self.page.locale.first_week_day
+
+			dateCalMin = dateMatchesMin
+			dateCalMax = dateMatchesMax
+
+			if dateCalMax.weekday() != self.weekdayLast:
+				dateCalMax = arrow.get(dateCalMax).shift(weekday=self.weekdayLast).date()
+
+			cDayCal = (dateCalMax - dateCalMin).days + 1
+			assert cDayCal % 7 == 0
+			cWeekCal = cDayCal // 7
+			assert cWeekCal == cWeekMatches
 
 		lDayb: list[CDayBlot] = []
 
-		for tDay in arrow.Arrow.range('day', arrow.get(dateMin), arrow.get(dateMax)):
+		for tDay in arrow.Arrow.range('day', arrow.get(dateCalMin), arrow.get(dateCalMax)):
 			setMatchDate = self.page.mpDateSetMatch.get(tDay.date(), set()).intersection(setMatch)
 			lDayb.append(CDayBlot(self.page, tDay, iterMatch = setMatchDate))
 
 		self.daybl = CDayBlotList(lDayb)
 
 		self.dX = 7 * self.daybl.dXDayb
-		self.dY = self.s_dYStageLabel + self.s_dYDayOfWeek + cWeek * self.daybl.dYDayb
+		self.dY = self.s_dYStageLabel + self.s_dYDayOfWeek + cWeekCal * self.daybl.dYDayb
 
 		# build a list of all day blots and their relative positions
 
@@ -2011,13 +2067,13 @@ class CDocument: # tag = doc
 		# load all fonts for all languages
 
 		setStrTtf: set[str] = set()
-		setStrLocale: set[str] = {pagea.strLocale for pagea in doca.tuPagea}
+		setLocale: set[Locale] = {Locale.parse(pagea.strLocale) for pagea in doca.tuPagea}
 
 		for strKey in g_loc.mpStrKeyStrLocaleStrText:
 			if not strKey.startswith(self.s_strKeyPrefixFonts):
 				continue
-			for strLocale in setStrLocale:
-				setStrTtf.add(g_loc.StrTranslation(strKey, strLocale))
+			for locale in setLocale:
+				setStrTtf.add(g_loc.StrTranslation(strKey, locale))
 
 		for strTtf in setStrTtf:
 			assert strTtf
@@ -2034,7 +2090,7 @@ class CDocument: # tag = doc
 
 		if self.doca.fAddLangTzSuffix:
 			for page in self.lPage:
-				lStrFile.append(page.strLocale.lower())
+				lStrFile.append(str(page.locale).lower())
 				lStrFile.append(page.strTzAbbrev.lower())
 
 		strFile = '-'.join(lStrFile)
