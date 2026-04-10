@@ -969,18 +969,21 @@ def StrPatternDateMMMMEEEEd(locale: Locale) -> str:
 	if locale.language in ('ja', 'ar', 'fa'):
 		return dtfMMMEd.pattern
 
+	# the pattern can have single quotes denoting literals.
+	# so skip those by splitting around them and reconstituting later.
+	
 	lStrPattern = dtfMMMEd.pattern.split("'")
 	lStrPatternNew = []
 
 	for iStr, str in enumerate(lStrPattern):
-		# the pattern can have single quotes denoting literals. so skip those
+		# since we split, the odd chunks are literals we should leave alone.
 		if not (iStr & 1):
 			str = str.replace('E', 'EEEE', 1)
 			str = str.replace('MMM', 'MMMM', 1)
 
 		lStrPatternNew.append(str)
 
-	return ''.join(lStrPatternNew)
+	return "'".join(lStrPatternNew)
 
 class CTomorrowTime(datetime.time):  # tag = tmrt
     """
@@ -1541,7 +1544,8 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		self.weekdayFirst: int = self.page.locale.first_week_day
 		self.weekdayLast = (self.weekdayFirst + 6) % 7
-		self.weekdayBreak: Optional[int] = None
+		self.colBreak: int = 0
+		self.dXBreak: float = 0
 
 		if dateCalMin.weekday() != self.weekdayFirst:
 			# arrow.shift(weekday) always goes forward in time
@@ -1561,12 +1565,13 @@ class CCalendarBlot(CBlot): # tag = calb
 
 			# to minimize vertical size, we will "rotate" the days of the week on our calendar to
 			# eliminate a weeks worth of match-less days. the first match of the tournament will be
-			# in the far left column no matter what day its on. we will most likely have a visual
-			# indicator of where the natural workweek break would be.
+			# in the far left column no matter what day its on.
 
 			self.weekdayFirst = dateMatchesMin.weekday()
 			self.weekdayLast = (self.weekdayFirst + 6) % 7
-			self.weekdayBreak = self.page.locale.first_week_day
+			self.colBreak = (7 + self.page.locale.first_week_day - self.weekdayFirst) % 7
+			assert(self.colBreak)
+			self.dXBreak = 8 * CDayBlot.s_dSLineOuter
 
 			dateCalMin = dateMatchesMin
 			dateCalMax = dateMatchesMax
@@ -1587,22 +1592,52 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		self.daybl = CDayBlotList(lDayb)
 
-		self.dX = 7 * self.daybl.dXDayb
+		self.dX = self.dXBreak + 7 * self.daybl.dXDayb
 		self.dY = self.s_dYStageLabel + self.s_dYDayOfWeek + cWeekCal * self.daybl.dYDayb
+
+		# build a list of the days of the week and their positions/fonts
+
+		@dataclass
+		class SDayHeader: # tag = dayhead
+			x: float
+			strWeekday: str
+			fontkey: SFontKey
+
+		self.lDayhead: list[SDayHeader] = []
+
+		mpWeekdayStr = babel.dates.get_day_names('abbreviated', locale=self.page.locale)
+
+		for col in range(7):
+			x = col * self.daybl.dXDayb
+
+			if col >= self.colBreak:
+				x += self.dXBreak
+
+			if self.page.FIsRightToLeft():
+				x = self.dX - (x + self.daybl.dXDayb)
+
+			strDayOfWeek = mpWeekdayStr[(col + self.weekdayFirst) % 7]
+			strFontkey = 'calendar.day-of-week'
+			if self.colBreak and (col == self.colBreak or col == self.colBreak - 1):
+				strFontkey = 'calendar.day-of-week-broken'
+			fontkey = self.page.Fontkey(strFontkey)
+
+			self.lDayhead.append(SDayHeader(x, strDayOfWeek, fontkey))
 
 		# build a list of all day blots and their relative positions
 
-		self.lTuDPosDayb: list[tuple[SPoint, CDayBlot]] = []
+		@dataclass
+		class SDayInstance: # tag = dayinst
+			dPos: SPoint
+			dayb: CDayBlot
 
+		self.lDayinst: list[SDayInstance] = []
 		for iDay, dayb in enumerate(self.daybl.lDayb):
-			iWeekday = iDay % 7
-			iWeek = iDay // 7
+			col = iDay % 7
+			row = iDay // 7
 
-			if not self.page.FIsLeftToRight():
-				iWeekday = 6 - iWeekday
-
-			dPosDayb = SPoint(iWeekday * self.daybl.dXDayb, iWeek * self.daybl.dYDayb)
-			self.lTuDPosDayb.append((dPosDayb, dayb))
+			dPos = SPoint(self.lDayhead[col].x, row * self.daybl.dYDayb)
+			self.lDayinst.append(SDayInstance(dPos, dayb))
 
 	def Draw(self, pos: SPoint) -> None:
 
@@ -1639,38 +1674,57 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		# days of week
 
-		mpIdayStrDayOfWeek = babel.dates.get_day_names('abbreviated', locale=self.page.locale)
-
-		if self.page.FIsLeftToRight():
-			rectDayOfWeek = SRect(x = pos.x, y = yDaysOfWeekMin, dX = self.daybl.dXDayb, dY = self.s_dYDayOfWeek)
-			dXShift = self.daybl.dXDayb
-		else:
-			rectDayOfWeek = SRect(x = pos.x + self.dX - self.daybl.dXDayb, y = yDaysOfWeekMin, dX = self.daybl.dXDayb, dY = self.s_dYDayOfWeek)
-			dXShift = -self.daybl.dXDayb
-
-		for iDay in range(7):
-			strDayOfWeek = mpIdayStrDayOfWeek[(iDay + self.weekdayFirst) % 7]
-			oltbDayOfWeek = self.Oltb(rectDayOfWeek, self.page.Fontkey('calendar.day-of-week'), rectDayOfWeek.dY)
-			oltbDayOfWeek.DrawText(strDayOfWeek, colorBlack, JH.Center)
-			rectDayOfWeek.Shift(dX = dXShift)
+		for dayhead in self.lDayhead:
+			rectDayOfWeek = SRect(x = pos.x + dayhead.x, y = yDaysOfWeekMin, dX = self.daybl.dXDayb, dY = self.s_dYDayOfWeek)
+			oltbDayOfWeek = self.Oltb(rectDayOfWeek, dayhead.fontkey, rectDayOfWeek.dY)
+			oltbDayOfWeek.DrawText(dayhead.strWeekday, colorBlack, JH.Center)
 
 		# days
 
 		rectDays = SRect(x = pos.x, y = yDaysMin, dX = self.dX, dY = dYDays)
 
 		tPrev: Optional[arrow.Arrow] = None
-		for dPosDayb, dayb in self.lTuDPosDayb:
+		for dayinst in self.lDayinst:
 
-			posDayb = SPoint(rectDays.x + dPosDayb.x, rectDays.y + dPosDayb.y)
+			posDayb = SPoint(rectDays.x + dayinst.dPos.x, rectDays.y + dayinst.dPos.y)
 
-			dayb.Draw(posDayb, self.daybl, tPrev)
+			dayinst.dayb.Draw(posDayb, self.daybl, tPrev)
 
-			tPrev = dayb.tDay
+			tPrev = dayinst.dayb.tDay
 
 		# border
 
 		if self.page.pagea.fMainBorders:
-			self.DrawBox(rectDays, CDayBlot.s_dSLineOuter, colorBlack)
+			if self.colBreak:
+				# draw boxes around two sets of days on either side of break
+
+				rectDaysBefore = rectDays.Copy(dX = self.colBreak * self.daybl.dXDayb)
+				rectDaysAfter = rectDays.Copy(dX = (7 - self.colBreak) * self.daybl.dXDayb)
+
+				if self.page.FIsLeftToRight():
+					rectDaysAfter.x = rectDaysBefore.xMax + self.dXBreak
+					xWeekdayBreak = (rectDaysBefore.xMax + rectDaysAfter.xMin) / 2
+				else:
+					rectDaysBefore.x = rectDaysAfter.xMax + self.dXBreak
+					xWeekdayBreak = (rectDaysAfter.xMax + rectDaysBefore.xMin) / 2
+
+				self.DrawBox(rectDaysBefore, CDayBlot.s_dSLineOuter, colorBlack)
+				self.DrawBox(rectDaysAfter, CDayBlot.s_dSLineOuter, colorBlack)
+
+				# draw break line
+
+				colorWeekdayBreak = colorLightGrey
+
+				self.pdf.set_line_width(CDayBlot.s_dSLineOuter)
+				self.pdf.set_draw_color(colorWeekdayBreak.r, colorWeekdayBreak.g, colorWeekdayBreak.b)
+
+				yWeekdayBreakMin = rectDayOfWeek.yMin
+				yWeekdayBreakMax = rectDays.yMax
+
+				self.pdf.line(xWeekdayBreak, yWeekdayBreakMin, xWeekdayBreak, yWeekdayBreakMax)
+
+			else:
+				self.DrawBox(rectDays, CDayBlot.s_dSLineOuter, colorBlack)
 
 class CBracketBlot(CBlot): # tag = bracketb
 
