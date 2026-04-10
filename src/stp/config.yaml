@@ -8,10 +8,25 @@ navid:
   tournament: latest
   file_suffix: navid
   pages:
-    - { tz: Asia/Tehran,         loc: fa    }
-    - { tz: Europe/Amsterdam,    loc: fa    }
+    - { tz: Asia/Tehran,         loc: fa_IR }
+    - { tz: Europe/Amsterdam,    loc: fa_IR }
     - { tz: Europe/Amsterdam,    loc: en_GB }
-    - { tz: Europe/Amsterdam,    loc: nl    }
+    - { tz: Europe/Amsterdam,    loc: nl_NL }
+
+hans:
+  tournament: latest
+  file_suffix: hans
+  pages:
+    - { tz: US/Pacific, format: a1, loc: en_US  }
+    - { tz: US/Pacific, format: a1, loc: es_US  }
+    - { tz: US/Pacific, format: a1, loc: zh_Hans_CN  }
+
+hant:
+  tournament: latest
+  file_suffix: hant
+  pages:
+    - { tz: US/Pacific, format: a1, loc: en_US  }
+    - { tz: US/Pacific, format: a1, loc: zh_Hans_CN  }
 
 tests:
   tournament: latest
@@ -67,11 +82,11 @@ langs:
     # Europe
     - { tz: Europe/London,       loc: en_GB }
     - { tz: Europe/Paris,        loc: fr_FR }
+    - { tz: Europe/Madrid,       loc: es_ES }
+    - { tz: Europe/Lisbon,       loc: pt_PT }
     - { tz: Europe/Rome,         loc: it_IT }
     - { tz: Europe/Berlin,       loc: de_DE }
-    - { tz: Europe/Madrid,       loc: es_ES }
     - { tz: Europe/Amsterdam,    loc: nl_NL }
-    - { tz: Europe/Lisbon,       loc: pt_PT }
     
     # Middle East
     - { tz: Asia/Tehran,         loc: fa_IR }
@@ -108,9 +123,10 @@ published:
     # European languages
     - { tz: Europe/London,       loc: en_GB }
     - { tz: Europe/Paris,        loc: fr_FR }
+    - { tz: Europe/Madrid,       loc: es_ES }
+    - { tz: Europe/Lisbon,       loc: pt_PT }
     - { tz: Europe/Rome,         loc: it_IT }
     - { tz: Europe/Berlin,       loc: de_DE }
-    - { tz: Europe/Madrid,       loc: es_ES }
     - { tz: Europe/Amsterdam,    loc: nl_NL }
     
     # Persian variants
@@ -119,5 +135,10 @@ published:
     
     # Asian/Pacific
     - { tz: Asia/Tokyo,          loc: ja_JP }
+    - { tz: Asia/Seoul,          loc: ko_KR }
+    - { tz: Asia/Shanghai,       loc: zh_Hans_CN }
+    - { tz: Asia/Taipei,         loc: zh_Hant_TW }
+
+    # Oceania
     - { tz: Australia/Sydney,    loc: en_AU }
     - { tz: Pacific/Auckland,    loc: en_NZ }
