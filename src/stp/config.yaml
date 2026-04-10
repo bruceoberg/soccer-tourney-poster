@@ -28,6 +28,13 @@ hant:
     - { tz: US/Pacific, format: a1, loc: en_US  }
     - { tz: US/Pacific, format: a1, loc: zh_Hans_CN  }
 
+ko:
+  tournament: latest
+  file_suffix: ko
+  pages:
+    - { tz: US/Pacific, format: a1, loc: en_US  }
+    - { tz: US/Pacific, format: a1, loc: ko_KR  }
+
 tests:
   tournament: latest
   file_suffix: tests
