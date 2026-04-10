@@ -17,6 +17,7 @@ dependencies = [
     "openpyxl>=3.1.5",
     "pillow>=12.1.1",
     "pydantic>=2.12.5",
+    "Pygments>=2.20.0",
     "python-bidi>=0.6.7",
     "python-dateutil>=2.9.0.post0",
     "pytz>=2025.2",
