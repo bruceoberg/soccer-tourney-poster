@@ -143,7 +143,7 @@ def IterDoca() -> Iterator[SDocumentArgs]:
 
 	class ArgumentParser(Tap):
 		"""Soccer Tournament Poster Generator"""
-		tournament: str = '' # Tournament to generate for.
+		tournament: str = 'latest' # Tournament to generate for.
 		document: str = strDocaDefault  # Document to output.
 		output_dir: str = 'playground'  # Destination directory.
 
