@@ -100,24 +100,24 @@ published:
 
     # US in other languages
 
-    - { tz: US/Pacific,          loc: ja    }
-    - { tz: US/Mountain,         loc: ja    }
-    - { tz: US/Central,          loc: ja    }
-    - { tz: US/Eastern,          loc: ja    }
+    - { tz: US/Pacific,          loc: ja_JP }
+    - { tz: US/Mountain,         loc: ja_JP }
+    - { tz: US/Central,          loc: ja_JP }
+    - { tz: US/Eastern,          loc: ja_JP }
     
     # European languages
     - { tz: Europe/London,       loc: en_GB }
-    - { tz: Europe/Paris,        loc: fr    }
-    - { tz: Europe/Rome,         loc: it    }
-    - { tz: Europe/Berlin,       loc: de    }
+    - { tz: Europe/Paris,        loc: fr_FR }
+    - { tz: Europe/Rome,         loc: it_IT }
+    - { tz: Europe/Berlin,       loc: de_DE }
     - { tz: Europe/Madrid,       loc: es_ES }
-    - { tz: Europe/Amsterdam,    loc: nl    }
+    - { tz: Europe/Amsterdam,    loc: nl_NL }
     
     # Persian variants
-    - { tz: Europe/Amsterdam,    loc: fa    }
-    - { tz: Asia/Tehran,         loc: fa    }
+    - { tz: Europe/Amsterdam,    loc: fa_IR }
+    - { tz: Asia/Tehran,         loc: fa_IR }
     
     # Asian/Pacific
-    - { tz: Asia/Tokyo,          loc: ja    }
+    - { tz: Asia/Tokyo,          loc: ja_JP }
     - { tz: Australia/Sydney,    loc: en_AU }
     - { tz: Pacific/Auckland,    loc: en_NZ }
