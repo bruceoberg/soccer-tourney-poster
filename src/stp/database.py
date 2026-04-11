@@ -50,6 +50,13 @@ class CDataBase: # tag = db
 			xls: TExcelSheet = []
 			for row in ws.rows:
 				lValRow = [cell.value for cell in row]
+				# skip empty rows and rows starting with a '#'
+				if not lValRow:
+					continue
+				valStart = lValRow[0]
+				strStart = '' if valStart is None else str(valStart)
+				if strStart.startswith('#'):
+					continue
 				if not lStrKey:
 					while not lValRow[-1]:
 						del lValRow[-1]
