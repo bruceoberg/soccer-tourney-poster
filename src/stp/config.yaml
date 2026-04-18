@@ -97,7 +97,6 @@ langs:
     
     # Middle East
     - { tz: Asia/Tehran,         loc: fa_IR }
-    - { tz: Asia/Kabul,          loc: fa_AF }
     
     # Asia
     - { tz: Asia/Tokyo,          loc: ja_JP }
