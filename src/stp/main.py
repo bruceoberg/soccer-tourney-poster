@@ -17,7 +17,7 @@ from dateutil import tz
 from pathlib import Path
 from typing import Optional, Iterable, Type, cast
 
-from bolay import SFontKey, CFontInstance, CPdf, CBlot
+from bolay import SFontKey, VEK, UVekLm, CFontInstance, CPdf, CBlot
 from bolay import JH, JV, SPoint, SRect, RectBoundingBox, SHaloArgs, SBox
 from bolay import ColorFromStr, SColor
 from bolay import colorBlack, colorWhite, colorGrey, colorDarkSlateGrey, colorLightGrey
@@ -161,17 +161,26 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		# heading labels
 
-		lTuRectStr = (
-			(rectGoalsFor,		self.page.StrTranslation('group.goals-for')),
-			(rectGoalsAgainst,	self.page.StrTranslation('group.goals-against')),
-			(rectPoints,		self.page.StrTranslation('group.points')),
-			 # RIGHT/LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
-			(rectRank,			"\u00bb" if fLtR else "\u00ab"),
-		)
+		@dataclass
+		class SHeadingLabel: # tag = headlab
+			rect: SRect
+			strLabel: str
 
-		for rectHeading, strHeading in lTuRectStr:
-			oltbHeading = self.Oltb(rectHeading, self.page.Fontkey('group.heading'), rectHeading.dY)
-			oltbHeading.DrawText(strHeading, colorWhite, JH.Center)
+		lHeadlab = [
+			SHeadingLabel(rectGoalsFor,		self.page.StrTranslation('group.goals-for')),
+			SHeadingLabel(rectGoalsAgainst,	self.page.StrTranslation('group.goals-against')),
+			SHeadingLabel(rectPoints,		self.page.StrTranslation('group.points')),
+			 # RIGHT/LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
+			SHeadingLabel(rectRank,			"\u00bb" if fLtR else "\u00ab"),
+		]
+
+		fontkeyHeading = self.page.Fontkey('group.heading')
+		lStrLabel = [headlab.strLabel for headlab in lHeadlab]
+		veklmEm: UVekLm = self.pdf.LmEmFromText(fontkeyHeading, VEK.DescendCap, lStrLabel)
+
+		for headlab in lHeadlab:
+			oltbHeading = self.Oltb(headlab.rect, fontkeyHeading, rectHeading.dY, veklmEm=veklmEm)
+			oltbHeading.DrawText(headlab.strLabel, colorWhite, JH.Center)
 
 		if self.page.pagea.fGroupDots:
 			cDotDown = 3
@@ -620,7 +629,9 @@ class CDayBlot(CBlot): # tag = dayb
 		else:
 			self.lMatch = []
 
-		self.dYTime = CFontInstance(self.pdf, self.page.Fontkey('match.time'), self.s_dYFontTime).dYCap
+		vekTime = VEK.BaseCap # assuming times across all languages are within the baseline ... cap height
+
+		self.dYTime = CFontInstance(self.pdf, self.page.Fontkey('match.time'), self.s_dYFontTime, vekTime).dYGlyphs
 
 	def Draw(self, pos: SPoint, daybl: CDayBlotList, tPrev: Optional[arrow.Arrow] = None) -> None:
 
@@ -1676,7 +1687,7 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		for dayhead in self.lDayhead:
 			rectDayOfWeek = SRect(x = pos.x + dayhead.x, y = yDaysOfWeekMin, dX = self.daybl.dXDayb, dY = self.s_dYDayOfWeek)
-			oltbDayOfWeek = self.Oltb(rectDayOfWeek, dayhead.fontkey, rectDayOfWeek.dY)
+			oltbDayOfWeek = self.Oltb(rectDayOfWeek, dayhead.fontkey, rectDayOfWeek.dY, veklmEm = VEK.DescendCap)
 			oltbDayOfWeek.DrawText(dayhead.strWeekday, colorBlack, JH.Center)
 
 		# days
