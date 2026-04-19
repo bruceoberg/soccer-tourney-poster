@@ -120,13 +120,6 @@ published:
     - { tz: US/Central  }
     - { tz: US/Eastern  }
 
-    # US in other languages
-
-    - { tz: US/Pacific,          loc: ja_JP }
-    - { tz: US/Mountain,         loc: ja_JP }
-    - { tz: US/Central,          loc: ja_JP }
-    - { tz: US/Eastern,          loc: ja_JP }
-    
     # European languages
     - { tz: Europe/London,       loc: en_GB }
     - { tz: Europe/Paris,        loc: fr_FR }
