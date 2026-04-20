@@ -1083,7 +1083,7 @@ class CPage:
 			self.strTzHeader = f'UTC{self.strTzAbbrev}'
 		else:
 			dT = tTz.utcoffset()
-			assert(dT)
+			assert(isinstance(dT, datetime.timedelta))
 			if cSec := int(dT.total_seconds()):
 				if (cSec % (60*60)) == 0:
 					cHour = cSec // (60*60)
@@ -1092,6 +1092,11 @@ class CPage:
 					cHour = cSec // (60*60)
 					cMin = (cSec % (60*60)) // 60
 					self.strTzHeader = f'{self.strTzAbbrev} (UTC{cHour:+d}:{cMin:02d})'
+			elif self.strTzAbbrev.upper() != 'UTC':
+				self.strTzHeader = f'{self.strTzAbbrev} (UTC)'
+			else:
+				self.strTzHeader = self.strTzAbbrev
+
 	
 		# if self.pagea.fmt is None:
 		# 	print(f"{self.tourn.strName} ({str(self.locale).lower()}/{self.strTzAbbrev}): choosing {self.fmt}")
@@ -1209,15 +1214,34 @@ class CPage:
 			mpIdDateTourneyAdjusted: dict[int, datetime.date] = {id: dateTourney + datetime.timedelta(days=1) for id, dateTourney in mpIdDateTourney.items() }
 			mpIdDateTourney = mpIdDateTourneyAdjusted
 
+		# several language/territory combos have a 'short' format that negates the effect of our
+		# CTomorrowTime hack. if any group matches would use CTomorrowTime, force a 24h aware format.
+
+		fForceGroup24HourTime = False
+
+		for match in self.tourn.mpIdMatch.values():
+			if match.stage != STAGE.Group:
+				continue
+			tTimeTz = match.tStart.to(self.tzinfo)
+			dateDisplay = mpIdDateTourney[match.id]
+			if dateDisplay.day != tTimeTz.day:
+				fForceGroup24HourTime = True
+				continue
+
+		if fForceGroup24HourTime:
+			strFmtTime = 'HH:mm'
+		else:
+			strFmtTime = 'short'
+
 		for match in self.tourn.mpIdMatch.values():
 			tTimeTz = match.tStart.to(self.tzinfo)
-			strTime = babel.dates.format_time(tTimeTz.time(), 'short', locale=self.locale)
+			strTime = babel.dates.format_time(tTimeTz.time(), strFmtTime, locale=self.locale)
 
 			if match.stage == STAGE.Group:
 				dateDisplay = mpIdDateTourney[match.id]
 				if dateDisplay.day != tTimeTz.day:
 					ttTimeTz = CTomorrowTime(tTimeTz.hour, tTimeTz.minute, tTimeTz.second, tTimeTz.microsecond, tTimeTz.tzinfo)
-					strTime = babel.dates.format_time(ttTimeTz, 'short', locale=self.locale)
+					strTime = babel.dates.format_time(ttTimeTz, strFmtTime, locale=self.locale)
 			else:
 				dateDisplay = tTimeTz.date()
 			
