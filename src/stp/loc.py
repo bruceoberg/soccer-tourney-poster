@@ -93,8 +93,11 @@ g_mpStrTzTzs: dict[str, STZs] = {
 	"Europe/Amsterdam":		STZs("CET", "CEST"),
 	"Europe/Athens":		STZs("EET", "EEST"),
 	"Europe/Moscow":		STZs("MSK", "MSK"),	# No DST
+	"Europe/Istanbul":		STZs("TRT", "TRT"),	# No DST
 	
 	# Africa
+	"Africa/Abidjan":		STZs("GMT",	"GMT"), # No DST
+	"Africa/Casablanca":	STZs("WAT",	"WAT"), # No DST
 	"Africa/Cairo":			STZs("EET",	"EEST"),
 	"Africa/Johannesburg":	STZs("SAST", "SAST"),	# No DST
 	
