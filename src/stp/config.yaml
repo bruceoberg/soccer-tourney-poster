@@ -1,3 +1,6 @@
+# timezones: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+# languages: https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
+# countries: https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
 
 simple:
   tournament: latest
@@ -124,13 +127,41 @@ published:
   file_suffix: all
   unwind_pages: true
   pages:
-    # US Timezones
-    - { tz: US/Pacific  }
-    - { tz: US/Mountain }
-    - { tz: US/Central  }
-    - { tz: US/Eastern  }
+    # US
 
-    # European languages
+    - { tz: America/Los_Angeles,  loc: en_US }
+    - { tz: America/Denver,       loc: en_US }
+    - { tz: America/Chicago,      loc: en_US }
+    - { tz: America/New_York,     loc: en_US }
+    - { tz: America/Anchorage,    loc: en_US }
+    - { tz: Pacific/Honolulu,     loc: en_US }
+
+    # Canada
+
+    - { tz: America/Vancouver,    loc: en_CA }
+    - { tz: America/Edmonton,     loc: en_CA }
+    - { tz: America/Winnipeg,     loc: en_CA }
+    - { tz: America/Regina,       loc: en_CA }
+    - { tz: America/Toronto,      loc: en_CA }
+
+    # Latin America
+
+    - { tz: America/Tijuana,      loc: es_MX }
+    - { tz: America/Mexico_City,  loc: es_MX }
+
+    - { tz: America/Panama,       loc: es_PA }
+    - { tz: America/Port-au-Prince, loc: fr_HT }
+    - { tz: America/Curacao,      loc: nl_CW }
+ 
+    - { tz: America/Bogota,       loc: es_CO }
+    - { tz: America/Guayaquil,    loc: es_EC }
+    - { tz: America/Buenos_Aires, loc: es_AR }
+    - { tz: America/Montevideo,   loc: es_UY }
+    - { tz: America/Asuncion,     loc: es_PA }
+    - { tz: America/Sao_Paulo,    loc: pt_BR }
+
+    # Europe
+
     - { tz: Europe/London,       loc: en_GB }
     - { tz: Europe/Paris,        loc: fr_FR }
     - { tz: Europe/Madrid,       loc: es_ES }

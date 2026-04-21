@@ -77,7 +77,8 @@ class SPageArgs(BaseModel): # tag - pagea
 	
 	NOTE (bruceo) strLocale is a two letter ISO 639 language code, or
 	one combined with a two letter ISO 3166-1 alpha-2 country code (e.g. en_GB/en_US/en_AU/en_NZ)
-		https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+		languages: https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
+		countries: https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
 	more importantly, it's a code honored by arrow
 		https://arrow.readthedocs.io/en/latest/api-guide.html#module-arrow.locales
 	"""
