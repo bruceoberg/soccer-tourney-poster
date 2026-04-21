@@ -123,7 +123,7 @@ langs:
 
 published:
   tournament: latest
-  output_dir: published
+  output_dir: playground/published
   file_suffix: all
   unwind_pages: true
   pages:
