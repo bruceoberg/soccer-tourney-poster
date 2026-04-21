@@ -1079,7 +1079,7 @@ class CPage:
 		tTz = tMin.to(self.tzinfo)
 		self.strTzAbbrev = StrTzAbbrev(self.strTz, tTz.datetime)
 
-		if self.strTzAbbrev.startswith('+'):
+		if self.strTzAbbrev.startswith('+') or self.strTzAbbrev.startswith('-'):
 			self.strTzHeader = f'UTC{self.strTzAbbrev}'
 		else:
 			dT = tTz.utcoffset()
