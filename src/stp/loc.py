@@ -52,84 +52,22 @@ class STZs:  # tag = tzs
 	strStd: str
 	strDst: str
 
-# Comprehensive mapping of IANA timezone -> abbreviations
-
+# name for unnamed timezones (where datetime.strftime('%Z') returns a number instead of a name)
 # timezones: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 
 g_mpStrTzTzs: dict[str, STZs] = {
-	# # Americas
-
-	# "America/New_York":		STZs("EST", "EDT"),
-	# "America/Chicago":		STZs("CST", "CDT"),
-	# "America/Denver":		STZs("MST", "MDT"),
-	# "America/Los_Angeles":	STZs("PST", "PDT"),
- 	# "America/Anchorage":	STZs("AKST", "AKDT"),
-	# "Pacific/Honolulu":		STZs("HST", "HST"), # No DST
-
-	# "US/Eastern":			STZs("EST", "EDT"),
-	# "US/Central":			STZs("CST", "CDT"),
-	# "US/Mountain":			STZs("MST", "MDT"),
-	# "US/Pacific":			STZs("PST", "PDT"),
-
-	# "America/Toronto":		STZs("EST", "EDT"),
-	# "America/Edmonton":		STZs("MST", "MDT"),
-	# "America/Regina":		STZs("CST", "CST"), # No DST
-	# "America/Winnipeg":		STZs("CST", "CDT"),
-	# "America/Vancouver":	STZs("PDT", "PDT"), # Always DST
-
-	# "America/Tijuana":		STZs("PST", "PDT"),
-	# "America/Mexico_City":	STZs("CST", "CST"), # No DST
-
- 	# "America/Panama":		STZs("EST", "EST"), # No DST
-	# "America/Port-au-Prince": STZs("EST", "EDT"),
-	# "America/Curacao":		STZs("AST", "AST"), # No DST
-
  	"America/Bogota":		STZs("EST", "EST"), # No DST
  	"America/Guayaquil":	STZs("EST", "EST"), # No DST
 	"America/Buenos_Aires":	STZs("ADT", "ADT"), # Always DST
 	"America/Montevideo":	STZs("ADT", "ADT"), # Always DST
 	"America/Asuncion":		STZs("ADT", "ADT"), # Always DST
 	"America/Sao_Paulo":	STZs("BRT", "BRT"), # No DST
-
-	# # Europe
-
-	# "Europe/London":		STZs("GMT", "BST"),
-	# "Europe/Lisbon":		STZs("WET", "WEST"),
-	# "Europe/Paris":			STZs("CET", "CEST"),
-	# "Europe/Rome":			STZs("CET", "CEST"),
-	# "Europe/Berlin":		STZs("CET", "CEST"),
-	# "Europe/Madrid":		STZs("CET", "CEST"),
-	# "Europe/Amsterdam":		STZs("CET", "CEST"),
-	# "Europe/Athens":		STZs("EET", "EEST"),
-	# "Europe/Moscow":		STZs("MSK", "MSK"),	# No DST
-	# "Europe/Istanbul":		STZs("TRT", "TRT"),	# No DST
-	
-	# # Africa
-
-	# "Africa/Abidjan":		STZs("GMT",	"GMT"), # No DST
-	# "Africa/Casablanca":	STZs("WAT",	"WAT"), # No DST
-	# "Africa/Cairo":			STZs("EET",	"EEST"),
-	# "Africa/Johannesburg":	STZs("SAST", "SAST"),	# No DST
-	
-	# # Asia
-	
+	"Europe/Istanbul":		STZs("TRT", "TRT"),	# No DST
+	"Atlantic/Cape_Verde":	STZs("CVT", "CVT"), # No DST
+	"Africa/Casablanca":	STZs("WAT",	"WAT"), # No DST
 	"Asia/Tehran":			STZs("IRST", "IRST"), # No DST
-	# "Asia/Kabul":			STZs("AFT", "AFT"),	# No DST
-	# "Asia/Dubai":			STZs("GST", "GST"),	# No DST
-	# "Asia/Qatar":			STZs("AST", "AST"),	# No DST
 	"Asia/Riyadh":			STZs("SAST", "SAST"),	# No DST
-	# "Asia/Kolkata":			STZs("IST", "IST"),	# No DST
-	# "Asia/Shanghai":		STZs("CHST", "CHST"),	# No DST
-	# "Asia/Taipei":			STZs("CHST", "CHST"),	# No DST
-	# "Asia/Tokyo":			STZs("JST", "JST"),	# No DST
-	# "Asia/Seoul":			STZs("KST", "KST"),	# No DST
-	
-	# # Oceania/Pacific
-
-	# "Australia/Sydney":		STZs("AEST", "AEDT"),
-	# "Australia/Perth":		STZs("AWST", "AWST"),	# No DST
-	# "Pacific/Auckland":		STZs("NZST", "NZDT"),
-	# "Pacific/Fiji":			STZs("FJT", "FJST"),
+	"Asia/Tashkent":		STZs("UZT", "UZT"),	# No DST
 }
 
 def StrTzAbbrev(strTz: str, t: datetime) -> str:
