@@ -81,7 +81,6 @@ tourneys:
     - { tz: US/Pacific  }
 
 langs:
-  default: true
   tournament: latest
   file_suffix: langs
   pages:
@@ -97,16 +96,19 @@ langs:
     - { tz: Europe/Rome,         loc: it_IT }
     - { tz: Europe/Berlin,       loc: de_DE }
     - { tz: Europe/Amsterdam,    loc: nl_NL }
+
     - { tz: Europe/Istanbul,     loc: tr_TR }
     - { tz: Europe/Moscow,       loc: ru_RU }
 
     # Africa
+
     - { tz: Africa/Abidjan,      loc: fr_CI }
     - { tz: Africa/Casablanca,   loc: ar_MA }
     - { tz: Africa/Johannesburg, loc: en_ZA }
     - { tz: Africa/Cairo,        loc: ar_EG }
     
     # Middle East
+
     - { tz: Asia/Tehran,         loc: fa_IR }
     - { tz: Asia/Riyadh,         loc: ar_SA }
     
@@ -122,11 +124,13 @@ langs:
     - { tz: Pacific/Auckland,    loc: en_NZ }
 
 published:
+  default: true
   tournament: latest
   output_dir: playground/published
   file_suffix: all
   unwind_pages: true
   pages:
+
     # US
 
     - { tz: America/Los_Angeles,  loc: en_US }
@@ -169,19 +173,44 @@ published:
     - { tz: Europe/Rome,         loc: it_IT }
     - { tz: Europe/Berlin,       loc: de_DE }
     - { tz: Europe/Amsterdam,    loc: nl_NL }
+
+    - { tz: Europe/Oslo,         loc: nb_NO }
+    - { tz: Europe/Stockholm,    loc: sv_SE }
+    - { tz: Europe/Brussels,     loc: nl_BE }
+    - { tz: Europe/Zurich,       loc: de_CH }
+    - { tz: Europe/Vienna,       loc: de_AT }
+    - { tz: Europe/Prague,       loc: cs_CZ }
+    - { tz: Europe/Sarajevo,     loc: hr_BA }
+    - { tz: Europe/Zagreb,       loc: hr_HR }
     - { tz: Europe/Istanbul,     loc: tr_TR }
     - { tz: Europe/Moscow,       loc: ru_RU }
     
+    # Africa
+
+    - { tz: Atlantic/Cape_Verde, loc: pt_CV }
+    - { tz: Africa/Abidjan,      loc: fr_CI }
+    - { tz: Africa/Casablanca,   loc: ar_MA }
+    - { tz: Africa/Johannesburg, loc: en_ZA }
+    - { tz: Africa/Cairo,        loc: ar_EG }
+    
     # Middle East
+
     - { tz: Asia/Tehran,         loc: fa_IR }
     - { tz: Asia/Riyadh,         loc: ar_SA }
+    - { tz: Asia/Tashkent,       loc: uz_UZ }
     
     # Asian/Pacific
+
     - { tz: Asia/Tokyo,          loc: ja_JP }
     - { tz: Asia/Seoul,          loc: ko_KR }
     - { tz: Asia/Shanghai,       loc: zh_Hans_CN }
     - { tz: Asia/Taipei,         loc: zh_Hant_TW }
 
     # Oceania
+
+    - { tz: Australia/Perth,     loc: en_AU }
+    - { tz: Australia/Adelaide,  loc: en_AU }
+# same as sydney during their winter.
+#    - { tz: Australia/Brisbane,  loc: en_AU }
     - { tz: Australia/Sydney,    loc: en_AU }
     - { tz: Pacific/Auckland,    loc: en_NZ }
