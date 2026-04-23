@@ -24,7 +24,8 @@ from bolay import colorBlack, colorWhite, colorGrey, colorDarkSlateGrey, colorLi
 from bolay import EnumTuple
 
 from .config import PAGEK, SPageArgs, SDocumentArgs, IterDoca, ParseArgs
-from .loc import StrTzAbbrev, StrFmtBestFit
+from .fonts import StrTtfLookup, SetStrTtfFromSetStrScript
+from .loc import StrTzAbbrev, StrFmtBestFit, StrScriptFromLocale
 from .profiling import Profiling, DumpTopCumulative
 from .versioning import g_repover
 from .database import g_loc, CTournamentDataBase, CGroup, CMatch, STAGE, MATCHSTAT
@@ -1062,6 +1063,7 @@ class CPage:
 		assert(tzinfoOptional is not None)
 		self.tzinfo = tzinfoOptional
 		self.locale = Locale.parse(self.pagea.strLocale)
+		self.strScript = StrScriptFromLocale(self.locale)
 		self.strDateMMMMEEEEd = StrPatternDateMMMMEEEEd(self.locale)
 		if self.pagea.fmt is None:
 			assert(self.pagea.fmtCrop == None)
@@ -1140,8 +1142,8 @@ class CPage:
 		strFormatTitle = self.StrTranslation('page.format.title')
 		return strFormatTitle.format(year=strYear, name=strName, label=strLabel)
 
-	def Fontkey(self, strFont: str) -> SFontKey:
-		strTtf = self.StrTranslation(self.doc.s_strKeyPrefixFonts + strFont)
+	def Fontkey(self, strStyle: str) -> SFontKey:
+		strTtf = StrTtfLookup(strStyle, self.strScript)
 
 		return SFontKey(strTtf, '')
 
@@ -2122,7 +2124,6 @@ class CCalElimPage(CPage): # tag = calelimp
 		# print(f"cTeam: {len(self.tourn.mpStrTeamGroup)} fmt: {self.StrFmtBestFit()}")
 
 class CDocument: # tag = doc
-	s_strKeyPrefixFonts = 'fonts.'
 	s_pathDirFonts = g_pathCode / 'fonts'
 
 	s_mpPagekClsPage: dict[PAGEK, Type[CPage]] = {
@@ -2154,19 +2155,12 @@ class CDocument: # tag = doc
 		self.pdf.set_lang('en')
 		self.pdf.set_creation_date(arrow.now().datetime)
 
-		# load all fonts for all languages
+		# load fonts for referenced locales
 
-		setStrTtf: set[str] = set()
 		setLocale: set[Locale] = {Locale.parse(pagea.strLocale) for pagea in doca.tuPagea}
+		setStrScript: set[str] = { StrScriptFromLocale(locale) for locale in setLocale }
 
-		for strKey in g_loc.mpStrKeyStrLocaleStrText:
-			if not strKey.startswith(self.s_strKeyPrefixFonts):
-				continue
-			for locale in setLocale:
-				setStrTtf.add(g_loc.StrTranslation(strKey, locale))
-
-		for strTtf in setStrTtf:
-			assert strTtf
+		for strTtf in SetStrTtfFromSetStrScript(setStrScript):
 			self.pdf.AddFont(strTtf, '', self.s_pathDirFonts / strTtf)
 
 		self.lPage: list[CPage] = [self.s_mpPagekClsPage[pagea.pagek](self, pagea) for pagea in self.doca.tuPagea]

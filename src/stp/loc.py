@@ -3,6 +3,7 @@
 from __future__ import annotations  # Forward refs without quotes (eg foo: CFoo, not foo: 'CFoo')
 
 from babel import Locale
+from babel.core import get_global, parse_locale
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -96,3 +97,21 @@ def StrTzAbbrev(strTz: str, t: datetime) -> str:
 			break
 
 	return strTzAbbrev
+
+g_mpStrSubtag = get_global('likely_subtags')
+
+def StrScriptFromLocale(locale: Locale) -> str:
+	if locale.script:
+		return locale.script
+	
+	for strQuery in (str(locale), locale.language):
+		strSubtag = g_mpStrSubtag.get(strQuery)
+		if strSubtag is not None:
+			_, _, strScript, *_ = parse_locale(strSubtag)
+			if strScript:
+				return strScript
+
+	print(f"Warning: locale '{str(locale)}' cannot determine script, using Latn")
+
+	return 'Latn'
+
