@@ -34,7 +34,6 @@ class CDataBase: # tag = db
 
 		self.strName = strName
 		self.pathFile = self.s_pathDir / (strName + '.xlsx')
-		self.mpStrKeyStrLocaleStrText: dict[str, dict[str, str]] = {}
 
 	def XlbLoad(self) -> TExcelBook:
 		wb = openpyxl.load_workbook(filename = str(self.pathFile), data_only=True)
@@ -72,6 +71,31 @@ class CDataBase: # tag = db
 
 		return xlb
 
+
+class CLocalizationDataBase(CDataBase): # tag = loc
+
+	def __init__(self) -> None:
+
+		super().__init__('localization')
+
+		self.mpStrSectionSetStrSubkey: dict[str, set[str]] = {}
+		self.mpStrKeyStrLocaleStrText: dict[str, dict[str, str]] = {}
+
+		xlb: TExcelBook = self.XlbLoad()
+
+		for strSection, xls in xlb.items():
+			setStrSubkey = self.mpStrSectionSetStrSubkey.setdefault(strSection, set())
+			for xlrow in xls:
+				strSubkey = xlrow['key'].lower()
+				del xlrow['key']
+				
+				setStrSubkey.add(strSubkey)
+
+				strKey = strSection + '.' + strSubkey
+				strKey = strKey.lower()
+
+				self.mpStrKeyStrLocaleStrText[strKey] = xlrow
+
 	def StrTranslation(self, strKey: str, locale: Locale) -> str:
 		strKey = strKey.lower()
 
@@ -95,30 +119,6 @@ class CDataBase: # tag = db
 				pass
 
 		return mpStrLocaleStrText['en']
-
-
-class CLocalizationDataBase(CDataBase): # tag = loc
-
-	def __init__(self) -> None:
-
-		super().__init__('localization')
-
-		self.mpStrSectionSetStrSubkey: dict[str, set[str]] = {}
-
-		xlb: TExcelBook = self.XlbLoad()
-
-		for strSection, xls in xlb.items():
-			setStrSubkey = self.mpStrSectionSetStrSubkey.setdefault(strSection, set())
-			for xlrow in xls:
-				strSubkey = xlrow['key'].lower()
-				del xlrow['key']
-				
-				setStrSubkey.add(strSubkey)
-
-				strKey = strSection + '.' + strSubkey
-				strKey = strKey.lower()
-
-				self.mpStrKeyStrLocaleStrText[strKey] = xlrow
 
 g_loc = CLocalizationDataBase()
 
