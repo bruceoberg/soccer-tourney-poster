@@ -173,6 +173,7 @@ cython_debug/
 # bruceo specific
 
 playground/
+profiles/
 ~*.*
 
 # ** means any directory in the tree

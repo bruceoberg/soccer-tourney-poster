@@ -131,7 +131,8 @@ def MpStrDocaLoad(pathYaml: Path) -> dict[str, SDocumentArgs]:
 	
 	return mpStrDoca
 
-def IterDoca() -> Iterator[SDocumentArgs]:
+def ParseArgs() -> Tap:
+	"""Parse CLI args for the poster generator. Returned Tap exposes fields used by IterDoca and main."""
 
 	mpStrDoca = MpStrDocaLoad(g_pathCode / 'config.yaml')
 
@@ -140,20 +141,27 @@ def IterDoca() -> Iterator[SDocumentArgs]:
 		if not strDocaDefault or doca.fDefault:
 			strDocaDefault = strDoca
 
-	lStrNameTournaments = CDataBase.LStrNameTournament()
-
 	class ArgumentParser(Tap):
 		"""Soccer Tournament Poster Generator"""
 		tournament: str = 'latest' # Tournament to generate for.
 		document: str = strDocaDefault  # Document to output.
 		output_dir: str = 'playground'  # Destination directory.
+		profile: bool = False  # Enable cProfile instrumentation; writes profiles/run-<ts>.prof.
+		profile_dump: Optional[str] = None  # Dump top cumulative-time stats from this .prof file and exit.
 
 		def configure(self):
 			self.add_argument('-t', '--tournament')
 			self.add_argument('-d', '--document')
 			self.add_argument('-o', '--output_dir')
 
-	args = ArgumentParser().parse_args()
+	return ArgumentParser().parse_args()
+
+
+def IterDoca(args: Tap) -> Iterator[SDocumentArgs]:
+
+	mpStrDoca = MpStrDocaLoad(g_pathCode / 'config.yaml')
+
+	lStrNameTournaments = CDataBase.LStrNameTournament()
 
 	try:
 		doca = mpStrDoca[args.document]

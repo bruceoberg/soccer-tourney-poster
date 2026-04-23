@@ -31,6 +31,7 @@ dependencies = [
 
 [project.scripts]
 stp = "stp.main:main"
+stp-profile-diff = "stp.profile_diff:Main"
 
 [build-system]
 requires = ["hatchling"]

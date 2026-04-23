@@ -23,8 +23,9 @@ from bolay import ColorFromStr, SColor
 from bolay import colorBlack, colorWhite, colorGrey, colorDarkSlateGrey, colorLightGrey
 from bolay import EnumTuple
 
-from .config import PAGEK, SPageArgs, SDocumentArgs, IterDoca
+from .config import PAGEK, SPageArgs, SDocumentArgs, IterDoca, ParseArgs
 from .loc import StrTzAbbrev, StrFmtBestFit
+from .profiling import Profiling, DumpTopCumulative
 from .versioning import g_repover
 from .database import g_loc, CTournamentDataBase, CGroup, CMatch, STAGE, MATCHSTAT
 
@@ -2192,8 +2193,22 @@ class CDocument: # tag = doc
 		self.pdf.output(str(pathOutput))
 
 def main():
-	for doca in IterDoca():
-		CDocument(doca)
+	args = ParseArgs()
+
+	if args.profile_dump:
+		DumpTopCumulative(Path(args.profile_dump))
+		return
+
+	fProfile: bool = args.profile
+	tNow = arrow.now()
+	pathProf = Path('profiles') / f"run-{tNow.format('YYYYMMDD-HHmmss')}.prof"
+
+	with Profiling(pathProf, fEnabled=fProfile):
+		for doca in IterDoca(args):
+			CDocument(doca)
+
+	if fProfile:
+		print(f"wrote profile to {pathProf}")
 
 if __name__ == '__main__':
 	main()
