@@ -1,7 +1,10 @@
 [project]
 name = "stp"
-version = "0.3.0"
+version = "0.4.0"
 description = "Generate PDF posters for soccer tournament schedules"
+authors = [
+    { name = "Bruce Oberg", email = "bruce@oberg.org" }
+]
 requires-python = ">=3.13"
 dependencies = [
     "appdirs>=1.4.4",
@@ -16,6 +19,7 @@ dependencies = [
     "icecream>=2.1.8",
     "openpyxl>=3.1.5",
     "pillow>=12.2.0",
+    "polib>=1.2.0",
     "pydantic>=2.12.5",
     "Pygments>=2.20.0",
     "python-bidi>=0.6.7",
