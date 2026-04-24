@@ -1,6 +1,12 @@
 { pkgs, lib, config, inputs, ... }:
 
 {
+  packages = with pkgs;
+  [
+    gettext # manipulate .pot/.po files
+    just    # run stuff in the justfile
+  ];
+
   languages.python =
   {
     enable = true;
