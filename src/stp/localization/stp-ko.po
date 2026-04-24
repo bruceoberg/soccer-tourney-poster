@@ -1,0 +1,1073 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: stp 0.3.0\n"
+"POT-Creation-Date: 2026-04-24 23:20+0000\n"
+"PO-Revision-Date: 2026-04-24 23:20+0000\n"
+"Last-Translator: Bruce Oberg <bruce@oberg.org>\n"
+"Language-Team: Bruce Oberg <bruce@oberg.org>\n"
+"Language: ko\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. This project supports a poster showing the fixtures or results of a
+#. football (soccer) tournament. In all cases, shorter translations are
+#. preferred. Country names will be shrunk to fit, but many other fields will
+#. just overflow. In general, the translation approach should match that of a
+#. newspaper or sports page. Be brief and colloquial, not vebose or technical.
+#. We're aiming for a casual readership.
+#, read-only
+msgid "### overview - see notes ###"
+msgstr ""
+
+#. Name of the poster- shown in the poster header. Inserted into the {name}
+#. field of page.format-title. Year goes before or after, according to that
+#. key.
+#, read-only
+msgid "### section: competition - see notes ###"
+msgstr ""
+
+msgctxt "competition.mens-club-world-cup"
+msgid "Club World Cup"
+msgstr "클럽 월드컵"
+
+msgctxt "competition.mens-copa-america"
+msgid "Copa América"
+msgstr "코파 아메리카"
+
+msgctxt "competition.mens-euro"
+msgid "Euro"
+msgstr "유로"
+
+msgctxt "competition.mens-world-cup"
+msgid "World Cup"
+msgstr "월드컵"
+
+msgctxt "competition.womens-world-cup"
+msgid "Women's WC"
+msgstr "여자 월드컵"
+
+#. Host country or region - shown in poster header, but in limited space.
+#. Inserted into the {location} field of page.format.dates-and-location. Date
+#. range goes before or after, according to that key.
+#, read-only
+msgid "### section: host - see notes ###"
+msgstr ""
+
+msgctxt "host.au-nz"
+msgid "AU/NZ"
+msgstr "호주/뉴질랜드"
+
+msgctxt "host.brazil"
+msgid "Brazil"
+msgstr "브라질"
+
+msgctxt "host.germany"
+msgid "Germany"
+msgstr "독일"
+
+msgctxt "host.north-america"
+msgid "North America"
+msgstr "북미"
+
+msgctxt "host.qatar"
+msgid "Qatar"
+msgstr "카타르"
+
+msgctxt "host.russia"
+msgid "Russia"
+msgstr "러시아"
+
+msgctxt "host.saudi-arabia"
+msgid "Saudi Arabia"
+msgstr "사우디아라비아"
+
+msgctxt "host.uk-ireland"
+msgid "UK & Ireland"
+msgstr "영국・아일랜드"
+
+msgctxt "host.usa"
+msgid "USA"
+msgstr "미국"
+
+#. Venues where matches are held. Most often a city, but sometimes an arena
+#. name when a city had multiple locations.
+#, read-only
+msgid "### section: venue - see notes ###"
+msgstr ""
+
+msgctxt "venue.au-adelaide"
+msgid "Adelaide"
+msgstr "애들레이드"
+
+msgctxt "venue.au-brisbane"
+msgid "Brisbane"
+msgstr "브리즈번"
+
+msgctxt "venue.au-melbourne"
+msgid "Melbourne"
+msgstr "멜버른"
+
+msgctxt "venue.au-perth"
+msgid "Perth"
+msgstr "퍼스"
+
+msgctxt "venue.au-sydney"
+msgid "Sydney"
+msgstr "시드니"
+
+msgctxt "venue.au-sydney_australia"
+msgid "Stadium Australia"
+msgstr "오스트레일리아"
+
+msgctxt "venue.au-sydney_football"
+msgid "Sydney Football Stadium"
+msgstr "시드니"
+
+msgctxt "venue.ca-toronto"
+msgid "Toronto"
+msgstr "토론토"
+
+msgctxt "venue.ca-vancouver"
+msgid "Vancouver"
+msgstr "밴쿠버"
+
+msgctxt "venue.de-berlin"
+msgid "Berlin"
+msgstr "베를린"
+
+msgctxt "venue.de-cologne"
+msgid "Cologne"
+msgstr "쾰른"
+
+msgctxt "venue.de-dortmund"
+msgid "Dortmund"
+msgstr "도르트문트"
+
+msgctxt "venue.de-dusseldorf"
+msgid "Düsseldorf"
+msgstr "뒤셀도르프"
+
+msgctxt "venue.de-frankfurt"
+msgid "Frankfurt"
+msgstr "프랑크푸르트"
+
+msgctxt "venue.de-gelsenkirchen"
+msgid "Gelsenkirchen"
+msgstr "겔젠키르헨"
+
+msgctxt "venue.de-hamburg"
+msgid "Hamburg"
+msgstr "함부르크"
+
+msgctxt "venue.de-leipzig"
+msgid "Leipzig"
+msgstr "라이프치히"
+
+msgctxt "venue.de-munich"
+msgid "Munich"
+msgstr "뮌헨"
+
+msgctxt "venue.de-stuttgart"
+msgid "Stuttgart"
+msgstr "슈투트가르트"
+
+msgctxt "venue.mx-guadalajara"
+msgid "Guadalajara"
+msgstr "과달라하라"
+
+msgctxt "venue.mx-mexico-city"
+msgid "Mexico City"
+msgstr "멕시코시티"
+
+msgctxt "venue.mx-monterrey"
+msgid "Monterrey"
+msgstr "몬테레이"
+
+msgctxt "venue.nz-auckland"
+msgid "Auckland"
+msgstr "오클랜드"
+
+msgctxt "venue.nz-dunedin"
+msgid "Dunedin"
+msgstr "더니든"
+
+msgctxt "venue.nz-hamilton"
+msgid "Hamilton"
+msgstr "해밀턴"
+
+msgctxt "venue.nz-wellington"
+msgid "Wellington"
+msgstr "웰링턴"
+
+msgctxt "venue.qa-974"
+msgid "Stadium 974"
+msgstr "경기장 974"
+
+msgctxt "venue.qa-ahmad-bin-ali"
+msgid "Ahmad Bin Ali"
+msgstr "아흐마드빈알리"
+
+msgctxt "venue.qa-al-bayt"
+msgid "Al Bayt"
+msgstr "알바이트"
+
+msgctxt "venue.qa-al-janoub"
+msgid "Al Janoub"
+msgstr "알자누브"
+
+msgctxt "venue.qa-al-thumama"
+msgid "Al Thumama"
+msgstr "알투마마"
+
+msgctxt "venue.qa-education-city"
+msgid "Education City"
+msgstr "에듀케이션시티"
+
+msgctxt "venue.qa-khalifa"
+msgid "Khalifa International"
+msgstr "칼리파"
+
+msgctxt "venue.qa-lusail"
+msgid "Lusail"
+msgstr "루사일"
+
+msgctxt "venue.ru-ekaterinburg"
+msgid "Ekaterinburg"
+msgstr "예카테린부르크"
+
+msgctxt "venue.ru-kaliningrad"
+msgid "Kaliningrad"
+msgstr "칼리닌그라드"
+
+msgctxt "venue.ru-kazan"
+msgid "Kazan"
+msgstr "카잔"
+
+msgctxt "venue.ru-moscow"
+msgid "Moscow"
+msgstr "모스크바"
+
+msgctxt "venue.ru-moscow_luzhniki"
+msgid "Luzhniki Stadium"
+msgstr "루즈니키"
+
+msgctxt "venue.ru-moscow_otkrytiye"
+msgid "Otkrytiye Arena"
+msgstr "오트크리티예"
+
+msgctxt "venue.ru-nizhny-novgorod"
+msgid "Nizhny Novgorod"
+msgstr "니즈니노브고로드"
+
+msgctxt "venue.ru-rostov-on-don"
+msgid "Rostov-on-Don"
+msgstr "로스토프나도누"
+
+msgctxt "venue.ru-saint-petersburg"
+msgid "Saint Petersburg"
+msgstr "상트페테르부르크"
+
+msgctxt "venue.ru-samara"
+msgid "Samara"
+msgstr "사마라"
+
+msgctxt "venue.ru-saransk"
+msgid "Saransk"
+msgstr "사란스크"
+
+msgctxt "venue.ru-sochi"
+msgid "Sochi"
+msgstr "소치"
+
+msgctxt "venue.ru-volgograd"
+msgid "Volgograd"
+msgstr "볼고그라드"
+
+msgctxt "venue.us-arlington-tx"
+msgid "Arlington, TX"
+msgstr "알링턴, TX"
+
+msgctxt "venue.us-atlanta-ga"
+msgid "Atlanta, GA"
+msgstr "애틀랜타, GA"
+
+msgctxt "venue.us-austin-tx"
+msgid "Austin, TX"
+msgstr "오스틴, TX"
+
+msgctxt "venue.us-boston-ma"
+msgid "Boston, MA"
+msgstr "보스턴, MA"
+
+msgctxt "venue.us-charlotte-nc"
+msgid "Charlotte, NC"
+msgstr "샬럿, NC"
+
+msgctxt "venue.us-cincinnati-oh"
+msgid "Cincinnati, OH"
+msgstr "신시내티, OH"
+
+msgctxt "venue.us-dallas-tx"
+msgid "Dallas, TX"
+msgstr "댈러스, TX"
+
+msgctxt "venue.us-east-rutherford-nj"
+msgid "East Rutherford, NJ"
+msgstr "러더퍼드, NJ"
+
+msgctxt "venue.us-glendale-az"
+msgid "Glendale, AZ"
+msgstr "글렌데일, AZ"
+
+msgctxt "venue.us-houston-tx"
+msgid "Houston, TX"
+msgstr "휴스턴, TX"
+
+msgctxt "venue.us-inglewood-ca"
+msgid "Inglewood, CA"
+msgstr "잉글우드, CA"
+
+msgctxt "venue.us-kansas-city-ks"
+msgid "Kansas City, KS"
+msgstr "캔자스시티, KS"
+
+msgctxt "venue.us-kansas-city-mo"
+msgid "Kansas City, MO"
+msgstr "캔자스시티, MO"
+
+msgctxt "venue.us-las-vegas-nv"
+msgid "Las Vegas, NV"
+msgstr "라스베이거스, NV"
+
+msgctxt "venue.us-los-angeles-ca"
+msgid "Los Angeles, CA"
+msgstr "로스앤젤레스, CA"
+
+msgctxt "venue.us-miami-fl"
+msgid "Miami, FL"
+msgstr "마이애미, FL"
+
+msgctxt "venue.us-nashville-tn"
+msgid "Nashville, TN"
+msgstr "내슈빌, TN"
+
+msgctxt "venue.us-orlando-fl"
+msgid "Orlando, FL"
+msgstr "올랜도, FL"
+
+msgctxt "venue.us-pasadena-ca"
+msgid "Pasadena, CA"
+msgstr "패서디나, CA"
+
+msgctxt "venue.us-philadelphia-pa"
+msgid "Philadelphia, PA"
+msgstr "필라델피아, PA"
+
+msgctxt "venue.us-santa-clara-ca"
+msgid "Santa Clara, CA"
+msgstr "산타클래라, CA"
+
+msgctxt "venue.us-seattle-wa"
+msgid "Seattle, WA"
+msgstr "시애틀, WA"
+
+msgctxt "venue.us-washington-dc"
+msgid "Washington, DC"
+msgstr "워싱턴, DC"
+
+#. Title text and layout. If in doubt, leave alone.
+#, read-only
+msgid "### section: page - see notes ###"
+msgstr ""
+
+#. Date range is built and inserted into {dates} field. Country from 'host'
+#. section is inserted into {location} field.
+msgctxt "page.format.dates-and-location"
+msgid "{dates}, {location}"
+msgstr "{dates}, {location}"
+
+#. Timezone is build and inserted into {timezone} field. Text from
+#. page.timezone.label is inserted into {label} field. Farsi version includes
+#. an invisible RtL character so that parenthesis apprear correctly.
+msgctxt "page.format.timezone"
+msgid "{label}: {timezone}"
+msgstr "{label}: {timezone}"
+
+#. Layout of the poster title (centered, on top). Specifies order of year,
+#. competition title (from competition section), and poster label
+#. (fixtures/results)
+msgctxt "page.format.title"
+msgid "{year} {name} · {label}"
+msgstr "{year} {name} · {label}"
+
+#. Inserted into the {label} of page.format.timezone.
+msgctxt "page.timezone.label"
+msgid "Time Zone"
+msgstr "시간대"
+
+#. Inserted into page.format.title when poster shows upcoming matches with no
+#. scores.
+msgctxt "page.title.fixtures"
+msgid "Fixtures"
+msgstr "일정"
+
+#. Inserted into page.format.title when poster shows completed matches with
+#. scores.
+msgctxt "page.title.results"
+msgid "Results"
+msgstr "결과"
+
+#. Names of the stages of a soccer tournament.
+#, read-only
+msgid "### section: stage - see notes ###"
+msgstr ""
+
+msgctxt "stage.final"
+msgid "Final"
+msgstr "결승"
+
+msgctxt "stage.group"
+msgid "Group Stage"
+msgstr "조별리그"
+
+#. Caution. A literal translation of 'Round of' may be inappropriate. Some
+#. languages use forms like 'eighths final' or 'sixteenths final'.
+msgctxt "stage.quarters"
+msgid "Quarter-Finals"
+msgstr "8강"
+
+#. Caution. A literal translation of 'Round of' may be inappropriate. Some
+#. languages use forms like 'eighths final' or 'sixteenths final'.
+msgctxt "stage.round16"
+msgid "Round of Sixteen"
+msgstr "16강"
+
+#. Caution. A literal translation of 'Round of' may be inappropriate. Some
+#. languages use forms like 'eighths final' or 'sixteenths final'.
+msgctxt "stage.round32"
+msgid "Round of Thirty Two"
+msgstr "32강"
+
+#. Caution. A literal translation of 'Round of' may be inappropriate. Some
+#. languages use forms like 'eighths final' or 'sixteenths final'.
+msgctxt "stage.round64"
+msgid "Round of Sixty Four"
+msgstr "64강"
+
+msgctxt "stage.semis"
+msgid "Semi-Finals"
+msgstr "준결승"
+
+msgctxt "stage.third"
+msgid "Third Place"
+msgstr "3·4위전"
+
+#. Abbreviations for the group stage sections of the poster.
+#, read-only
+msgid "### section: group - see notes ###"
+msgstr ""
+
+#. ABBREVIATION. Shown in a very small area. Indicates goals scored against
+#. the team. Not related to 'points'.
+msgctxt "group.goals-against"
+msgid "GA"
+msgstr "실점"
+
+#. ABBREVIATION. Shown in a very small area. Indicates goals the team scored.
+#. Not related to 'points'.
+msgctxt "group.goals-for"
+msgid "GF"
+msgstr "득점"
+
+#. ABBREVIATION. Shown in a very small area. Indicates the 'points' of
+#. football standings (win=3pts, tie=1pt). Not related to goals.
+msgctxt "group.points"
+msgid "Pts"
+msgstr "승점"
+
+msgctxt "group.title"
+msgid "Group"
+msgstr "조"
+
+#, read-only
+msgid "### section: match - see notes ###"
+msgstr ""
+
+#. How to abbreviate the term 'After Extra Time'.
+msgctxt "match.after-extra-time"
+msgid "(AET)"
+msgstr "(연장)"
+
+#. How to format an ordinal match number.
+msgctxt "match.format.label"
+msgid "#{id}"
+msgstr "{id}번"
+
+#. Country names, keyed by their 3 letter FIFA code.
+#, read-only
+msgid "### section: country - see notes ###"
+msgstr ""
+
+msgctxt "country.??1"
+msgid "Play-Off 1"
+msgstr "플레이오프 1"
+
+msgctxt "country.??2"
+msgid "Play-Off 2"
+msgstr "플레이오프 2"
+
+msgctxt "country.??3"
+msgid "Play-Off 3"
+msgstr "플레이오프 3"
+
+msgctxt "country.??4"
+msgid "Play-Off 4"
+msgstr "플레이오프 4"
+
+msgctxt "country.??a"
+msgid "Play-Off A"
+msgstr "플레이오프 A"
+
+msgctxt "country.??b"
+msgid "Play-Off B"
+msgstr "플레이오프 B"
+
+msgctxt "country.??c"
+msgid "Play-Off C"
+msgstr "플레이오프 C"
+
+msgctxt "country.??d"
+msgid "Play-Off D"
+msgstr "플레이오프 D"
+
+msgctxt "country.alb"
+msgid "Albania"
+msgstr "알바니아"
+
+msgctxt "country.alg"
+msgid "Algeria"
+msgstr "알제리"
+
+msgctxt "country.arg"
+msgid "Argentina"
+msgstr "아르헨티나"
+
+msgctxt "country.arm"
+msgid "Armenia"
+msgstr "아르메니아"
+
+msgctxt "country.aus"
+msgid "Australia"
+msgstr "호주"
+
+msgctxt "country.aut"
+msgid "Austria"
+msgstr "오스트리아"
+
+msgctxt "country.bah"
+msgid "Bahrain"
+msgstr "바레인"
+
+msgctxt "country.bel"
+msgid "Belgium"
+msgstr "벨기에"
+
+msgctxt "country.bfs"
+msgid "Burkina Faso"
+msgstr "부르키나파소"
+
+msgctxt "country.bih"
+msgid "Bosnia/Herzeg."
+msgstr "보스니아"
+
+msgctxt "country.blr"
+msgid "Belarus"
+msgstr "벨라루스"
+
+msgctxt "country.bol"
+msgid "Bolivia"
+msgstr "볼리비아"
+
+msgctxt "country.bra"
+msgid "Brazil"
+msgstr "브라질"
+
+msgctxt "country.bul"
+msgid "Bulgaria"
+msgstr "불가리아"
+
+msgctxt "country.can"
+msgid "Canada"
+msgstr "캐나다"
+
+msgctxt "country.chi"
+msgid "China"
+msgstr "칠레"
+
+msgctxt "country.civ"
+msgid "Côte d'Ivoire"
+msgstr "코트디부아르"
+
+msgctxt "country.cmr"
+msgid "Cameroon"
+msgstr "카메룬"
+
+msgctxt "country.cod"
+msgid "Congo DR"
+msgstr "콩고민주공화국"
+
+msgctxt "country.col"
+msgid "Colombia"
+msgstr "콜롬비아"
+
+msgctxt "country.con"
+msgid "Congo"
+msgstr "콩고"
+
+msgctxt "country.cpv"
+msgid "Cabo Verde"
+msgstr "카보베르데"
+
+msgctxt "country.crc"
+msgid "Costa Rica"
+msgstr "코스타리카"
+
+msgctxt "country.cro"
+msgid "Croatia"
+msgstr "크로아티아"
+
+msgctxt "country.cuw"
+msgid "Curaçao"
+msgstr "퀴라소"
+
+msgctxt "country.cze"
+msgid "Czechia"
+msgstr "체코"
+
+msgctxt "country.den"
+msgid "Denmark"
+msgstr "덴마크"
+
+msgctxt "country.ecu"
+msgid "Ecuador"
+msgstr "에콰도르"
+
+msgctxt "country.egy"
+msgid "Egypt"
+msgstr "이집트"
+
+msgctxt "country.eng"
+msgid "England"
+msgstr "잉글랜드"
+
+msgctxt "country.esp"
+msgid "Spain"
+msgstr "스페인"
+
+msgctxt "country.fin"
+msgid "Finland"
+msgstr "핀란드"
+
+msgctxt "country.fra"
+msgid "France"
+msgstr "프랑스"
+
+msgctxt "country.geo"
+msgid "Georgia"
+msgstr "조지아"
+
+msgctxt "country.ger"
+msgid "Germany"
+msgstr "독일"
+
+msgctxt "country.gha"
+msgid "Ghana"
+msgstr "가나"
+
+msgctxt "country.gre"
+msgid "Greece"
+msgstr "그리스"
+
+msgctxt "country.hai"
+msgid "Haiti"
+msgstr "아이티"
+
+msgctxt "country.hon"
+msgid "Honduras"
+msgstr "온두라스"
+
+msgctxt "country.hun"
+msgid "Hungary"
+msgstr "헝가리"
+
+msgctxt "country.ire"
+msgid "Ireland"
+msgstr "아일랜드"
+
+msgctxt "country.irn"
+msgid "Iran"
+msgstr "이란"
+
+msgctxt "country.irq"
+msgid "Iraq"
+msgstr "이라크"
+
+msgctxt "country.isl"
+msgid "Iceland"
+msgstr "아이슬란드"
+
+msgctxt "country.isr"
+msgid "Israel"
+msgstr "이스라엘"
+
+msgctxt "country.ita"
+msgid "Italy"
+msgstr "이탈리아"
+
+msgctxt "country.ivc"
+msgid "Ivory Coast"
+msgstr "코트디부아르"
+
+msgctxt "country.jam"
+msgid "Jamaica"
+msgstr "자메이카"
+
+msgctxt "country.jor"
+msgid "Jordan"
+msgstr "요르단"
+
+msgctxt "country.jpn"
+msgid "Japan"
+msgstr "일본"
+
+msgctxt "country.kor"
+msgid "South Korea"
+msgstr "대한민국"
+
+msgctxt "country.ksa"
+msgid "Saudi Arabia"
+msgstr "사우디아라비아"
+
+msgctxt "country.mal"
+msgid "Mali"
+msgstr "말리"
+
+msgctxt "country.mar"
+msgid "Morocco"
+msgstr "모로코"
+
+msgctxt "country.mex"
+msgid "Mexico"
+msgstr "멕시코"
+
+msgctxt "country.mon"
+msgid "Montenegro"
+msgstr "몬테네그로"
+
+msgctxt "country.ned"
+msgid "Netherlands"
+msgstr "네덜란드"
+
+msgctxt "country.nga"
+msgid "Nigeria"
+msgstr "나이지리아"
+
+msgctxt "country.nir"
+msgid "Northern Ireland"
+msgstr "북아일랜드"
+
+msgctxt "country.nmc"
+msgid "North Macedonia"
+msgstr "북마케도니아"
+
+msgctxt "country.nor"
+msgid "Norway"
+msgstr "노르웨이"
+
+msgctxt "country.nzl"
+msgid "New Zealand"
+msgstr "뉴질랜드"
+
+msgctxt "country.pan"
+msgid "Panama"
+msgstr "파나마"
+
+msgctxt "country.par"
+msgid "Paraguay"
+msgstr "파라과이"
+
+msgctxt "country.per"
+msgid "Peru"
+msgstr "페루"
+
+msgctxt "country.phi"
+msgid "Philippines"
+msgstr "필리핀"
+
+msgctxt "country.pol"
+msgid "Poland"
+msgstr "폴란드"
+
+msgctxt "country.por"
+msgid "Portugal"
+msgstr "포르투갈"
+
+msgctxt "country.qat"
+msgid "Qatar"
+msgstr "카타르"
+
+msgctxt "country.rom"
+msgid "Romania"
+msgstr "루마니아"
+
+msgctxt "country.rus"
+msgid "Russia"
+msgstr "러시아"
+
+msgctxt "country.saf"
+msgid "South Africa"
+msgstr "남아공"
+
+msgctxt "country.sco"
+msgid "Scotland"
+msgstr "스코틀랜드"
+
+msgctxt "country.sen"
+msgid "Senegal"
+msgstr "세네갈"
+
+msgctxt "country.srb"
+msgid "Serbia"
+msgstr "세르비아"
+
+msgctxt "country.sui"
+msgid "Switzerland"
+msgstr "스위스"
+
+msgctxt "country.svk"
+msgid "Slovakia"
+msgstr "슬로바키아"
+
+msgctxt "country.svn"
+msgid "Slovenia"
+msgstr "슬로베니아"
+
+msgctxt "country.swe"
+msgid "Sweden"
+msgstr "스웨덴"
+
+msgctxt "country.tun"
+msgid "Tunisia"
+msgstr "튀니지"
+
+msgctxt "country.tur"
+msgid "Türkiye"
+msgstr "튀르키예"
+
+msgctxt "country.uae"
+msgid "Un. Ar. Emirates"
+msgstr "아랍에미리트"
+
+msgctxt "country.ukr"
+msgid "Ukraine"
+msgstr "우크라이나"
+
+msgctxt "country.uru"
+msgid "Uruguay"
+msgstr "우루과이"
+
+msgctxt "country.usa"
+msgid "USA"
+msgstr "미국"
+
+msgctxt "country.uzb"
+msgid "Uzbekistan"
+msgstr "우즈베키스탄"
+
+msgctxt "country.ven"
+msgid "Venezuela"
+msgstr "베네수엘라"
+
+msgctxt "country.vie"
+msgid "Vietnam"
+msgstr "베트남"
+
+msgctxt "country.wal"
+msgid "Wales"
+msgstr "웨일스"
+
+msgctxt "country.zam"
+msgid "Zambia"
+msgstr "잠비아"
+
+#. Club names, keyed by their 3 letter FIFA code. Resist translating terms -
+#. the whole name from the original language is almost always used. Leave off
+#. acronyms (eg FC) unless they disambiguate.
+#, read-only
+msgid "### section: club - see notes ###"
+msgstr ""
+
+msgctxt "club.??1"
+msgid "Play-Off 1"
+msgstr "플레이오프 1"
+
+msgctxt "club.??2"
+msgid "Play-Off 2"
+msgstr "플레이오프 2"
+
+msgctxt "club.??3"
+msgid "Play-Off 3"
+msgstr "플레이오프 3"
+
+msgctxt "club.??4"
+msgid "Play-Off 4"
+msgstr "플레이오프 4"
+
+msgctxt "club.??a"
+msgid "Play-Off A"
+msgstr "플레이오프 A"
+
+msgctxt "club.??b"
+msgid "Play-Off B"
+msgstr "플레이오프 B"
+
+msgctxt "club.??c"
+msgid "Play-Off C"
+msgstr "플레이오프 C"
+
+msgctxt "club.??d"
+msgid "Play-Off D"
+msgstr "플레이오프 D"
+
+msgctxt "club.ahl"
+msgid "Al Ahly"
+msgstr "알아흘리"
+
+msgctxt "club.ain"
+msgid "Al Ain"
+msgstr "알아인"
+
+msgctxt "club.akl"
+msgid "Auckland City"
+msgstr "오클랜드시티"
+
+msgctxt "club.atm"
+msgid "Atlético Madrid"
+msgstr "아틀레티코"
+
+msgctxt "club.bay"
+msgid "Bayern Munich"
+msgstr "바이에른"
+
+msgctxt "club.boc"
+msgid "Boca Juniors"
+msgstr "보카주니어스"
+
+msgctxt "club.bot"
+msgid "Botafogo"
+msgstr "보타포구"
+
+msgctxt "club.bvb"
+msgid "Borussia Dortmund"
+msgstr "도르트문트"
+
+msgctxt "club.cfm"
+msgid "Monterrey"
+msgstr "몬테레이"
+
+msgctxt "club.che"
+msgid "Chelsea"
+msgstr "첼시"
+
+msgctxt "club.est"
+msgid "Espérance de Tunis"
+msgstr "에스페랑스"
+
+msgctxt "club.fla"
+msgid "Flamengo"
+msgstr "플라멩구"
+
+msgctxt "club.flu"
+msgid "Fluminense"
+msgstr "플루미넨시"
+
+msgctxt "club.hil"
+msgid "Al Hilal"
+msgstr "알힐랄"
+
+msgctxt "club.int"
+msgid "Inter Milan"
+msgstr "인테르"
+
+msgctxt "club.juv"
+msgid "Juventus"
+msgstr "유벤투스"
+
+msgctxt "club.laf"
+msgid "Los Angeles FC"
+msgstr "LAFC"
+
+msgctxt "club.leo"
+msgid "León"
+msgstr "레온"
+
+msgctxt "club.mci"
+msgid "Manchester City"
+msgstr "맨체스터시티"
+
+msgctxt "club.mia"
+msgid "Inter Miami"
+msgstr "인터 마이애미"
+
+msgctxt "club.msu"
+msgid "Mamelodi Sundowns"
+msgstr "마멜로디"
+
+msgctxt "club.pac"
+msgid "Pachuca"
+msgstr "파추카"
+
+msgctxt "club.pal"
+msgid "Palmeiras"
+msgstr "파우메이라스"
+
+msgctxt "club.por"
+msgid "Porto"
+msgstr "포르투"
+
+msgctxt "club.psg"
+msgid "Paris Saint-Germain"
+msgstr "PSG"
+
+msgctxt "club.riv"
+msgid "River Plate"
+msgstr "리버 플레이트"
+
+msgctxt "club.rma"
+msgid "Real Madrid"
+msgstr "레알 마드리드"
+
+msgctxt "club.sal"
+msgid "Salzburg"
+msgstr "잘츠부르크"
+
+msgctxt "club.sea"
+msgid "Seattle Sounders"
+msgstr "시애틀"
+
+msgctxt "club.slb"
+msgid "Benfica"
+msgstr "벤피카"
+
+msgctxt "club.uhd"
+msgid "Ulsan"
+msgstr "울산"
+
+msgctxt "club.urd"
+msgid "Urawa Red Diamonds"
+msgstr "우라와"
+
+msgctxt "club.wac"
+msgid "Wydad"
+msgstr "위다드"
