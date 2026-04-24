@@ -824,7 +824,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		rectTitle = rectAll.Copy(dY=self.s_dYFontTitle)
 		oltbTitle = self.Oltb(rectTitle, self.page.Fontkey('final.title'), rectTitle.dY)
-		strTitle = self.page.StrTranslation('stage.final').upper()
+		strTitle = self.page.StrTranslation('stage.final')
 		oltbTitle.DrawText(strTitle, colorBlack, JH.Center)
 
 		# date
@@ -1689,7 +1689,7 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		rectStageText = SRect(pos.x, yStageTextMin, self.dX, self.s_dYFontStage)
 		oltbStageText = self.Oltb(rectStageText, self.page.Fontkey('elim.stage'), rectStageText.dY)
-		strStageText = self.page.StrTranslation('stage.group').upper()
+		strStageText = self.page.StrTranslation('stage.group')
 		rectStageTextDrawn = oltbStageText.RectDrawText(strStageText, colorLightGrey, JH.Center)
 
 		yStageTextMiddle = rectStageTextDrawn.yMin + rectStageTextDrawn.dY / 2 # middle of text
@@ -1871,7 +1871,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 		for stage, lRect in mpStageLRect.items():
 			rectStage = RectBoundingBox(lRect)
 			strKey = 'stage.' + stage.name.lower()
-			strStage = self.page.StrTranslation(strKey).upper()
+			strStage = self.page.StrTranslation(strKey)
 
 			self.mpStageTuRectStr[stage] = (rectStage, strStage)
 
@@ -1892,7 +1892,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 				rectStageText.Shift(dY = self.s_dYFontStage)
 
 			oltbStageText = self.Oltb(rectStageText, self.page.Fontkey('elim.stage'), rectStageText.dY)
-			rectStageTextDrawn = oltbStageText.RectDrawText(strStage.upper(), colorLightGrey, JH.Center)
+			rectStageTextDrawn = oltbStageText.RectDrawText(strStage, colorLightGrey, JH.Center)
 
 			try:
 				colorBorder = self.page.s_mpStageColorBorder[stage]
