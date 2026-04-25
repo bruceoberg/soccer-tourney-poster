@@ -88,6 +88,52 @@ class CMergeStats:  # tag = stats
 		self.cUntranslated: int = 0
 
 
+def MergeIncomingIntoExisting(
+	pofExisting: polib.POFile,
+	pofIncoming: polib.POFile,
+) -> polib.POFile:
+	"""Overlay a translator's incoming .po onto the existing repo .po.
+
+	Poedit silently strips fuzzy flags from entries the translator never
+	touched, so the incoming file can't be trusted as the base of truth.
+	Instead the existing repo .po is the base; only entries the translator
+	actually filled in (non-empty msgstr) override.
+	"""
+	pofMerged = polib.POFile()
+	# incoming metadata wins (Last-Translator, etc.) — they did the work.
+	pofMerged.metadata = dict(pofIncoming.metadata)
+	pofMerged.metadata_is_fuzzy = pofIncoming.metadata_is_fuzzy
+	pofMerged.header = pofIncoming.header
+
+	mpKeyIncoming = MpKeyEntryBuild(pofIncoming)
+	setKeyExisting: set[tuple[str, str]] = set()
+
+	for entryExisting in pofExisting:
+		if FIsDivider(entryExisting):
+			pofMerged.append(copy.deepcopy(entryExisting))
+			continue
+		key = (entryExisting.msgctxt or '', entryExisting.msgid)
+		setKeyExisting.add(key)
+		entryIncoming = mpKeyIncoming.get(key)
+		if entryIncoming is not None and entryIncoming.msgstr:
+			# translator provided a non-empty translation — accept it.
+			pofMerged.append(copy.deepcopy(entryIncoming))
+		else:
+			# translator left this alone (or stripped its flags). preserve existing.
+			pofMerged.append(copy.deepcopy(entryExisting))
+
+	# entries new in the incoming file. pass through; MergePotIntoPo keeps them
+	# only if the .pot still has them.
+	for entryIncoming in pofIncoming:
+		if FIsDivider(entryIncoming):
+			continue
+		key = (entryIncoming.msgctxt or '', entryIncoming.msgid)
+		if key not in setKeyExisting:
+			pofMerged.append(copy.deepcopy(entryIncoming))
+
+	return pofMerged
+
+
 def MergePotIntoPo(
 	pofProject: polib.POFile,
 	pofLang: polib.POFile,
@@ -254,14 +300,21 @@ def CmdAccept(args: argparse.Namespace) -> int:
 			cRejected += 1
 			continue
 
-		pofOut, stats = MergePotIntoPo(pofProject, pofInput, strPotCreationDate)
+		pathDest = g_pathLoc / f'{g_strProject}-{strLang}.po'
+		fExists = pathDest.exists()
+		if fExists:
+			pofExisting = polib.pofile(str(pathDest))
+			pofLang = MergeIncomingIntoExisting(pofExisting, pofInput)
+		else:
+			pofLang = pofInput
+
+		pofOut, stats = MergePotIntoPo(pofProject, pofLang, strPotCreationDate)
 		print(
 			f'  Stats: translated={stats.cTranslated}  fuzzy={stats.cFuzzy}  '
 			f'untranslated={stats.cUntranslated}  new={stats.cNew}  dropped={stats.cDropped}'
 		)
 
-		pathDest = g_pathLoc / f'{g_strProject}-{strLang}.po'
-		if pathDest.exists():
+		if fExists:
 			print(f'  Updating existing: {pathDest}')
 		else:
 			print(f'  Creating new: {pathDest}')
