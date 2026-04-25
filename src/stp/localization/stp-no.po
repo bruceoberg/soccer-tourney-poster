@@ -2,13 +2,16 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: stp 0.3.0\n"
-"POT-Creation-Date: 2026-04-24 23:20+0000\n"
-"PO-Revision-Date: 2026-04-24 23:20+0000\n"
+"POT-Creation-Date: 2026-04-25 12:51-0700\n"
+"PO-Revision-Date: 2026-04-25 12:57-0700\n"
 "Last-Translator: Bruce Oberg <bruce@oberg.org>\n"
 "Language-Team: Bruce Oberg <bruce@oberg.org>\n"
 "Language: no\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Generator: potpo from bruce@oberg.org\n"
+"X-Poedit-SourceCharset: UTF-8\n"
 
 #. This project supports a poster showing the fixtures or results of a
 #. football (soccer) tournament. In all cases, shorter translations are
@@ -16,14 +19,12 @@ msgstr ""
 #. just overflow. In general, the translation approach should match that of a
 #. newspaper or sports page. Be brief and colloquial, not vebose or technical.
 #. We're aiming for a casual readership.
-#, read-only
 msgid "### overview - see notes ###"
 msgstr ""
 
 #. Name of the poster- shown in the poster header. Inserted into the {name}
 #. field of page.format-title. Year goes before or after, according to that
 #. key.
-#, read-only
 msgid "### section: competition - see notes ###"
 msgstr ""
 
@@ -50,7 +51,6 @@ msgstr "Women's WC"
 #. Host country or region - shown in poster header, but in limited space.
 #. Inserted into the {location} field of page.format.dates-and-location. Date
 #. range goes before or after, according to that key.
-#, read-only
 msgid "### section: host - see notes ###"
 msgstr ""
 
@@ -92,7 +92,6 @@ msgstr "USA"
 
 #. Venues where matches are held. Most often a city, but sometimes an arena
 #. name when a city had multiple locations.
-#, read-only
 msgid "### section: venue - see notes ###"
 msgstr ""
 
@@ -377,7 +376,6 @@ msgid "Washington, DC"
 msgstr "Washington, DC"
 
 #. Title text and layout. If in doubt, leave alone.
-#, read-only
 msgid "### section: page - see notes ###"
 msgstr ""
 
@@ -419,7 +417,6 @@ msgid "Results"
 msgstr "Results"
 
 #. Names of the stages of a soccer tournament.
-#, read-only
 msgid "### section: stage - see notes ###"
 msgstr ""
 
@@ -464,23 +461,25 @@ msgid "Third Place"
 msgstr "Third Place"
 
 #. Abbreviations for the group stage sections of the poster.
-#, read-only
 msgid "### section: group - see notes ###"
 msgstr ""
 
-#. ABBREVIATION. Shown in a very small area. Indicates goals scored against
+#. Abbreviation of "Goals Against". Shown in a very small area. Indicates
+#. goals scored against
 #. the team. Not related to 'points'.
 msgctxt "group.goals-against"
 msgid "GA"
 msgstr "GA"
 
-#. ABBREVIATION. Shown in a very small area. Indicates goals the team scored.
+#. Abbreviation of "Goals For". Shown in a very small area. Indicates goals
+#. the team scored.
 #. Not related to 'points'.
 msgctxt "group.goals-for"
 msgid "GF"
 msgstr "GF"
 
-#. ABBREVIATION. Shown in a very small area. Indicates the 'points' of
+#. Abbreviation of "Points". Shown in a very small area. Indicates the
+#. 'points' of
 #. football standings (win=3pts, tie=1pt). Not related to goals.
 msgctxt "group.points"
 msgid "Pts"
@@ -490,7 +489,6 @@ msgctxt "group.title"
 msgid "Group"
 msgstr "Group"
 
-#, read-only
 msgid "### section: match - see notes ###"
 msgstr ""
 
@@ -505,7 +503,6 @@ msgid "#{id}"
 msgstr "#{id}"
 
 #. Country names, keyed by their 3 letter FIFA code.
-#, read-only
 msgid "### section: country - see notes ###"
 msgstr ""
 
@@ -904,7 +901,6 @@ msgstr "Zambia"
 #. Club names, keyed by their 3 letter FIFA code. Resist translating terms -
 #. the whole name from the original language is almost always used. Leave off
 #. acronyms (eg FC) unless they disambiguate.
-#, read-only
 msgid "### section: club - see notes ###"
 msgstr ""
 
