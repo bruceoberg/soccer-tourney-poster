@@ -167,13 +167,16 @@ class CLocalizationDataBase(CDataBase): # tag = loc
 		# metadata
 
 		objMetadata = {
-			'Content-Type': 'text/plain; charset=utf-8',
+			'Content-Type': 'text/plain; charset=UTF-8',
 			'Content-Transfer-Encoding': '8bit', # vestigal, but some tools complain if it's missing
 			'Project-Id-Version': f"{__project__} {__version__}",
 			'POT-Creation-Date': strDateUtcNow,
 			'PO-Revision-Date': strDateUtcNow,
 			'Last-Translator': __author_email__,
 			'Language-Team': __author_email__,
+			'MIME-Version': '1.0',
+			'X-Generator': 'stp.CLocalizationDatabase.DumpPotPos()',
+			'X-Poedit-SourceCharset': 'UTF-8',
 		}
 
 		strOverview = ' '.join((
