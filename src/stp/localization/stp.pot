@@ -23,7 +23,7 @@ msgid "### overview - see notes ###"
 msgstr ""
 
 #. Name of the poster- shown in the poster header. Inserted into the {name}
-#. field of page.format-title. Year goes before or after, according to that
+#. field of page.format.title. Year goes before or after, according to that
 #. key.
 msgid "### section: competition - see notes ###"
 msgstr ""

@@ -2,8 +2,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: stp 0.3.0\n"
-"POT-Creation-Date: 2026-04-25 12:51-0700\n"
-"PO-Revision-Date: 2026-04-25 12:57-0700\n"
+"POT-Creation-Date: 2026-04-25 13:09-0700\n"
+"PO-Revision-Date: 2026-04-25 13:09-0700\n"
 "Last-Translator: Bruce Oberg <bruce@oberg.org>\n"
 "Language-Team: Bruce Oberg <bruce@oberg.org>\n"
 "Language: ar\n"
@@ -23,7 +23,7 @@ msgid "### overview - see notes ###"
 msgstr ""
 
 #. Name of the poster- shown in the poster header. Inserted into the {name}
-#. field of page.format-title. Year goes before or after, according to that
+#. field of page.format.title. Year goes before or after, according to that
 #. key.
 msgid "### section: competition - see notes ###"
 msgstr ""
