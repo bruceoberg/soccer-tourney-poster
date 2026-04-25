@@ -163,7 +163,7 @@ class CLocalizationDataBase(CDataBase): # tag = loc
 		strHeader = '\n'.join((
 			f"Soccer Tournament Poster localization template.",
 			f"©️ {strYearUtcNow} {__author_email__}",
-			f"This file is distributed under the same license as the stp package."))
+			f"This file is distributed under the same license as the {__project__} package."))
 		# metadata
 
 		objMetadata = {
@@ -257,10 +257,10 @@ class CLocalizationDataBase(CDataBase): # tag = loc
 
 		self.s_pathDirPotPo.mkdir(parents=True, exist_ok=True)
 
-		mpLocalePof[localeEn].save(str(self.s_pathDirPotPo / 'stp.pot'))
+		mpLocalePof[localeEn].save(str(self.s_pathDirPotPo / f"{__project__}.pot"))
 		for locale, pof in mpLocalePof.items():
 			if locale != localeEn:
-				pof.save(str(self.s_pathDirPotPo / f"stp-{StrFromLocale(locale)}.po"))
+				pof.save(str(self.s_pathDirPotPo / f"{__project__}-{StrFromLocale(locale)}.po"))
 
 g_loc = CLocalizationDataBase()
 
