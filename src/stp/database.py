@@ -16,13 +16,11 @@ from typing import Optional, cast
 
 from bolay import IntEnum0, EnumTuple, SColor, ColorFromStr, ColorResaturate, FIsSaturated
 
-from . import __project__, __version__, __author_email__
+from . import __project__, __version__, __author_email__, g_pathCode
 
 TExcelRow = dict[str, str]				# tag = xlrow
 TExcelSheet = list[TExcelRow]			# tag = xls
 TExcelBook = dict[str, TExcelSheet]		# tag = xlb
-
-g_pathCode = Path(__file__).parent
 
 class CDataBase: # tag = db
 

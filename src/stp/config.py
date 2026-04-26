@@ -12,9 +12,8 @@ from pydantic import BaseModel, Field, ConfigDict
 from tap import Tap
 from typing import Optional, Iterator
 
+from . import g_pathCode
 from .database import CDataBase
-
-g_pathCode = Path(__file__).parent
 
 class PAGEK(StrEnum): # tag = pagek
 	GroupsTest = 'groups_test'

@@ -23,14 +23,13 @@ from bolay import ColorFromStr, SColor
 from bolay import colorBlack, colorWhite, colorGrey, colorDarkSlateGrey, colorLightGrey
 from bolay import EnumTuple
 
+from . import g_pathCode
 from .config import PAGEK, SPageArgs, SDocumentArgs, IterDoca, ParseArgs
 from .fonts import StrTtfLookup, SetStrTtfFromSetStrScript
 from .loc import StrTzAbbrev, StrFmtBestFit, StrScriptFromLocale
 from .profiling import Profiling, DumpTopCumulative
 from .versioning import g_repover
 from .database import g_loc, CTournamentDataBase, CGroup, CMatch, STAGE, MATCHSTAT
-
-g_pathCode = Path(__file__).parent
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
