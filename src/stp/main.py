@@ -26,10 +26,10 @@ from bolay import EnumTuple
 from . import g_pathCode
 from .config import PAGEK, SPageArgs, SDocumentArgs, IterDoca, ParseArgs
 from .fonts import StrTtfLookup, SetStrTtfFromSetStrScript
-from .loc import StrTzAbbrev, StrFmtBestFit, StrScriptFromLocale
+from .loc import g_loc, StrTzAbbrev, StrFmtBestFit, StrScriptFromLocale
 from .profiling import Profiling, DumpTopCumulative
 from .versioning import g_repover
-from .database import g_loc, CTournamentDataBase, CGroup, CMatch, STAGE, MATCHSTAT
+from .database import CTournamentDataBase, CGroup, CMatch, STAGE, MATCHSTAT
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 

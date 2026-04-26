@@ -5,18 +5,15 @@ from __future__ import annotations  # Forward refs without quotes (eg foo: CFoo,
 import arrow
 import copy
 import openpyxl
-import polib
 import re
 
-from babel import Locale
-from datetime import datetime, timezone
 from enum import IntEnum, auto
-from pathlib import Path
 from typing import Optional, cast
 
 from bolay import IntEnum0, EnumTuple, SColor, ColorFromStr, ColorResaturate, FIsSaturated
 
 from . import __project__, __version__, __author_email__, g_pathCode
+from .loc import g_loc
 
 TExcelRow = dict[str, str]				# tag = xlrow
 TExcelSheet = list[TExcelRow]			# tag = xls
@@ -72,198 +69,6 @@ class CDataBase: # tag = db
 
 		return xlb
 
-
-def StrFromLocale(locale: Locale) -> str:
-	assert(locale.language)
-
-	lStr = [locale.language]
-
-	if locale.script:
-		lStr.append(locale.script)
-
-	if locale.territory:
-		lStr.append(locale.territory)
-
-	return '_'.join(lStr).lower()
-
-class CLocalizationDataBase(CDataBase): # tag = loc
-
-	s_pathDirPotPo = g_pathCode / 'localization'
-
-	def __init__(self) -> None:
-
-		super().__init__('localization')
-
-		self.mpStrSectionSetStrSubkey: dict[str, set[str]] = {}
-		self.setLocale: set[Locale] = set()
-		self.mpStrKeyStrLocaleStrText: dict[str, dict[str, str]] = {}
-
-		xlb: TExcelBook = self.XlbLoad()
-
-		for strSection, xls in xlb.items():
-			setStrSubkey = self.mpStrSectionSetStrSubkey.setdefault(strSection, set())
-			for xlrow in xls:
-				strSubkey = xlrow['key'].lower()
-				del xlrow['key']
-
-				
-				for strLocale in xlrow.keys():
-					self.setLocale.add(Locale.parse(strLocale))
-				
-				setStrSubkey.add(strSubkey)
-
-				strKey = strSection + '.' + strSubkey
-				strKey = strKey.lower()
-
-				self.mpStrKeyStrLocaleStrText[strKey] = xlrow
-
-		# used to create our pot/po files.
-		#self.DumpPotPos()
-
-	def StrTranslation(self, strKey: str, locale: Locale) -> str:
-		strKey = strKey.lower()
-
-		mpStrLocaleStrText = self.mpStrKeyStrLocaleStrText[strKey]
-
-		lStrLocale = [
-			str(locale),		# full name... en_US or zh_Hans_CN
-		]
-
-		if locale.script:
-			lStrLocale.append(f"{locale.language}_{locale.script}")
-
-		if locale.language != 'en':
-			lStrLocale.append(locale.language)
-
-		for strLocale in lStrLocale:
-			try:
-				if strText := mpStrLocaleStrText[strLocale.lower()]:
-					return strText
-			except KeyError:
-				pass
-
-		return mpStrLocaleStrText['en']
-	
-	def DumpPotPos(self):
-		# write to a pot and pos for each locale
-
-		mpLocalePof = { locale: polib.POFile() for locale in self.setLocale }
-		localeEn = Locale.parse('en')
-		assert(localeEn in mpLocalePof)
-		dtUtcNow = datetime.now(timezone.utc)
-		strDateUtcNow = dtUtcNow.strftime('%Y-%m-%d %H:%M+0000')
-		strYearUtcNow = dtUtcNow.strftime('%Y')
-
-		setStrLangUntranslated = set(('nb', 'sv', 'cs', 'hr', 'pl', 'el', 'sw', 'uz'))
-
-		# header
-
-		strHeader = '\n'.join((
-			f"Soccer Tournament Poster localization template.",
-			f"©️ {strYearUtcNow} {__author_email__}",
-			f"This file is distributed under the same license as the {__project__} package."))
-		# metadata
-
-		objMetadata = {
-			'Content-Type': 'text/plain; charset=UTF-8',
-			'Content-Transfer-Encoding': '8bit', # vestigal, but some tools complain if it's missing
-			'Project-Id-Version': f"{__project__} {__version__}",
-			'POT-Creation-Date': strDateUtcNow,
-			'PO-Revision-Date': strDateUtcNow,
-			'Last-Translator': __author_email__,
-			'Language-Team': __author_email__,
-			'MIME-Version': '1.0',
-			'X-Generator': 'stp.CLocalizationDatabase.DumpPotPos()',
-			'X-Poedit-SourceCharset': 'UTF-8',
-		}
-
-		strOverview = ' '.join((
-			f"This project supports a poster showing the fixtures or results of a football (soccer) tournament.",
-			f"In all cases, shorter translations are preferred. Country names will be shrunk to fit, but",
-			f"many other fields will just overflow. In general, the translation approach should match",
-			f"that of a newspaper or sports page. Be brief and colloquial, not vebose or technical.",
-			f"We're aiming for a casual readership."))
-
-		poeOverview = polib.POEntry(
-			msgid=f"### overview - see notes ###",
-			msgstr='',
-			comment=strOverview,
-			flags=['read-only'])
-		
-		for locale, pof in mpLocalePof.items():
-			pof.metadata = copy.deepcopy(objMetadata)
-			pof.metadata['Language'] = StrFromLocale(locale)
-			pof.append(poeOverview)
-
-		# section
-
-		mpStrSectionStrComment: dict[str, str] = {
-			'competition':	"Name of the poster- shown in the poster header. Inserted into the {name} field of page.format-title. Year goes before or after, according to that key.",
-			'host':			"Host country or region - shown in poster header, but in limited space. Inserted into the {location} field of page.format.dates-and-location. Date range goes before or after, according to that key.",
-			'venue':		"Venues where matches are held. Most often a city, but sometimes an arena name when a city had multiple locations.",
-			'page':			"Title text and layout. If in doubt, leave alone.",
-			'stage':		"Names of the stages of a soccer tournament.",
-			'group':		"Abbreviations for the group stage sections of the poster.",
-			'country':		"Country names, keyed by their 3 letter FIFA code.",
-			'club':			"Club names, keyed by their 3 letter FIFA code. Resist translating terms - the whole name from the original language is almost always used. Leave off acronyms (eg FC) unless they disambiguate.",
-		}
-
-		mpStrKeyStrComment: dict[str, str] = {
-			'match.format.label':				"How to format an ordinal match number.",
-			'match.after-extra-time':			"How to abbreviate the term 'After Extra Time'.",
-			'page.timezone.label':				"Inserted into the {label} of page.format.timezone.",
-			'page.format.dates-and-location':	"Date range is built and inserted into {dates} field. Country from 'host' section is inserted into {location} field.",
-			'page.format.timezone':				"Timezone is build and inserted into {timezone} field. Text from page.timezone.label is inserted into {label} field. Farsi version includes an invisible RtL character so that parenthesis apprear correctly.",
-			'page.title.fixtures':				"Inserted into page.format.title when poster shows upcoming matches with no scores.",
-			'page.title.results':				"Inserted into page.format.title when poster shows completed matches with scores.",
-			'page.format.title':				"Layout of the poster title (centered, on top). Specifies order of year, competition title (from competition section), and poster label (fixtures/results)",
-			'stage.round64':					"Caution. A literal translation of 'Round of' may be inappropriate. Some languages use forms like 'eighths final' or 'sixteenths final'.",
-			'stage.round32':					"Caution. A literal translation of 'Round of' may be inappropriate. Some languages use forms like 'eighths final' or 'sixteenths final'.",
-			'stage.round16':					"Caution. A literal translation of 'Round of' may be inappropriate. Some languages use forms like 'eighths final' or 'sixteenths final'.",
-			'stage.quarters':					"Caution. A literal translation of 'Round of' may be inappropriate. Some languages use forms like 'eighths final' or 'sixteenths final'.",
-			'group.points':						"ABBREVIATION. Shown in a very small area. Indicates the 'points' of football standings (win=3pts, tie=1pt). Not related to goals.",
-			'group.goals-for':					"ABBREVIATION. Shown in a very small area. Indicates goals the team scored. Not related to 'points'.",
-			'group.goals-against':				"ABBREVIATION. Shown in a very small area. Indicates goals scored against the team. Not related to 'points'.",
-		}
-
-		for strSection, setStrSubkey in self.mpStrSectionSetStrSubkey.items():
-			poeSection = polib.POEntry(
-				msgid=f"### section: {strSection} - see notes ###",
-				msgstr='',
-				comment=mpStrSectionStrComment.get(strSection, ''),
-				flags=['read-only'])
-
-			for pof in mpLocalePof.values():
-				pof.append(poeSection)
-
-			for strSubkey in sorted(setStrSubkey):
-				strKey = f"{strSection.lower()}.{strSubkey.lower()}"
-
-				for locale, pof in mpLocalePof.items():
-					strId = self.StrTranslation(strKey, localeEn)
-					if locale != localeEn and locale.language not in setStrLangUntranslated:
-						strMsg = self.StrTranslation(strKey, locale)
-					else:
-						strMsg = ''
-					lStrFlags = ['fuzzy'] if locale.language in setStrLangUntranslated else []
-					pof.append(
-							polib.POEntry(
-								msgctxt=strKey,
-								msgid=strId,
-								msgstr=strMsg,
-								comment=mpStrKeyStrComment.get(strKey, ''),
-								flags=lStrFlags))
-
-		print("writing localizations")
-
-		self.s_pathDirPotPo.mkdir(parents=True, exist_ok=True)
-
-		mpLocalePof[localeEn].save(str(self.s_pathDirPotPo / f"{__project__}.pot"))
-		for locale, pof in mpLocalePof.items():
-			if locale != localeEn:
-				pof.save(str(self.s_pathDirPotPo / f"{__project__}-{StrFromLocale(locale)}.po"))
-
-g_loc = CLocalizationDataBase()
 
 class STAGE(IntEnum):
 	Group = auto()

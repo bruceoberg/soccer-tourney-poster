@@ -2,6 +2,8 @@
 
 from __future__ import annotations  # Forward refs without quotes (eg foo: CFoo, not foo: 'CFoo')
 
+import polib
+
 from babel import Locale
 from babel.core import get_global, parse_locale
 from dataclasses import dataclass
@@ -9,7 +11,55 @@ from datetime import datetime
 
 from bolay import CPdf
 
-from .config import mpCTeamSizeMin, lFmtIso, lFmtUS
+from . import __project__, g_pathCode
+
+# paper sizes offered for poster printing at fedex office stores
+
+mpStoreLFmt = {
+	'fedex':
+	(
+		'16x20',	# 16in x 20in
+		'18x24',	# 18in x 24in
+		'22x28',	# 22in x 28in
+		'24x36',	# 24in x 36in
+		'36x48',	# 36in x 48in
+	),
+	'office-depot':
+	(
+		'16x20',	# 16in x 20in
+		'18x24',	# 18in x 24in
+		'24x36',	# 24in x 36in
+		'36x48',	# 36in x 48in
+		'40x60',	# 40in x 60in
+	),
+	'staples':
+	(
+		'12x18',	# 12in x 18in
+		'16x20',	# 16in x 20in
+		'18x24',	# 18in x 24in
+		'24x36',	# 24in x 36in
+		'36x48',	# 36in x 48in
+	),
+}
+
+setFmtUS = {fmt for strStore, lFmt in mpStoreLFmt.items() for fmt in lFmt }
+lFmtUS = sorted(setFmtUS)
+
+lFmtIso = (
+	'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10',
+	'b0', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8', 'b9', 'b10',
+	'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10',
+)
+
+# empirical minimum heights/widths of various tourney sizes.
+# see print() statement in CCalElimPage constructor.
+
+mpCTeamSizeMin: dict[int, tuple[float, float]] ={
+	16: (14.035, 19.844),
+	24: (18.068, 25.750),
+	32: (18.068, 25.750),
+	48: (22.665, 29.969),
+}
 
 def FUsesIsoPaperSizes(locale: Locale) -> bool:
 	setStrTerritoryUsLetter = {
@@ -115,3 +165,73 @@ def StrScriptFromLocale(locale: Locale) -> str:
 
 	return 'Latn'
 
+def StrLocaleFromPof(pof: polib.POFile) -> str:
+	return pof.metadata.get('Language', '').strip().lower()
+
+class CLocalizationDataBase(): # tag = loc
+
+	s_pathDir = g_pathCode / 'localization'
+
+	def __init__(self) -> None:
+
+		self.mpStrSectionSetStrSubkey: dict[str, set[str]] = {}
+		self.mpStrKeyStrLocaleStrText: dict[str, dict[str, str]] = {}
+
+		# pot is allowed to establish keys and sections
+		# it loads text from msgids
+
+		pathPot =  self.s_pathDir / (__project__ + '.pot')
+		pof = polib.pofile(str(pathPot))
+		strLocale = StrLocaleFromPof(pof)
+		for entry in pof:
+			if not entry.msgctxt:
+				continue
+			strKey = entry.msgctxt.lower()
+
+			strSection, strSubKey = strKey.split('.', 1)
+			self.mpStrSectionSetStrSubkey.setdefault(strSection, set()).add(strSubKey)
+
+			mpStrLocaleStrText = self.mpStrKeyStrLocaleStrText.setdefault(strKey, {})
+			mpStrLocaleStrText[strLocale] = entry.msgid
+
+		# po files can only add entries to extant keys and they load text from msgstr.
+
+		for pathPo in self.s_pathDir.glob(f'{__project__}-*.po'):
+			pof = polib.pofile(str(pathPo))
+			strLocale = StrLocaleFromPof(pof)
+			
+			for entry in pof:
+				if not entry.msgctxt:
+					continue
+				strKey = entry.msgctxt.lower()
+
+				if mpStrLocaleStrText := self.mpStrKeyStrLocaleStrText.get(strKey):
+					mpStrLocaleStrText[strLocale] = entry.msgstr
+				else:
+					print(f"warning: file {pathPo} has unknown key {strKey}")
+
+	def StrTranslation(self, strKey: str, locale: Locale) -> str:
+		strKey = strKey.lower()
+
+		mpStrLocaleStrText = self.mpStrKeyStrLocaleStrText[strKey]
+
+		lStrLocale = [
+			str(locale),		# full name... en_US or zh_Hans_CN
+		]
+
+		if locale.script:
+			lStrLocale.append(f"{locale.language}_{locale.script}")
+
+		if locale.language != 'en':
+			lStrLocale.append(locale.language)
+
+		for strLocale in lStrLocale:
+			try:
+				if strText := mpStrLocaleStrText[strLocale.lower()]:
+					return strText
+			except KeyError:
+				pass
+
+		return mpStrLocaleStrText['en']
+
+g_loc = CLocalizationDataBase()

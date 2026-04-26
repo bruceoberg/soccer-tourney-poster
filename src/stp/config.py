@@ -21,54 +21,6 @@ class PAGEK(StrEnum): # tag = pagek
 	CalOnly = 'cal_only'
 	CalElim = 'cal_elim'
 
-# paper sizes offered for poster printing at fedex office stores
-
-mpStoreLFmt = {
-	'fedex':
-	(
-		'16x20',	# 16in x 20in
-		'18x24',	# 18in x 24in
-		'22x28',	# 22in x 28in
-		'24x36',	# 24in x 36in
-		'36x48',	# 36in x 48in
-	),
-	'office-depot':
-	(
-		'16x20',	# 16in x 20in
-		'18x24',	# 18in x 24in
-		'24x36',	# 24in x 36in
-		'36x48',	# 36in x 48in
-		'40x60',	# 40in x 60in
-	),
-	'staples':
-	(
-		'12x18',	# 12in x 18in
-		'16x20',	# 16in x 20in
-		'18x24',	# 18in x 24in
-		'24x36',	# 24in x 36in
-		'36x48',	# 36in x 48in
-	),
-}
-
-setFmtUS = {fmt for strStore, lFmt in mpStoreLFmt.items() for fmt in lFmt }
-lFmtUS = sorted(setFmtUS)
-
-lFmtIso = (
-	'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10',
-	'b0', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8', 'b9', 'b10',
-	'c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10',
-)
-
-# empirical minimum heights/widths of various tourney sizes.
-# see print() statement in CCalElimPage constructor.
-
-mpCTeamSizeMin: dict[int, tuple[float, float]] ={
-	16: (14.035, 19.844),
-	24: (18.068, 25.750),
-	32: (18.068, 25.750),
-	48: (22.665, 29.969),
-}
-
 TFmt = Optional[str | tuple[float, float]]
 
 class SPageArgs(BaseModel): # tag - pagea
