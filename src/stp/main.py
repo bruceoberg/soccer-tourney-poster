@@ -13,9 +13,9 @@ import sys
 
 from babel import Locale
 from dataclasses import dataclass
-from dateutil import tz
 from pathlib import Path
 from typing import Optional, Iterable, Type, cast
+from zoneinfo import ZoneInfo
 
 from bolay import SFontKey, VEK, UVekLm, CFontInstance, CPdf, CBlot
 from bolay import JH, JV, SPoint, SRect, RectBoundingBox, SHaloArgs, SBox
@@ -26,7 +26,7 @@ from bolay import EnumTuple
 from . import g_pathCode
 from .config import PAGEK, SPageArgs, SDocumentArgs, IterDoca, ParseArgs
 from .fonts import StrTtfLookup, SetStrTtfFromSetStrScript
-from .loc import g_loc, StrTzAbbrev, StrFmtBestFit, StrScriptFromLocale
+from .loc import g_loc, CZoneName, StrFileFromLocale, StrFmtBestFit, StrScriptFromLocale
 from .profiling import Profiling, DumpTopCumulative
 from .versioning import g_repover
 from .database import CTournamentDataBase, CGroup, CMatch, STAGE, MATCHSTAT
@@ -1057,10 +1057,7 @@ class CPage:
 			self.tourn = cast(CTournamentDataBase, doc.tourn)
 
 		self.strOrientation = self.pagea.strOrientation
-		self.strTz = self.tourn.StrTimezone() if self.FAllMatchesHaveResults() else self.pagea.strTz
-		tzinfoOptional = cast(datetime.tzinfo, tz.gettz(self.strTz))
-		assert(tzinfoOptional is not None)
-		self.tzinfo = tzinfoOptional
+		self.zoneinfo = ZoneInfo(self.tourn.StrTimezone() if self.FAllMatchesHaveResults() else self.pagea.strTz)
 		self.locale = Locale.parse(self.pagea.strLocale)
 		self.strScript = StrScriptFromLocale(self.locale)
 		self.strDateMMMMEEEEd = StrPatternDateMMMMEEEEd(self.locale)
@@ -1075,33 +1072,13 @@ class CPage:
 
 		self.mpDateSetMatch: dict[datetime.date, set[CMatch]] = self.MpDateSetMatch()
 
-		# with our dates set, we can calucate out short timezone name
+		# with our dates set, we can calcucate our timezone names
 
 		tMin = arrow.get(min(self.mpDateSetMatch))
-		tTz = tMin.to(self.tzinfo)
-		self.strTzAbbrev = StrTzAbbrev(self.strTz, tTz.datetime)
+		self.zonename = CZoneName(tMin, self.zoneinfo)
 
-		if self.strTzAbbrev.startswith('+') or self.strTzAbbrev.startswith('-'):
-			self.strTzHeader = f'UTC{self.strTzAbbrev}'
-		else:
-			dT = tTz.utcoffset()
-			assert(isinstance(dT, datetime.timedelta))
-			if cSec := int(dT.total_seconds()):
-				if (cSec % (60*60)) == 0:
-					cHour = cSec // (60*60)
-					self.strTzHeader = f'{self.strTzAbbrev} (UTC{cHour:+d})'
-				else:
-					cHour = cSec // (60*60)
-					cMin = (cSec % (60*60)) // 60
-					self.strTzHeader = f'{self.strTzAbbrev} (UTC{cHour:+d}:{cMin:02d})'
-			elif self.strTzAbbrev.upper() != 'UTC':
-				self.strTzHeader = f'{self.strTzAbbrev} (UTC)'
-			else:
-				self.strTzHeader = self.strTzAbbrev
-
-	
 		# if self.pagea.fmt is None:
-		# 	print(f"{self.tourn.strName} ({str(self.locale).lower()}/{self.strTzAbbrev}): choosing {self.fmt}")
+		# 	print(f"{self.tourn.strName} ({str(self.locale).lower()}/{self.zoneinfo.key}): choosing {self.fmt}")
 
 		# using "type: ignore" here because fpdf's typing stubs are known to be janky.
 
@@ -1195,9 +1172,9 @@ class CPage:
 		# pages regardless of the page timezone.
 
 		strTzTourney: str = self.tourn.StrTimezone()
-		tzinfoTourney = tz.gettz(strTzTourney)
-		assert(tzinfoTourney)
-		mpIdDateTourney: dict[int, datetime.date] = { id: match.tStart.to(tzinfoTourney).date() for id, match in self.tourn.mpIdMatch.items() }
+		zoneinfoTourney = ZoneInfo(strTzTourney)
+		assert(zoneinfoTourney)
+		mpIdDateTourney: dict[int, datetime.date] = { id: match.tStart.to(zoneinfoTourney).date() for id, match in self.tourn.mpIdMatch.items() }
 
 		# if all the matches are one day off their display dates, then reset the display dates
 
@@ -1206,7 +1183,7 @@ class CPage:
 		for match in self.tourn.mpIdMatch.values():
 			if match.stage != STAGE.Group:
 				continue
-			tTimeTz = match.tStart.to(self.tzinfo)
+			tTimeTz = match.tStart.to(self.zoneinfo)
 			dateDisplay = mpIdDateTourney[match.id]
 			if dateDisplay.day == tTimeTz.day:
 				fAllGroupMatchesAhead = False
@@ -1224,7 +1201,7 @@ class CPage:
 		for match in self.tourn.mpIdMatch.values():
 			if match.stage != STAGE.Group:
 				continue
-			tTimeTz = match.tStart.to(self.tzinfo)
+			tTimeTz = match.tStart.to(self.zoneinfo)
 			dateDisplay = mpIdDateTourney[match.id]
 			if dateDisplay.day != tTimeTz.day:
 				fForceGroup24HourTime = True
@@ -1236,7 +1213,7 @@ class CPage:
 			strFmtTime = 'short'
 
 		for match in self.tourn.mpIdMatch.values():
-			tTimeTz = match.tStart.to(self.tzinfo)
+			tTimeTz = match.tStart.to(self.zoneinfo)
 			strTime = babel.dates.format_time(tTimeTz.time(), strFmtTime, locale=self.locale)
 
 			if match.stage == STAGE.Group:
@@ -1473,7 +1450,7 @@ class CHeaderBlot(CBlot): # tag = headerb
 
 		strLabelTimeZone = self.page.StrTranslation('page.timezone.label')
 		strFormatTimeZone = self.page.StrTranslation('page.format.timezone')
-		strTimeZone = strFormatTimeZone.format(label=strLabelTimeZone, timezone=self.page.strTzHeader)
+		strTimeZone = strFormatTimeZone.format(label=strLabelTimeZone, timezone=self.page.zonename.StrFriendly())
 
 		# notes left and right
 
@@ -2173,8 +2150,8 @@ class CDocument: # tag = doc
 
 		if self.doca.fAddLangTzSuffix:
 			for page in self.lPage:
-				lStrFile.append(str(page.locale).lower())
-				lStrFile.append(page.strTzAbbrev.lower())
+				lStrFile.append(StrFileFromLocale(page.locale).lower())
+				lStrFile.append(page.zonename.StrFriendly().lower())
 
 		strFile = '-'.join(lStrFile)
 

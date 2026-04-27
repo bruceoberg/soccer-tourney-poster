@@ -2,12 +2,14 @@
 
 from __future__ import annotations  # Forward refs without quotes (eg foo: CFoo, not foo: 'CFoo')
 
+import arrow
 import polib
 
 from babel import Locale
 from babel.core import get_global, parse_locale
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from bolay import CPdf
 
@@ -121,32 +123,99 @@ g_mpStrTzTzs: dict[str, STZs] = {
 	"Asia/Tashkent":		STZs("UZT", "UZT"),	# No DST
 }
 
-def StrTzAbbrev(strTz: str, t: datetime) -> str:
-	"""
-	Get the timezone abbreviation for a datetime.
+class CZoneName: # tag = zonename
+	""" the timezone name(s) for a date/time """
+
+	def __init__(self, tUtc: arrow.Arrow, zoneinfo: ZoneInfo):
+
+		tTz = tUtc.to(zoneinfo)
+
+		self.strAbbrev = ''
+		self.strHour = ''
+		self.strMinute = ''
+
+		strTzLookup = tTz.strftime('%Z')
+
+		# system abbreviation might be an offset like "+0330".
+		# if so, try looking up a friendly name
+
+		if strTzLookup[0] in ('+', '-'):
+			assert strTzLookup[1:].isdecimal()
+
+			fIsDst = tTz.dst() and tTz.dst().total_seconds() > 0
+
+			try:
+				tzs = g_mpStrTzTzs[zoneinfo.key]
+				self.strAbbrev = tzs.strDst if fIsDst else tzs.strStd
+			except KeyError:
+				print(f"Warning: timezone '{zoneinfo.key}' abbreviated to '{strTzLookup}'")
+				pass
+
+			assert len(strTzLookup) <= 5
+			if len(strTzLookup) > 3:
+				self.strHour = f'{int(strTzLookup[:-2]):+d}'
+				self.strMinute = f'{int(strTzLookup[-2:]):02d}'
+			else:
+				self.strHour = f'{int(strTzLookup):+d}'
+		else:
+			self.strAbbrev = strTzLookup
+
+			dT = tTz.utcoffset()
+			assert(isinstance(dT, timedelta))
+			if cSec := int(dT.total_seconds()):
+				if (cSec % (60*60)) == 0:
+					cHour = cSec // (60*60)
+					self.strHour = f'{cHour:+d}'
+				else:
+					cHour = cSec // (60*60)
+					cMin = (cSec % (60*60)) // 60
+					self.strHour = f'{cHour:+d}'
+					self.strMinute = f'{cMin:02d}'
+
+		assert not any([ch.isdecimal() for ch in self.strAbbrev])
+
+	def StrRawOffset(self) -> str:
+		if not self.strHour and not self.strMinute:
+			return '+0000'
+		
+		strHour = f'{int(self.strHour):+03d}'
+		strMinute = self.strMinute if self.strMinute else '00'
+
+		return strHour + strMinute
 	
-	Returns the appropriate abbreviation (e.g., "IRST" or "IRDT") based on
-	whether DST is active. Falls back to system abbreviation (which may be
-	an offset like "+0330") if no mapping exists.
-	"""
+	def StrFriendlyOffset(self) -> str:
+		if not self.strHour:
+			return ''
+		
+		if not self.strMinute:
+			return self.strHour
+		
+		return self.strHour + ':' + self.strMinute
 
-	try:
-		tzs = g_mpStrTzTzs[strTz]
-		fIsDst = t.dst() and t.dst().total_seconds() > 0
-		return tzs.strDst if fIsDst else tzs.strStd
-	except KeyError:
-		pass
-	
-	# Fallback to system abbreviation (might be offset like "+0330")
+	def StrMinimal(self) -> str:
+		if strMinimal := self.strAbbrev:
+			return strMinimal
 
-	strTzAbbrev = t.strftime('%Z')
+		if strMinimal := self.StrFriendlyOffset():
+			return strMinimal
 
-	for ch in strTzAbbrev:
-		if ch.isdigit():
-			print(f"Warning: strTztimezone '{strTz}' abbreviated to '{strTzAbbrev}'")
-			break
+		return self.StrRawOffset()
 
-	return strTzAbbrev
+	def StrFriendly(self) -> str:
+		if not self.strAbbrev:
+			return 'UTC' + self.StrFriendlyOffset()
+		
+		if self.strHour:
+			return f'{self.strAbbrev} (UTC{self.StrFriendlyOffset()})'
+		elif self.strAbbrev.upper() != 'UTC':
+			return f'{self.strAbbrev} (UTC)'
+		else:
+			return self.strAbbrev
+		
+def StrFileFromLocale(locale: Locale) -> str:
+	strTerritory = locale.territory if locale.territory else 'us'
+
+	return f"{locale.language}_{strTerritory}"
 
 g_mpStrSubtag = get_global('likely_subtags')
 
