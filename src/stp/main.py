@@ -2151,7 +2151,7 @@ class CDocument: # tag = doc
 		if self.doca.fAddLangTzSuffix:
 			for page in self.lPage:
 				lStrFile.append(StrFileFromLocale(page.locale).lower())
-				lStrFile.append(page.zonename.StrFriendly().lower())
+				lStrFile.append(page.zonename.StrMinimal().lower())
 
 		strFile = '-'.join(lStrFile)
 
