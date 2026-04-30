@@ -16,7 +16,7 @@ from bolay import colorBlack, colorWhite, colorGrey
 
 from .config import SPageArgs
 from .fonts import StrTtfLookup
-from .loc import g_loc, CZoneName, StrFmtBestFit, StrScriptFromLocale
+from .loc import g_loc, CZoneName, StrFmtBestFit, StrFileFromLocale, StrScriptFromLocale
 from .versioning import g_repover
 from .database import CTournamentDataBase, CMatch, STAGE
 from .group import CGroupBlot, CGroupSetBlot
@@ -481,7 +481,7 @@ class CFooterBlot(CBlot): # tag = headerb
 		]
 
 		lStrCreditCenter: list[str] = [
-			str(self.page.locale),
+			str(StrFileFromLocale(self.page.locale)),
 			str(self.page.fmt),
 		]
 
