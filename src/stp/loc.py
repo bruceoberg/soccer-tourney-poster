@@ -103,24 +103,34 @@ def StrFmtBestFit(cTeam: int, locale: Locale) -> str:
 @dataclass(frozen=True)
 class STZs:  # tag = tzs
 	strStd: str
-	strDst: str
+	strDst: str = ''
+
+	def StrLookup(self, tTz: arrow.Arrow) -> str:
+		if not self.strDst:
+			return self.strStd
+
+		fIsDst = tTz.dst() and tTz.dst().total_seconds() > 0
+
+		return self.strDst if fIsDst else self.strStd
 
 # name for unnamed timezones (where datetime.strftime('%Z') returns a number instead of a name)
 # timezones: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 
 g_mpStrTzTzs: dict[str, STZs] = {
- 	"America/Bogota":		STZs("EST", "EST"), # No DST
- 	"America/Guayaquil":	STZs("EST", "EST"), # No DST
-	"America/Buenos_Aires":	STZs("ADT", "ADT"), # Always DST
-	"America/Montevideo":	STZs("ADT", "ADT"), # Always DST
-	"America/Asuncion":		STZs("ADT", "ADT"), # Always DST
-	"America/Sao_Paulo":	STZs("BRT", "BRT"), # No DST
-	"Europe/Istanbul":		STZs("TRT", "TRT"),	# No DST
-	"Atlantic/Cape_Verde":	STZs("CVT", "CVT"), # No DST
-	"Africa/Casablanca":	STZs("WAT",	"WAT"), # No DST
-	"Asia/Tehran":			STZs("IRST", "IRST"), # No DST
-	"Asia/Riyadh":			STZs("SAST", "SAST"),	# No DST
-	"Asia/Tashkent":		STZs("UZT", "UZT"),	# No DST
+ 	"America/Bogota":		STZs("EST"),
+ 	"America/Guayaquil":	STZs("EST"),
+	"America/Buenos_Aires":	STZs("ADT"),
+	"America/Montevideo":	STZs("ADT"),
+	"America/Asuncion":		STZs("ADT"),
+	"America/Sao_Paulo":	STZs("BRT"),
+	"Europe/Istanbul":		STZs("TRT"),
+	"Atlantic/Cape_Verde":	STZs("CVT"),
+	"Africa/Casablanca":	STZs("WAT"),
+	"Asia/Tehran":			STZs("IRST"),
+	"Asia/Riyadh":			STZs("SAST"),
+	"Asia/Tashkent":		STZs("UZT"),
+	"Asia/Shanghai":		STZs("CHST"),
+	"Asia/Taipei":			STZs("TST"),
 }
 
 class CZoneName: # tag = zonename
@@ -131,32 +141,27 @@ class CZoneName: # tag = zonename
 		tTz = tUtc.to(zoneinfo)
 
 		self.strAbbrev = ''
-		self.strHour = ''
-		self.strMinute = ''
+		self.cHour = 0
+		self.cMinute = 0
 
-		strTzLookup = tTz.strftime('%Z')
+		try:
+			tzs = g_mpStrTzTzs[zoneinfo.key]
+			strTzLookup = tzs.StrLookup(tTz)
+		except KeyError:
+			strTzLookup = tTz.strftime('%Z')
 
-		# system abbreviation might be an offset like "+0330".
-		# if so, try looking up a friendly name
+		# tz be an offset like "+0330".
 
 		if strTzLookup[0] in ('+', '-'):
+			print(f"Warning: timezone '{zoneinfo.key}' abbreviated to '{strTzLookup}'")
 			assert strTzLookup[1:].isdecimal()
-
-			fIsDst = tTz.dst() and tTz.dst().total_seconds() > 0
-
-			try:
-				tzs = g_mpStrTzTzs[zoneinfo.key]
-				self.strAbbrev = tzs.strDst if fIsDst else tzs.strStd
-			except KeyError:
-				print(f"Warning: timezone '{zoneinfo.key}' abbreviated to '{strTzLookup}'")
-				pass
-
+			assert len(strTzLookup) >= 2
 			assert len(strTzLookup) <= 5
 			if len(strTzLookup) > 3:
-				self.strHour = f'{int(strTzLookup[:-2]):+d}'
-				self.strMinute = f'{int(strTzLookup[-2:]):02d}'
+				self.cHour = int(strTzLookup[:-2])
+				self.cMinute = int(strTzLookup[-2:])
 			else:
-				self.strHour = f'{int(strTzLookup):+d}'
+				self.cHour = int(strTzLookup)
 		else:
 			self.strAbbrev = strTzLookup
 
@@ -164,33 +169,24 @@ class CZoneName: # tag = zonename
 			assert(isinstance(dT, timedelta))
 			if cSec := int(dT.total_seconds()):
 				if (cSec % (60*60)) == 0:
-					cHour = cSec // (60*60)
-					self.strHour = f'{cHour:+d}'
+					self.cHour = cSec // (60*60)
 				else:
-					cHour = cSec // (60*60)
-					cMin = (cSec % (60*60)) // 60
-					self.strHour = f'{cHour:+d}'
-					self.strMinute = f'{cMin:02d}'
+					self.cHour = cSec // (60*60)
+					self.cMin = (cSec % (60*60)) // 60
 
 		assert not any([ch.isdecimal() for ch in self.strAbbrev])
 
 	def StrRawOffset(self) -> str:
-		if not self.strHour and not self.strMinute:
-			return '+0000'
-		
-		strHour = f'{int(self.strHour):+03d}'
-		strMinute = self.strMinute if self.strMinute else '00'
-
-		return strHour + strMinute
+		return f'{int(self.cHour):+03d}{int(self.cMinute):02d}'
 	
 	def StrFriendlyOffset(self) -> str:
-		if not self.strHour:
+		if not self.cHour and not self.cMinute:
 			return ''
 		
-		if not self.strMinute:
-			return self.strHour
+		if not self.cMinute:
+			return f'{int(self.cHour):+d}'
 		
-		return self.strHour + ':' + self.strMinute
+		return f'{int(self.cHour):+d}:{int(self.cMinute):02d}'
 
 	def StrMinimal(self) -> str:
 		if strMinimal := self.strAbbrev:
@@ -205,7 +201,7 @@ class CZoneName: # tag = zonename
 		if not self.strAbbrev:
 			return 'UTC' + self.StrFriendlyOffset()
 		
-		if self.strHour:
+		if self.cHour:
 			return f'{self.strAbbrev} (UTC{self.StrFriendlyOffset()})'
 		elif self.strAbbrev.upper() != 'UTC':
 			return f'{self.strAbbrev} (UTC)'
