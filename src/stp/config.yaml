@@ -181,6 +181,9 @@ published:
     - { tz: Europe/Prague,       loc: cs_CZ }
     - { tz: Europe/Sarajevo,     loc: hr_BA }
     - { tz: Europe/Zagreb,       loc: hr_HR }
+
+    - { tz: Europe/Athens,       loc: el_GR }
+    - { tz: Europe/Warsaw,       loc: pl_PL }
     - { tz: Europe/Istanbul,     loc: tr_TR }
     - { tz: Europe/Moscow,       loc: ru_RU }
     
@@ -191,6 +194,7 @@ published:
     - { tz: Africa/Casablanca,   loc: ar_MA }
     - { tz: Africa/Johannesburg, loc: en_ZA }
     - { tz: Africa/Cairo,        loc: ar_EG }
+    - { tz: Africa/Kinshasa,     loc: sw_CD }
     
     # Middle East
 
