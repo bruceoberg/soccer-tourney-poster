@@ -126,7 +126,7 @@ g_mpStrTzTzs: dict[str, STZs] = {
 	"Atlantic/Cape_Verde":	STZs("CVT"),
 	"Africa/Casablanca":	STZs("WAT"),
 	"Asia/Tehran":			STZs("IRST"),
-	"Asia/Riyadh":			STZs("SAST"),
+	"Asia/Riyadh":			STZs("ARST"),
 	"Asia/Tashkent":		STZs("UZT"),
 	"Asia/Shanghai":		STZs("CHST"),
 	"Asia/Taipei":			STZs("TST"),
@@ -134,6 +134,8 @@ g_mpStrTzTzs: dict[str, STZs] = {
 
 class CZoneName: # tag = zonename
 	""" the timezone name(s) for a date/time """
+
+	s_mpStrAbbrevSetHM: dict[str, set[tuple[int, int]]] = {}
 
 	def __init__(self, tUtc: arrow.Arrow, zoneinfo: ZoneInfo):
 
@@ -172,6 +174,14 @@ class CZoneName: # tag = zonename
 				else:
 					self.cHour = cSec // (60*60)
 					self.cMin = (cSec % (60*60)) // 60
+
+			setHM = self.s_mpStrAbbrevSetHM.setdefault(self.strAbbrev, set())
+			cHm = len(setHM)
+			setHM.add((self.cHour, self.cMin))
+			
+			if cHm and len(setHM) > cHm:
+				print(f"tz {self.strAbbrev} has multiple HM: {setHM}")
+			
 
 		assert not any([ch.isdecimal() for ch in self.strAbbrev])
 
