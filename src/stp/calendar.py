@@ -4,8 +4,7 @@ import arrow
 import babel.dates
 import datetime
 
-from dataclasses import dataclass
-from typing import Optional, Iterable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Iterable, NamedTuple
 
 from bolay import SFontKey, VEK, CFontInstance, CBlot
 from bolay import JH, JV, SPoint, SRect, SHaloArgs
@@ -17,6 +16,10 @@ from .group import CGroupBlot
 
 if TYPE_CHECKING:
 	from .page import CPage
+
+class SRectColor(NamedTuple):
+	rect: SRect
+	color: SColor
 
 class CMatchBlot(CBlot): # tag = dayb
 	def __init__(self, dayb: CDayBlot, match: CMatch, rect: SRect) -> None:
@@ -56,11 +59,6 @@ class CMatchBlot(CBlot): # tag = dayb
 			lColor = [group.colors.color for group in lGroup]
 		else:
 			lColor = [group.colors.colorLighter for group in lGroup]
-
-		@dataclass
-		class SRectColor:
-			rect: SRect
-			color: SColor
 
 		lRc: list[SRectColor] = []
 
@@ -508,6 +506,15 @@ class CElimBlot(CDayBlot): # tag = elimb
 			else:
 				self.DrawBox(rectAll, self.s_dSLineOuter, colorBorder)
 
+class SDayInstance(NamedTuple): # tag = dayinst
+	dPos: SPoint
+	dayb: CDayBlot
+
+class SDayHeader(NamedTuple): # tag = dayhead
+	x: float
+	strWeekday: str
+	fontkey: SFontKey
+
 class CCalendarBlot(CBlot): # tag = calb
 
 	s_dYDayOfWeek = CDayBlot.s_dYDate * 2
@@ -592,12 +599,6 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		# build a list of the days of the week and their positions/fonts
 
-		@dataclass
-		class SDayHeader: # tag = dayhead
-			x: float
-			strWeekday: str
-			fontkey: SFontKey
-
 		self.lDayhead: list[SDayHeader] = []
 
 		mpWeekdayStr = babel.dates.get_day_names('abbreviated', locale=self.page.locale)
@@ -621,10 +622,6 @@ class CCalendarBlot(CBlot): # tag = calb
 
 		# build a list of all day blots and their relative positions
 
-		@dataclass
-		class SDayInstance: # tag = dayinst
-			dPos: SPoint
-			dayb: CDayBlot
 
 		self.lDayinst: list[SDayInstance] = []
 		for iDay, dayb in enumerate(self.daybl.lDayb):

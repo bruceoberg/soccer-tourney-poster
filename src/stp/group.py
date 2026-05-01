@@ -18,6 +18,16 @@ if TYPE_CHECKING:
 
 g_sRadiusArea1 = math.sqrt(1 / math.pi)
 
+@dataclass(slots=True)
+class SHeadingLabel: # tag = headlab
+	rect: SRect
+	strLabel: str
+
+@dataclass(slots=True)
+class SDotBox:
+	xStat: float
+	mpColUOpacity: list[float]
+
 class CGroupBlot(CBlot): # tag = groupb
 
 	s_dX = 4.5
@@ -145,11 +155,6 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		# heading labels
 
-		@dataclass
-		class SHeadingLabel: # tag = headlab
-			rect: SRect
-			strLabel: str
-
 		lHeadlab = [
 			SHeadingLabel(rectGoalsFor,		self.page.StrTranslation('group.goals-for')),
 			SHeadingLabel(rectGoalsAgainst,	self.page.StrTranslation('group.goals-against')),
@@ -204,11 +209,6 @@ class CGroupBlot(CBlot): # tag = groupb
 
 					uOpacityDefault = 0.05
 					uOpacityFilled = 1.0
-
-					@dataclass
-					class SDotBox:
-						xStat: float
-						mpColUOpacity: list[float]
 
 					mpMatchstatDotbox: EnumTuple[MATCHSTAT, SDotBox] = EnumTuple(MATCHSTAT, (
 						SDotBox(rectGoalsFor.xMin,		[uOpacityDefault] * cDotGoalsAcross),

@@ -9,7 +9,7 @@
 - layout engine
 	- move most `CBlot.__init__` stuff into `Layout`/`Draw` phases.
 	- remove `s_dY` and its ilk. everything resizable.
-	- `SVector` (perhaps `SSize`?). dataclass of `dX`/`dY` floats.
+	- `SVector` (perhaps `SSize`?). slots dataclass of `dX`/`dY` floats.
     - `SRect`
 		- `Adjacent()`, `RectSplit()`, `LRectSplit()`
 		- remove `SRect.Copy()` and replace with `RectFoo()` static

@@ -7,8 +7,8 @@ import polib
 
 from babel import Locale
 from babel.core import get_global, parse_locale
-from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import timedelta
+from typing import NamedTuple
 from zoneinfo import ZoneInfo
 
 from bolay import CPdf
@@ -100,8 +100,7 @@ def StrFmtBestFit(cTeam: int, locale: Locale) -> str:
 
 	return strFmtBest
 
-@dataclass(frozen=True)
-class STZs:  # tag = tzs
+class STZs(NamedTuple):  # tag = tzs
 	strStd: str
 	strDst: str = ''
 
