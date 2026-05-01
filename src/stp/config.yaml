@@ -190,16 +190,22 @@ published:
     # Africa
 
     - { tz: Atlantic/Cape_Verde, loc: pt_CV }
+    - { tz: Africa/Dakar,        loc: fr_SN }
+    - { tz: Africa/Accra,        loc: en_GH }
     - { tz: Africa/Abidjan,      loc: fr_CI }
     - { tz: Africa/Casablanca,   loc: ar_MA }
+    - { tz: Africa/Algiers,      loc: ar_DZ }
     - { tz: Africa/Johannesburg, loc: en_ZA }
     - { tz: Africa/Cairo,        loc: ar_EG }
     - { tz: Africa/Kinshasa,     loc: sw_CD }
     
     # Middle East
 
-    - { tz: Asia/Tehran,         loc: fa_IR }
+    - { tz: Asia/Amman,          loc: ar_JO }
     - { tz: Asia/Riyadh,         loc: ar_SA }
+    - { tz: Asia/Baghdad,        loc: ar_IQ }
+    - { tz: Asia/Qatar,          loc: ar_QA }
+    - { tz: Asia/Tehran,         loc: fa_IR }
     - { tz: Asia/Tashkent,       loc: uz_UZ }
     
     # Asian/Pacific
