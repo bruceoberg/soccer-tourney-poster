@@ -141,7 +141,7 @@ class CZoneName: # tag = zonename
 
 		self.strAbbrev = ''
 		self.cHour = 0
-		self.cMinute = 0
+		self.cMin = 0
 
 		try:
 			tzs = g_mpStrTzTzs[zoneinfo.key]
@@ -158,7 +158,7 @@ class CZoneName: # tag = zonename
 			assert len(strTzLookup) <= 5
 			if len(strTzLookup) > 3:
 				self.cHour = int(strTzLookup[:-2])
-				self.cMinute = int(strTzLookup[-2:])
+				self.cMin = int(strTzLookup[-2:])
 			else:
 				self.cHour = int(strTzLookup)
 		else:
@@ -176,16 +176,16 @@ class CZoneName: # tag = zonename
 		assert not any([ch.isdecimal() for ch in self.strAbbrev])
 
 	def StrRawOffset(self) -> str:
-		return f'{int(self.cHour):+03d}{int(self.cMinute):02d}'
+		return f'{int(self.cHour):+03d}{int(self.cMin):02d}'
 	
 	def StrFriendlyOffset(self) -> str:
-		if not self.cHour and not self.cMinute:
+		if not self.cHour and not self.cMin:
 			return ''
 		
-		if not self.cMinute:
+		if not self.cMin:
 			return f'{int(self.cHour):+d}'
 		
-		return f'{int(self.cHour):+d}:{int(self.cMinute):02d}'
+		return f'{int(self.cHour):+d}:{int(self.cMin):02d}'
 
 	def StrMinimal(self) -> str:
 		if strMinimal := self.strAbbrev:
