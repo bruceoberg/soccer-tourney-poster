@@ -85,7 +85,7 @@ langs:
   tournament: latest
   file_suffix: langs
   pages:
-    - { tz: US/Pacific  }
+    - { tz: US/Pacific,          loc: en_US  }
 
     # see SPageArgs for loc codes
     
@@ -97,32 +97,31 @@ langs:
     - { tz: Europe/Rome,         loc: it_IT }
     - { tz: Europe/Berlin,       loc: de_DE }
     - { tz: Europe/Amsterdam,    loc: nl_NL }
+    - { tz: Europe/Oslo,         loc: nb_NO }
+    - { tz: Europe/Stockholm,    loc: sv_SE }
+    - { tz: Europe/Zagreb,       loc: hr_HR }
+    - { tz: Europe/Prague,       loc: cs_CZ }
 
+    - { tz: Europe/Athens,       loc: el_GR }
+    - { tz: Europe/Warsaw,       loc: pl_PL }
     - { tz: Europe/Istanbul,     loc: tr_TR }
     - { tz: Europe/Moscow,       loc: ru_RU }
 
     # Africa
 
-    - { tz: Africa/Abidjan,      loc: fr_CI }
-    - { tz: Africa/Casablanca,   loc: ar_MA }
-    - { tz: Africa/Johannesburg, loc: en_ZA }
-    - { tz: Africa/Cairo,        loc: ar_EG }
+    - { tz: Africa/Kinshasa,     loc: sw_CD }
     
     # Middle East
 
     - { tz: Asia/Tehran,         loc: fa_IR }
     - { tz: Asia/Riyadh,         loc: ar_SA }
+    - { tz: Asia/Tashkent,       loc: uz_UZ }
     
     # Asia
     - { tz: Asia/Tokyo,          loc: ja_JP }
     - { tz: Asia/Seoul,          loc: ko_KR }
     - { tz: Asia/Shanghai,       loc: zh_CN }
     - { tz: Asia/Taipei,         loc: zh_TW }
-    - { tz: Asia/Kolkata,        loc: en_IN }
-
-    # Oceania
-    - { tz: Australia/Sydney,    loc: en_AU }
-    - { tz: Pacific/Auckland,    loc: en_NZ }
 
 published:
   tournament: latest
