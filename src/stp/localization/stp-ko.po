@@ -2,8 +2,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: stp 0.3.0\n"
-"POT-Creation-Date: 2026-04-25 14:07-0700\n"
-"PO-Revision-Date: 2026-04-25 14:08-0700\n"
+"POT-Creation-Date: 2026-04-30 20:17-0700\n"
+"PO-Revision-Date: 2026-04-30 20:17-0700\n"
 "Last-Translator: Bruce Oberg <bruce@oberg.org>\n"
 "Language-Team: Bruce Oberg <bruce@oberg.org>\n"
 "Language: ko\n"
@@ -92,291 +92,6 @@ msgstr "영국・아일랜드"
 msgctxt "host.usa"
 msgid "USA"
 msgstr "미국"
-
-#. Venues where matches are held. Most often a city, but sometimes an arena
-#. name when a city had multiple locations.
-msgid "### section: venue - see notes ###"
-msgstr ""
-
-msgctxt "venue.au-adelaide"
-msgid "Adelaide"
-msgstr "애들레이드"
-
-msgctxt "venue.au-brisbane"
-msgid "Brisbane"
-msgstr "브리즈번"
-
-msgctxt "venue.au-melbourne"
-msgid "Melbourne"
-msgstr "멜버른"
-
-msgctxt "venue.au-perth"
-msgid "Perth"
-msgstr "퍼스"
-
-msgctxt "venue.au-sydney"
-msgid "Sydney"
-msgstr "시드니"
-
-msgctxt "venue.au-sydney_australia"
-msgid "Stadium Australia"
-msgstr "오스트레일리아"
-
-msgctxt "venue.au-sydney_football"
-msgid "Sydney Football Stadium"
-msgstr "시드니"
-
-msgctxt "venue.ca-toronto"
-msgid "Toronto"
-msgstr "토론토"
-
-msgctxt "venue.ca-vancouver"
-msgid "Vancouver"
-msgstr "밴쿠버"
-
-msgctxt "venue.de-berlin"
-msgid "Berlin"
-msgstr "베를린"
-
-msgctxt "venue.de-cologne"
-msgid "Cologne"
-msgstr "쾰른"
-
-msgctxt "venue.de-dortmund"
-msgid "Dortmund"
-msgstr "도르트문트"
-
-msgctxt "venue.de-dusseldorf"
-msgid "Düsseldorf"
-msgstr "뒤셀도르프"
-
-msgctxt "venue.de-frankfurt"
-msgid "Frankfurt"
-msgstr "프랑크푸르트"
-
-msgctxt "venue.de-gelsenkirchen"
-msgid "Gelsenkirchen"
-msgstr "겔젠키르헨"
-
-msgctxt "venue.de-hamburg"
-msgid "Hamburg"
-msgstr "함부르크"
-
-msgctxt "venue.de-leipzig"
-msgid "Leipzig"
-msgstr "라이프치히"
-
-msgctxt "venue.de-munich"
-msgid "Munich"
-msgstr "뮌헨"
-
-msgctxt "venue.de-stuttgart"
-msgid "Stuttgart"
-msgstr "슈투트가르트"
-
-msgctxt "venue.mx-guadalajara"
-msgid "Guadalajara"
-msgstr "과달라하라"
-
-msgctxt "venue.mx-mexico-city"
-msgid "Mexico City"
-msgstr "멕시코시티"
-
-msgctxt "venue.mx-monterrey"
-msgid "Monterrey"
-msgstr "몬테레이"
-
-msgctxt "venue.nz-auckland"
-msgid "Auckland"
-msgstr "오클랜드"
-
-msgctxt "venue.nz-dunedin"
-msgid "Dunedin"
-msgstr "더니든"
-
-msgctxt "venue.nz-hamilton"
-msgid "Hamilton"
-msgstr "해밀턴"
-
-msgctxt "venue.nz-wellington"
-msgid "Wellington"
-msgstr "웰링턴"
-
-msgctxt "venue.qa-974"
-msgid "Stadium 974"
-msgstr "경기장 974"
-
-msgctxt "venue.qa-ahmad-bin-ali"
-msgid "Ahmad Bin Ali"
-msgstr "아흐마드빈알리"
-
-msgctxt "venue.qa-al-bayt"
-msgid "Al Bayt"
-msgstr "알바이트"
-
-msgctxt "venue.qa-al-janoub"
-msgid "Al Janoub"
-msgstr "알자누브"
-
-msgctxt "venue.qa-al-thumama"
-msgid "Al Thumama"
-msgstr "알투마마"
-
-msgctxt "venue.qa-education-city"
-msgid "Education City"
-msgstr "에듀케이션시티"
-
-msgctxt "venue.qa-khalifa"
-msgid "Khalifa International"
-msgstr "칼리파"
-
-msgctxt "venue.qa-lusail"
-msgid "Lusail"
-msgstr "루사일"
-
-msgctxt "venue.ru-ekaterinburg"
-msgid "Ekaterinburg"
-msgstr "예카테린부르크"
-
-msgctxt "venue.ru-kaliningrad"
-msgid "Kaliningrad"
-msgstr "칼리닌그라드"
-
-msgctxt "venue.ru-kazan"
-msgid "Kazan"
-msgstr "카잔"
-
-msgctxt "venue.ru-moscow"
-msgid "Moscow"
-msgstr "모스크바"
-
-msgctxt "venue.ru-moscow_luzhniki"
-msgid "Luzhniki Stadium"
-msgstr "루즈니키"
-
-msgctxt "venue.ru-moscow_otkrytiye"
-msgid "Otkrytiye Arena"
-msgstr "오트크리티예"
-
-msgctxt "venue.ru-nizhny-novgorod"
-msgid "Nizhny Novgorod"
-msgstr "니즈니노브고로드"
-
-msgctxt "venue.ru-rostov-on-don"
-msgid "Rostov-on-Don"
-msgstr "로스토프나도누"
-
-msgctxt "venue.ru-saint-petersburg"
-msgid "Saint Petersburg"
-msgstr "상트페테르부르크"
-
-msgctxt "venue.ru-samara"
-msgid "Samara"
-msgstr "사마라"
-
-msgctxt "venue.ru-saransk"
-msgid "Saransk"
-msgstr "사란스크"
-
-msgctxt "venue.ru-sochi"
-msgid "Sochi"
-msgstr "소치"
-
-msgctxt "venue.ru-volgograd"
-msgid "Volgograd"
-msgstr "볼고그라드"
-
-msgctxt "venue.us-arlington-tx"
-msgid "Arlington, TX"
-msgstr "알링턴, TX"
-
-msgctxt "venue.us-atlanta-ga"
-msgid "Atlanta, GA"
-msgstr "애틀랜타, GA"
-
-msgctxt "venue.us-austin-tx"
-msgid "Austin, TX"
-msgstr "오스틴, TX"
-
-msgctxt "venue.us-boston-ma"
-msgid "Boston, MA"
-msgstr "보스턴, MA"
-
-msgctxt "venue.us-charlotte-nc"
-msgid "Charlotte, NC"
-msgstr "샬럿, NC"
-
-msgctxt "venue.us-cincinnati-oh"
-msgid "Cincinnati, OH"
-msgstr "신시내티, OH"
-
-msgctxt "venue.us-dallas-tx"
-msgid "Dallas, TX"
-msgstr "댈러스, TX"
-
-msgctxt "venue.us-east-rutherford-nj"
-msgid "East Rutherford, NJ"
-msgstr "러더퍼드, NJ"
-
-msgctxt "venue.us-glendale-az"
-msgid "Glendale, AZ"
-msgstr "글렌데일, AZ"
-
-msgctxt "venue.us-houston-tx"
-msgid "Houston, TX"
-msgstr "휴스턴, TX"
-
-msgctxt "venue.us-inglewood-ca"
-msgid "Inglewood, CA"
-msgstr "잉글우드, CA"
-
-msgctxt "venue.us-kansas-city-ks"
-msgid "Kansas City, KS"
-msgstr "캔자스시티, KS"
-
-msgctxt "venue.us-kansas-city-mo"
-msgid "Kansas City, MO"
-msgstr "캔자스시티, MO"
-
-msgctxt "venue.us-las-vegas-nv"
-msgid "Las Vegas, NV"
-msgstr "라스베이거스, NV"
-
-msgctxt "venue.us-los-angeles-ca"
-msgid "Los Angeles, CA"
-msgstr "로스앤젤레스, CA"
-
-msgctxt "venue.us-miami-fl"
-msgid "Miami, FL"
-msgstr "마이애미, FL"
-
-msgctxt "venue.us-nashville-tn"
-msgid "Nashville, TN"
-msgstr "내슈빌, TN"
-
-msgctxt "venue.us-orlando-fl"
-msgid "Orlando, FL"
-msgstr "올랜도, FL"
-
-msgctxt "venue.us-pasadena-ca"
-msgid "Pasadena, CA"
-msgstr "패서디나, CA"
-
-msgctxt "venue.us-philadelphia-pa"
-msgid "Philadelphia, PA"
-msgstr "필라델피아, PA"
-
-msgctxt "venue.us-santa-clara-ca"
-msgid "Santa Clara, CA"
-msgstr "산타클래라, CA"
-
-msgctxt "venue.us-seattle-wa"
-msgid "Seattle, WA"
-msgstr "시애틀, WA"
-
-msgctxt "venue.us-washington-dc"
-msgid "Washington, DC"
-msgstr "워싱턴, DC"
 
 #. Title text and layout. If in doubt, leave alone.
 msgid "### section: page - see notes ###"
@@ -1070,3 +785,288 @@ msgstr "우라와"
 msgctxt "club.wac"
 msgid "Wydad"
 msgstr "위다드"
+
+#. Venues where matches are held. Most often a city, but sometimes an arena
+#. name when a city had multiple locations.
+msgid "### section: venue - see notes ###"
+msgstr ""
+
+msgctxt "venue.au-adelaide"
+msgid "Adelaide"
+msgstr "애들레이드"
+
+msgctxt "venue.au-brisbane"
+msgid "Brisbane"
+msgstr "브리즈번"
+
+msgctxt "venue.au-melbourne"
+msgid "Melbourne"
+msgstr "멜버른"
+
+msgctxt "venue.au-perth"
+msgid "Perth"
+msgstr "퍼스"
+
+msgctxt "venue.au-sydney"
+msgid "Sydney"
+msgstr "시드니"
+
+msgctxt "venue.au-sydney_australia"
+msgid "Stadium Australia"
+msgstr "오스트레일리아"
+
+msgctxt "venue.au-sydney_football"
+msgid "Sydney Football Stadium"
+msgstr "시드니"
+
+msgctxt "venue.ca-toronto"
+msgid "Toronto"
+msgstr "토론토"
+
+msgctxt "venue.ca-vancouver"
+msgid "Vancouver"
+msgstr "밴쿠버"
+
+msgctxt "venue.de-berlin"
+msgid "Berlin"
+msgstr "베를린"
+
+msgctxt "venue.de-cologne"
+msgid "Cologne"
+msgstr "쾰른"
+
+msgctxt "venue.de-dortmund"
+msgid "Dortmund"
+msgstr "도르트문트"
+
+msgctxt "venue.de-dusseldorf"
+msgid "Düsseldorf"
+msgstr "뒤셀도르프"
+
+msgctxt "venue.de-frankfurt"
+msgid "Frankfurt"
+msgstr "프랑크푸르트"
+
+msgctxt "venue.de-gelsenkirchen"
+msgid "Gelsenkirchen"
+msgstr "겔젠키르헨"
+
+msgctxt "venue.de-hamburg"
+msgid "Hamburg"
+msgstr "함부르크"
+
+msgctxt "venue.de-leipzig"
+msgid "Leipzig"
+msgstr "라이프치히"
+
+msgctxt "venue.de-munich"
+msgid "Munich"
+msgstr "뮌헨"
+
+msgctxt "venue.de-stuttgart"
+msgid "Stuttgart"
+msgstr "슈투트가르트"
+
+msgctxt "venue.mx-guadalajara"
+msgid "Guadalajara"
+msgstr "과달라하라"
+
+msgctxt "venue.mx-mexico-city"
+msgid "Mexico City"
+msgstr "멕시코시티"
+
+msgctxt "venue.mx-monterrey"
+msgid "Monterrey"
+msgstr "몬테레이"
+
+msgctxt "venue.nz-auckland"
+msgid "Auckland"
+msgstr "오클랜드"
+
+msgctxt "venue.nz-dunedin"
+msgid "Dunedin"
+msgstr "더니든"
+
+msgctxt "venue.nz-hamilton"
+msgid "Hamilton"
+msgstr "해밀턴"
+
+msgctxt "venue.nz-wellington"
+msgid "Wellington"
+msgstr "웰링턴"
+
+msgctxt "venue.qa-974"
+msgid "Stadium 974"
+msgstr "경기장 974"
+
+msgctxt "venue.qa-ahmad-bin-ali"
+msgid "Ahmad Bin Ali"
+msgstr "아흐마드빈알리"
+
+msgctxt "venue.qa-al-bayt"
+msgid "Al Bayt"
+msgstr "알바이트"
+
+msgctxt "venue.qa-al-janoub"
+msgid "Al Janoub"
+msgstr "알자누브"
+
+msgctxt "venue.qa-al-thumama"
+msgid "Al Thumama"
+msgstr "알투마마"
+
+msgctxt "venue.qa-education-city"
+msgid "Education City"
+msgstr "에듀케이션시티"
+
+msgctxt "venue.qa-khalifa"
+msgid "Khalifa International"
+msgstr "칼리파"
+
+msgctxt "venue.qa-lusail"
+msgid "Lusail"
+msgstr "루사일"
+
+msgctxt "venue.ru-ekaterinburg"
+msgid "Ekaterinburg"
+msgstr "예카테린부르크"
+
+msgctxt "venue.ru-kaliningrad"
+msgid "Kaliningrad"
+msgstr "칼리닌그라드"
+
+msgctxt "venue.ru-kazan"
+msgid "Kazan"
+msgstr "카잔"
+
+msgctxt "venue.ru-moscow"
+msgid "Moscow"
+msgstr "모스크바"
+
+msgctxt "venue.ru-moscow_luzhniki"
+msgid "Luzhniki Stadium"
+msgstr "루즈니키"
+
+msgctxt "venue.ru-moscow_otkrytiye"
+msgid "Otkrytiye Arena"
+msgstr "오트크리티예"
+
+msgctxt "venue.ru-nizhny-novgorod"
+msgid "Nizhny Novgorod"
+msgstr "니즈니노브고로드"
+
+msgctxt "venue.ru-rostov-on-don"
+msgid "Rostov-on-Don"
+msgstr "로스토프나도누"
+
+msgctxt "venue.ru-saint-petersburg"
+msgid "Saint Petersburg"
+msgstr "상트페테르부르크"
+
+msgctxt "venue.ru-samara"
+msgid "Samara"
+msgstr "사마라"
+
+msgctxt "venue.ru-saransk"
+msgid "Saransk"
+msgstr "사란스크"
+
+msgctxt "venue.ru-sochi"
+msgid "Sochi"
+msgstr "소치"
+
+msgctxt "venue.ru-volgograd"
+msgid "Volgograd"
+msgstr "볼고그라드"
+
+msgctxt "venue.us-arlington-tx"
+msgid "Arlington, TX"
+msgstr "알링턴, TX"
+
+msgctxt "venue.us-atlanta-ga"
+msgid "Atlanta, GA"
+msgstr "애틀랜타, GA"
+
+msgctxt "venue.us-austin-tx"
+msgid "Austin, TX"
+msgstr "오스틴, TX"
+
+msgctxt "venue.us-boston-ma"
+msgid "Boston, MA"
+msgstr "보스턴, MA"
+
+msgctxt "venue.us-charlotte-nc"
+msgid "Charlotte, NC"
+msgstr "샬럿, NC"
+
+msgctxt "venue.us-cincinnati-oh"
+msgid "Cincinnati, OH"
+msgstr "신시내티, OH"
+
+msgctxt "venue.us-dallas-tx"
+msgid "Dallas, TX"
+msgstr "댈러스, TX"
+
+msgctxt "venue.us-east-rutherford-nj"
+msgid "East Rutherford, NJ"
+msgstr "러더퍼드, NJ"
+
+msgctxt "venue.us-glendale-az"
+msgid "Glendale, AZ"
+msgstr "글렌데일, AZ"
+
+msgctxt "venue.us-houston-tx"
+msgid "Houston, TX"
+msgstr "휴스턴, TX"
+
+msgctxt "venue.us-inglewood-ca"
+msgid "Inglewood, CA"
+msgstr "잉글우드, CA"
+
+msgctxt "venue.us-kansas-city-ks"
+msgid "Kansas City, KS"
+msgstr "캔자스시티, KS"
+
+msgctxt "venue.us-kansas-city-mo"
+msgid "Kansas City, MO"
+msgstr "캔자스시티, MO"
+
+msgctxt "venue.us-las-vegas-nv"
+msgid "Las Vegas, NV"
+msgstr "라스베이거스, NV"
+
+msgctxt "venue.us-los-angeles-ca"
+msgid "Los Angeles, CA"
+msgstr "로스앤젤레스, CA"
+
+msgctxt "venue.us-miami-fl"
+msgid "Miami, FL"
+msgstr "마이애미, FL"
+
+msgctxt "venue.us-nashville-tn"
+msgid "Nashville, TN"
+msgstr "내슈빌, TN"
+
+msgctxt "venue.us-orlando-fl"
+msgid "Orlando, FL"
+msgstr "올랜도, FL"
+
+msgctxt "venue.us-pasadena-ca"
+msgid "Pasadena, CA"
+msgstr "패서디나, CA"
+
+msgctxt "venue.us-philadelphia-pa"
+msgid "Philadelphia, PA"
+msgstr "필라델피아, PA"
+
+msgctxt "venue.us-santa-clara-ca"
+msgid "Santa Clara, CA"
+msgstr "산타클래라, CA"
+
+msgctxt "venue.us-seattle-wa"
+msgid "Seattle, WA"
+msgstr "시애틀, WA"
+
+msgctxt "venue.us-washington-dc"
+msgid "Washington, DC"
+msgstr "워싱턴, DC"

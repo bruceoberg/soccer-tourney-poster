@@ -2,8 +2,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: stp 0.3.0\n"
-"POT-Creation-Date: 2026-04-25 14:07-0700\n"
-"PO-Revision-Date: 2026-04-30 19:49-0700\n"
+"POT-Creation-Date: 2026-04-30 20:17-0700\n"
+"PO-Revision-Date: 2026-04-30 20:17-0700\n"
 "Last-Translator: Bruce Oberg <bruce@oberg.org>\n"
 "Language-Team: Bruce Oberg <bruce@oberg.org>\n"
 "Language: sv\n"
@@ -106,361 +106,6 @@ msgstr "Storbritannien och Irland"
 msgctxt "host.usa"
 msgid "USA"
 msgstr "USA"
-
-#. Venues where matches are held. Most often a city, but sometimes an arena
-#. name when a city had multiple locations.
-msgid "### section: venue - see notes ###"
-msgstr ""
-
-#, fuzzy
-msgctxt "venue.au-adelaide"
-msgid "Adelaide"
-msgstr "Adelaide"
-
-#, fuzzy
-msgctxt "venue.au-brisbane"
-msgid "Brisbane"
-msgstr "Brisbane"
-
-#, fuzzy
-msgctxt "venue.au-melbourne"
-msgid "Melbourne"
-msgstr "Melbourne"
-
-#, fuzzy
-msgctxt "venue.au-perth"
-msgid "Perth"
-msgstr "Perth"
-
-#, fuzzy
-msgctxt "venue.au-sydney"
-msgid "Sydney"
-msgstr "Sydney"
-
-#, fuzzy
-msgctxt "venue.au-sydney_australia"
-msgid "Stadium Australia"
-msgstr "ANZ Stadium"
-
-#, fuzzy
-msgctxt "venue.au-sydney_football"
-msgid "Sydney Football Stadium"
-msgstr "Sydney Football Stadium"
-
-#, fuzzy
-msgctxt "venue.ca-toronto"
-msgid "Toronto"
-msgstr "Toronto"
-
-#, fuzzy
-msgctxt "venue.ca-vancouver"
-msgid "Vancouver"
-msgstr "Vancouver"
-
-#, fuzzy
-msgctxt "venue.de-berlin"
-msgid "Berlin"
-msgstr "Berlin"
-
-#, fuzzy
-msgctxt "venue.de-cologne"
-msgid "Cologne"
-msgstr "Köln"
-
-#, fuzzy
-msgctxt "venue.de-dortmund"
-msgid "Dortmund"
-msgstr "Dortmund"
-
-#, fuzzy
-msgctxt "venue.de-dusseldorf"
-msgid "Düsseldorf"
-msgstr "Düsseldorf"
-
-#, fuzzy
-msgctxt "venue.de-frankfurt"
-msgid "Frankfurt"
-msgstr "Frankfurt"
-
-#, fuzzy
-msgctxt "venue.de-gelsenkirchen"
-msgid "Gelsenkirchen"
-msgstr "Gelsenkirchen"
-
-#, fuzzy
-msgctxt "venue.de-hamburg"
-msgid "Hamburg"
-msgstr "Hamburg"
-
-#, fuzzy
-msgctxt "venue.de-leipzig"
-msgid "Leipzig"
-msgstr "Leipzig"
-
-#, fuzzy
-msgctxt "venue.de-munich"
-msgid "Munich"
-msgstr "München"
-
-#, fuzzy
-msgctxt "venue.de-stuttgart"
-msgid "Stuttgart"
-msgstr "Stuttgart"
-
-#, fuzzy
-msgctxt "venue.mx-guadalajara"
-msgid "Guadalajara"
-msgstr "Guadalajara"
-
-#, fuzzy
-msgctxt "venue.mx-mexico-city"
-msgid "Mexico City"
-msgstr "Mexico City"
-
-#, fuzzy
-msgctxt "venue.mx-monterrey"
-msgid "Monterrey"
-msgstr "Monterrey"
-
-#, fuzzy
-msgctxt "venue.nz-auckland"
-msgid "Auckland"
-msgstr "Auckland"
-
-#, fuzzy
-msgctxt "venue.nz-dunedin"
-msgid "Dunedin"
-msgstr "Dunedin"
-
-#, fuzzy
-msgctxt "venue.nz-hamilton"
-msgid "Hamilton"
-msgstr "Hamilton"
-
-#, fuzzy
-msgctxt "venue.nz-wellington"
-msgid "Wellington"
-msgstr "Wellington"
-
-#, fuzzy
-msgctxt "venue.qa-974"
-msgid "Stadium 974"
-msgstr ""
-
-#, fuzzy
-msgctxt "venue.qa-ahmad-bin-ali"
-msgid "Ahmad Bin Ali"
-msgstr "Ahmad Bin Ali"
-
-#, fuzzy
-msgctxt "venue.qa-al-bayt"
-msgid "Al Bayt"
-msgstr "Al Bay"
-
-#, fuzzy
-msgctxt "venue.qa-al-janoub"
-msgid "Al Janoub"
-msgstr "Al Janoub"
-
-#, fuzzy
-msgctxt "venue.qa-al-thumama"
-msgid "Al Thumama"
-msgstr "Al Thumama"
-
-#, fuzzy
-msgctxt "venue.qa-education-city"
-msgid "Education City"
-msgstr "Education City"
-
-#, fuzzy
-msgctxt "venue.qa-khalifa"
-msgid "Khalifa International"
-msgstr "Khalifa International"
-
-#, fuzzy
-msgctxt "venue.qa-lusail"
-msgid "Lusail"
-msgstr "Lusail"
-
-#, fuzzy
-msgctxt "venue.ru-ekaterinburg"
-msgid "Ekaterinburg"
-msgstr "Jekaterinburg"
-
-#, fuzzy
-msgctxt "venue.ru-kaliningrad"
-msgid "Kaliningrad"
-msgstr "Kaliningrad"
-
-#, fuzzy
-msgctxt "venue.ru-kazan"
-msgid "Kazan"
-msgstr "Kazan"
-
-#, fuzzy
-msgctxt "venue.ru-moscow"
-msgid "Moscow"
-msgstr "Moskva"
-
-#, fuzzy
-msgctxt "venue.ru-moscow_luzhniki"
-msgid "Luzhniki Stadium"
-msgstr "Luzjnikistadion"
-
-#, fuzzy
-msgctxt "venue.ru-moscow_otkrytiye"
-msgid "Otkrytiye Arena"
-msgstr "Spartak stadion"
-
-#, fuzzy
-msgctxt "venue.ru-nizhny-novgorod"
-msgid "Nizhny Novgorod"
-msgstr "Nizhnij Novgorod"
-
-#, fuzzy
-msgctxt "venue.ru-rostov-on-don"
-msgid "Rostov-on-Don"
-msgstr "Rostov-na-Donu"
-
-#, fuzzy
-msgctxt "venue.ru-saint-petersburg"
-msgid "Saint Petersburg"
-msgstr "Sankt Petersburg"
-
-#, fuzzy
-msgctxt "venue.ru-samara"
-msgid "Samara"
-msgstr "Samara"
-
-#, fuzzy
-msgctxt "venue.ru-saransk"
-msgid "Saransk"
-msgstr "Saransk"
-
-#, fuzzy
-msgctxt "venue.ru-sochi"
-msgid "Sochi"
-msgstr "Sotji"
-
-#, fuzzy
-msgctxt "venue.ru-volgograd"
-msgid "Volgograd"
-msgstr "Volgograd"
-
-#, fuzzy
-msgctxt "venue.us-arlington-tx"
-msgid "Arlington, TX"
-msgstr "Arlington, Texas"
-
-#, fuzzy
-msgctxt "venue.us-atlanta-ga"
-msgid "Atlanta, GA"
-msgstr "Atlanta, Georgia"
-
-#, fuzzy
-msgctxt "venue.us-austin-tx"
-msgid "Austin, TX"
-msgstr "Austin, Texas"
-
-#, fuzzy
-msgctxt "venue.us-boston-ma"
-msgid "Boston, MA"
-msgstr "Boston, Massachusetts"
-
-#, fuzzy
-msgctxt "venue.us-charlotte-nc"
-msgid "Charlotte, NC"
-msgstr "Charlotte, North Carolina"
-
-#, fuzzy
-msgctxt "venue.us-cincinnati-oh"
-msgid "Cincinnati, OH"
-msgstr "Cincinatti, Ohio"
-
-#, fuzzy
-msgctxt "venue.us-dallas-tx"
-msgid "Dallas, TX"
-msgstr "Dallas, Texas"
-
-#, fuzzy
-msgctxt "venue.us-east-rutherford-nj"
-msgid "East Rutherford, NJ"
-msgstr "East Rutherford, New Jersey"
-
-#, fuzzy
-msgctxt "venue.us-glendale-az"
-msgid "Glendale, AZ"
-msgstr "Glendale, Arizona"
-
-#, fuzzy
-msgctxt "venue.us-houston-tx"
-msgid "Houston, TX"
-msgstr "Houston, Texas"
-
-#, fuzzy
-msgctxt "venue.us-inglewood-ca"
-msgid "Inglewood, CA"
-msgstr "Inglewood, Kalifornien"
-
-#, fuzzy
-msgctxt "venue.us-kansas-city-ks"
-msgid "Kansas City, KS"
-msgstr "Kansas City, Kansas"
-
-#, fuzzy
-msgctxt "venue.us-kansas-city-mo"
-msgid "Kansas City, MO"
-msgstr "Kansas City, Missouri"
-
-#, fuzzy
-msgctxt "venue.us-las-vegas-nv"
-msgid "Las Vegas, NV"
-msgstr "Las Vegas, Nevada"
-
-#, fuzzy
-msgctxt "venue.us-los-angeles-ca"
-msgid "Los Angeles, CA"
-msgstr "Los Angeles, Kalifornien"
-
-#, fuzzy
-msgctxt "venue.us-miami-fl"
-msgid "Miami, FL"
-msgstr "Miami, Florida"
-
-#, fuzzy
-msgctxt "venue.us-nashville-tn"
-msgid "Nashville, TN"
-msgstr "Nashville, Tennessee"
-
-#, fuzzy
-msgctxt "venue.us-orlando-fl"
-msgid "Orlando, FL"
-msgstr "Orlando, Florida"
-
-#, fuzzy
-msgctxt "venue.us-pasadena-ca"
-msgid "Pasadena, CA"
-msgstr "Pasadena, Kalifornien"
-
-#, fuzzy
-msgctxt "venue.us-philadelphia-pa"
-msgid "Philadelphia, PA"
-msgstr "Philadelphia, Pennsylvania"
-
-#, fuzzy
-msgctxt "venue.us-santa-clara-ca"
-msgid "Santa Clara, CA"
-msgstr "Santa Clara, Kalifornien"
-
-#, fuzzy
-msgctxt "venue.us-seattle-wa"
-msgid "Seattle, WA"
-msgstr "Seattle, Washington"
-
-#, fuzzy
-msgctxt "venue.us-washington-dc"
-msgid "Washington, DC"
-msgstr "Washington, DC"
 
 #. Title text and layout. If in doubt, leave alone.
 msgid "### section: page - see notes ###"
@@ -1313,3 +958,358 @@ msgstr "Urawa Red Diamonds"
 msgctxt "club.wac"
 msgid "Wydad"
 msgstr "Wydad"
+
+#. Venues where matches are held. Most often a city, but sometimes an arena
+#. name when a city had multiple locations.
+msgid "### section: venue - see notes ###"
+msgstr ""
+
+#, fuzzy
+msgctxt "venue.au-adelaide"
+msgid "Adelaide"
+msgstr "Adelaide"
+
+#, fuzzy
+msgctxt "venue.au-brisbane"
+msgid "Brisbane"
+msgstr "Brisbane"
+
+#, fuzzy
+msgctxt "venue.au-melbourne"
+msgid "Melbourne"
+msgstr "Melbourne"
+
+#, fuzzy
+msgctxt "venue.au-perth"
+msgid "Perth"
+msgstr "Perth"
+
+#, fuzzy
+msgctxt "venue.au-sydney"
+msgid "Sydney"
+msgstr "Sydney"
+
+#, fuzzy
+msgctxt "venue.au-sydney_australia"
+msgid "Stadium Australia"
+msgstr "ANZ Stadium"
+
+#, fuzzy
+msgctxt "venue.au-sydney_football"
+msgid "Sydney Football Stadium"
+msgstr "Sydney Football Stadium"
+
+#, fuzzy
+msgctxt "venue.ca-toronto"
+msgid "Toronto"
+msgstr "Toronto"
+
+#, fuzzy
+msgctxt "venue.ca-vancouver"
+msgid "Vancouver"
+msgstr "Vancouver"
+
+#, fuzzy
+msgctxt "venue.de-berlin"
+msgid "Berlin"
+msgstr "Berlin"
+
+#, fuzzy
+msgctxt "venue.de-cologne"
+msgid "Cologne"
+msgstr "Köln"
+
+#, fuzzy
+msgctxt "venue.de-dortmund"
+msgid "Dortmund"
+msgstr "Dortmund"
+
+#, fuzzy
+msgctxt "venue.de-dusseldorf"
+msgid "Düsseldorf"
+msgstr "Düsseldorf"
+
+#, fuzzy
+msgctxt "venue.de-frankfurt"
+msgid "Frankfurt"
+msgstr "Frankfurt"
+
+#, fuzzy
+msgctxt "venue.de-gelsenkirchen"
+msgid "Gelsenkirchen"
+msgstr "Gelsenkirchen"
+
+#, fuzzy
+msgctxt "venue.de-hamburg"
+msgid "Hamburg"
+msgstr "Hamburg"
+
+#, fuzzy
+msgctxt "venue.de-leipzig"
+msgid "Leipzig"
+msgstr "Leipzig"
+
+#, fuzzy
+msgctxt "venue.de-munich"
+msgid "Munich"
+msgstr "München"
+
+#, fuzzy
+msgctxt "venue.de-stuttgart"
+msgid "Stuttgart"
+msgstr "Stuttgart"
+
+#, fuzzy
+msgctxt "venue.mx-guadalajara"
+msgid "Guadalajara"
+msgstr "Guadalajara"
+
+#, fuzzy
+msgctxt "venue.mx-mexico-city"
+msgid "Mexico City"
+msgstr "Mexico City"
+
+#, fuzzy
+msgctxt "venue.mx-monterrey"
+msgid "Monterrey"
+msgstr "Monterrey"
+
+#, fuzzy
+msgctxt "venue.nz-auckland"
+msgid "Auckland"
+msgstr "Auckland"
+
+#, fuzzy
+msgctxt "venue.nz-dunedin"
+msgid "Dunedin"
+msgstr "Dunedin"
+
+#, fuzzy
+msgctxt "venue.nz-hamilton"
+msgid "Hamilton"
+msgstr "Hamilton"
+
+#, fuzzy
+msgctxt "venue.nz-wellington"
+msgid "Wellington"
+msgstr "Wellington"
+
+#, fuzzy
+msgctxt "venue.qa-974"
+msgid "Stadium 974"
+msgstr ""
+
+#, fuzzy
+msgctxt "venue.qa-ahmad-bin-ali"
+msgid "Ahmad Bin Ali"
+msgstr "Ahmad Bin Ali"
+
+#, fuzzy
+msgctxt "venue.qa-al-bayt"
+msgid "Al Bayt"
+msgstr "Al Bay"
+
+#, fuzzy
+msgctxt "venue.qa-al-janoub"
+msgid "Al Janoub"
+msgstr "Al Janoub"
+
+#, fuzzy
+msgctxt "venue.qa-al-thumama"
+msgid "Al Thumama"
+msgstr "Al Thumama"
+
+#, fuzzy
+msgctxt "venue.qa-education-city"
+msgid "Education City"
+msgstr "Education City"
+
+#, fuzzy
+msgctxt "venue.qa-khalifa"
+msgid "Khalifa International"
+msgstr "Khalifa International"
+
+#, fuzzy
+msgctxt "venue.qa-lusail"
+msgid "Lusail"
+msgstr "Lusail"
+
+#, fuzzy
+msgctxt "venue.ru-ekaterinburg"
+msgid "Ekaterinburg"
+msgstr "Jekaterinburg"
+
+#, fuzzy
+msgctxt "venue.ru-kaliningrad"
+msgid "Kaliningrad"
+msgstr "Kaliningrad"
+
+#, fuzzy
+msgctxt "venue.ru-kazan"
+msgid "Kazan"
+msgstr "Kazan"
+
+#, fuzzy
+msgctxt "venue.ru-moscow"
+msgid "Moscow"
+msgstr "Moskva"
+
+#, fuzzy
+msgctxt "venue.ru-moscow_luzhniki"
+msgid "Luzhniki Stadium"
+msgstr "Luzjnikistadion"
+
+#, fuzzy
+msgctxt "venue.ru-moscow_otkrytiye"
+msgid "Otkrytiye Arena"
+msgstr "Spartak stadion"
+
+#, fuzzy
+msgctxt "venue.ru-nizhny-novgorod"
+msgid "Nizhny Novgorod"
+msgstr "Nizhnij Novgorod"
+
+#, fuzzy
+msgctxt "venue.ru-rostov-on-don"
+msgid "Rostov-on-Don"
+msgstr "Rostov-na-Donu"
+
+#, fuzzy
+msgctxt "venue.ru-saint-petersburg"
+msgid "Saint Petersburg"
+msgstr "Sankt Petersburg"
+
+#, fuzzy
+msgctxt "venue.ru-samara"
+msgid "Samara"
+msgstr "Samara"
+
+#, fuzzy
+msgctxt "venue.ru-saransk"
+msgid "Saransk"
+msgstr "Saransk"
+
+#, fuzzy
+msgctxt "venue.ru-sochi"
+msgid "Sochi"
+msgstr "Sotji"
+
+#, fuzzy
+msgctxt "venue.ru-volgograd"
+msgid "Volgograd"
+msgstr "Volgograd"
+
+#, fuzzy
+msgctxt "venue.us-arlington-tx"
+msgid "Arlington, TX"
+msgstr "Arlington, Texas"
+
+#, fuzzy
+msgctxt "venue.us-atlanta-ga"
+msgid "Atlanta, GA"
+msgstr "Atlanta, Georgia"
+
+#, fuzzy
+msgctxt "venue.us-austin-tx"
+msgid "Austin, TX"
+msgstr "Austin, Texas"
+
+#, fuzzy
+msgctxt "venue.us-boston-ma"
+msgid "Boston, MA"
+msgstr "Boston, Massachusetts"
+
+#, fuzzy
+msgctxt "venue.us-charlotte-nc"
+msgid "Charlotte, NC"
+msgstr "Charlotte, North Carolina"
+
+#, fuzzy
+msgctxt "venue.us-cincinnati-oh"
+msgid "Cincinnati, OH"
+msgstr "Cincinatti, Ohio"
+
+#, fuzzy
+msgctxt "venue.us-dallas-tx"
+msgid "Dallas, TX"
+msgstr "Dallas, Texas"
+
+#, fuzzy
+msgctxt "venue.us-east-rutherford-nj"
+msgid "East Rutherford, NJ"
+msgstr "East Rutherford, New Jersey"
+
+#, fuzzy
+msgctxt "venue.us-glendale-az"
+msgid "Glendale, AZ"
+msgstr "Glendale, Arizona"
+
+#, fuzzy
+msgctxt "venue.us-houston-tx"
+msgid "Houston, TX"
+msgstr "Houston, Texas"
+
+#, fuzzy
+msgctxt "venue.us-inglewood-ca"
+msgid "Inglewood, CA"
+msgstr "Inglewood, Kalifornien"
+
+#, fuzzy
+msgctxt "venue.us-kansas-city-ks"
+msgid "Kansas City, KS"
+msgstr "Kansas City, Kansas"
+
+#, fuzzy
+msgctxt "venue.us-kansas-city-mo"
+msgid "Kansas City, MO"
+msgstr "Kansas City, Missouri"
+
+#, fuzzy
+msgctxt "venue.us-las-vegas-nv"
+msgid "Las Vegas, NV"
+msgstr "Las Vegas, Nevada"
+
+#, fuzzy
+msgctxt "venue.us-los-angeles-ca"
+msgid "Los Angeles, CA"
+msgstr "Los Angeles, Kalifornien"
+
+#, fuzzy
+msgctxt "venue.us-miami-fl"
+msgid "Miami, FL"
+msgstr "Miami, Florida"
+
+#, fuzzy
+msgctxt "venue.us-nashville-tn"
+msgid "Nashville, TN"
+msgstr "Nashville, Tennessee"
+
+#, fuzzy
+msgctxt "venue.us-orlando-fl"
+msgid "Orlando, FL"
+msgstr "Orlando, Florida"
+
+#, fuzzy
+msgctxt "venue.us-pasadena-ca"
+msgid "Pasadena, CA"
+msgstr "Pasadena, Kalifornien"
+
+#, fuzzy
+msgctxt "venue.us-philadelphia-pa"
+msgid "Philadelphia, PA"
+msgstr "Philadelphia, Pennsylvania"
+
+#, fuzzy
+msgctxt "venue.us-santa-clara-ca"
+msgid "Santa Clara, CA"
+msgstr "Santa Clara, Kalifornien"
+
+#, fuzzy
+msgctxt "venue.us-seattle-wa"
+msgid "Seattle, WA"
+msgstr "Seattle, Washington"
+
+#, fuzzy
+msgctxt "venue.us-washington-dc"
+msgid "Washington, DC"
+msgstr "Washington, DC"
