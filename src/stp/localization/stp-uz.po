@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: stp 0.3.0\n"
 "POT-Creation-Date: 2026-04-25 14:07-0700\n"
-"PO-Revision-Date: 2026-04-25 14:08-0700\n"
+"PO-Revision-Date: 2026-04-30 19:49-0700\n"
 "Last-Translator: Bruce Oberg <bruce@oberg.org>\n"
 "Language-Team: Bruce Oberg <bruce@oberg.org>\n"
 "Language: uz\n"
@@ -31,22 +31,22 @@ msgstr ""
 #, fuzzy
 msgctxt "competition.mens-club-world-cup"
 msgid "Club World Cup"
-msgstr ""
+msgstr "Klublar o'rtasidagi JCh"
 
 #, fuzzy
 msgctxt "competition.mens-copa-america"
 msgid "Copa América"
-msgstr ""
+msgstr "Amerika Kubogi"
 
 #, fuzzy
 msgctxt "competition.mens-euro"
 msgid "Euro"
-msgstr ""
+msgstr "Evro"
 
 #, fuzzy
 msgctxt "competition.mens-world-cup"
 msgid "World Cup"
-msgstr ""
+msgstr "Jahon chempionati"
 
 #. The "WC" here is an abbreviation for "World Cup".
 #. We want this title to be distinct from the mens
@@ -54,7 +54,7 @@ msgstr ""
 #, fuzzy
 msgctxt "competition.womens-world-cup"
 msgid "Women's WC"
-msgstr ""
+msgstr "Ayollar o'rtasidagi JCh"
 
 #. Host country or region - shown in poster header, but in limited space.
 #. Inserted into the {location} field of page.format.dates-and-location. Date
@@ -65,47 +65,47 @@ msgstr ""
 #, fuzzy
 msgctxt "host.au-nz"
 msgid "AU/NZ"
-msgstr ""
+msgstr "AU/NZ"
 
 #, fuzzy
 msgctxt "host.brazil"
 msgid "Brazil"
-msgstr ""
+msgstr "Braziliya"
 
 #, fuzzy
 msgctxt "host.germany"
 msgid "Germany"
-msgstr ""
+msgstr "Germaniya"
 
 #, fuzzy
 msgctxt "host.north-america"
 msgid "North America"
-msgstr ""
+msgstr "Shimoliy Amerika"
 
 #, fuzzy
 msgctxt "host.qatar"
 msgid "Qatar"
-msgstr ""
+msgstr "Qatar"
 
 #, fuzzy
 msgctxt "host.russia"
 msgid "Russia"
-msgstr ""
+msgstr "Rossiya"
 
 #, fuzzy
 msgctxt "host.saudi-arabia"
 msgid "Saudi Arabia"
-msgstr ""
+msgstr "Saudiya Arabistoni"
 
 #, fuzzy
 msgctxt "host.uk-ireland"
 msgid "UK & Ireland"
-msgstr ""
+msgstr "Buyuk Britaniya va Irlandiya"
 
 #, fuzzy
 msgctxt "host.usa"
 msgid "USA"
-msgstr ""
+msgstr "AQSh"
 
 #. Venues where matches are held. Most often a city, but sometimes an arena
 #. name when a city had multiple locations.
@@ -115,352 +115,352 @@ msgstr ""
 #, fuzzy
 msgctxt "venue.au-adelaide"
 msgid "Adelaide"
-msgstr ""
+msgstr "Adelaida"
 
 #, fuzzy
 msgctxt "venue.au-brisbane"
 msgid "Brisbane"
-msgstr ""
+msgstr "Brisben"
 
 #, fuzzy
 msgctxt "venue.au-melbourne"
 msgid "Melbourne"
-msgstr ""
+msgstr "Melburn"
 
 #, fuzzy
 msgctxt "venue.au-perth"
 msgid "Perth"
-msgstr ""
+msgstr "Pert"
 
 #, fuzzy
 msgctxt "venue.au-sydney"
 msgid "Sydney"
-msgstr ""
+msgstr "Sidney"
 
 #, fuzzy
 msgctxt "venue.au-sydney_australia"
 msgid "Stadium Australia"
-msgstr ""
+msgstr "Avstraliya Stadioni"
 
 #, fuzzy
 msgctxt "venue.au-sydney_football"
 msgid "Sydney Football Stadium"
-msgstr ""
+msgstr "Sidney Futbol Stadioni"
 
 #, fuzzy
 msgctxt "venue.ca-toronto"
 msgid "Toronto"
-msgstr ""
+msgstr "Toronto"
 
 #, fuzzy
 msgctxt "venue.ca-vancouver"
 msgid "Vancouver"
-msgstr ""
+msgstr "Vankuver"
 
 #, fuzzy
 msgctxt "venue.de-berlin"
 msgid "Berlin"
-msgstr ""
+msgstr "Berlin"
 
 #, fuzzy
 msgctxt "venue.de-cologne"
 msgid "Cologne"
-msgstr ""
+msgstr "Kyoln"
 
 #, fuzzy
 msgctxt "venue.de-dortmund"
 msgid "Dortmund"
-msgstr ""
+msgstr "Dortmund"
 
 #, fuzzy
 msgctxt "venue.de-dusseldorf"
 msgid "Düsseldorf"
-msgstr ""
+msgstr "Dyusseldorf"
 
 #, fuzzy
 msgctxt "venue.de-frankfurt"
 msgid "Frankfurt"
-msgstr ""
+msgstr "Frankfurt"
 
 #, fuzzy
 msgctxt "venue.de-gelsenkirchen"
 msgid "Gelsenkirchen"
-msgstr ""
+msgstr "Gelzenkirxen"
 
 #, fuzzy
 msgctxt "venue.de-hamburg"
 msgid "Hamburg"
-msgstr ""
+msgstr "Gamburg"
 
 #, fuzzy
 msgctxt "venue.de-leipzig"
 msgid "Leipzig"
-msgstr ""
+msgstr "Leypsig"
 
 #, fuzzy
 msgctxt "venue.de-munich"
 msgid "Munich"
-msgstr ""
+msgstr "Myunxen"
 
 #, fuzzy
 msgctxt "venue.de-stuttgart"
 msgid "Stuttgart"
-msgstr ""
+msgstr "Shtutgart"
 
 #, fuzzy
 msgctxt "venue.mx-guadalajara"
 msgid "Guadalajara"
-msgstr ""
+msgstr "Gvadalaxara"
 
 #, fuzzy
 msgctxt "venue.mx-mexico-city"
 msgid "Mexico City"
-msgstr ""
+msgstr "Mexiko"
 
 #, fuzzy
 msgctxt "venue.mx-monterrey"
 msgid "Monterrey"
-msgstr ""
+msgstr "Monterrey"
 
 #, fuzzy
 msgctxt "venue.nz-auckland"
 msgid "Auckland"
-msgstr ""
+msgstr "Oklend"
 
 #, fuzzy
 msgctxt "venue.nz-dunedin"
 msgid "Dunedin"
-msgstr ""
+msgstr "Danidin"
 
 #, fuzzy
 msgctxt "venue.nz-hamilton"
 msgid "Hamilton"
-msgstr ""
+msgstr "Xamilton"
 
 #, fuzzy
 msgctxt "venue.nz-wellington"
 msgid "Wellington"
-msgstr ""
+msgstr "Vellington"
 
 #, fuzzy
 msgctxt "venue.qa-974"
 msgid "Stadium 974"
-msgstr ""
+msgstr "Stadion 974"
 
 #, fuzzy
 msgctxt "venue.qa-ahmad-bin-ali"
 msgid "Ahmad Bin Ali"
-msgstr ""
+msgstr "Ahmad bin Ali"
 
 #, fuzzy
 msgctxt "venue.qa-al-bayt"
 msgid "Al Bayt"
-msgstr ""
+msgstr "Al-Bayt"
 
 #, fuzzy
 msgctxt "venue.qa-al-janoub"
 msgid "Al Janoub"
-msgstr ""
+msgstr "Al-Janub"
 
 #, fuzzy
 msgctxt "venue.qa-al-thumama"
 msgid "Al Thumama"
-msgstr ""
+msgstr "Al-Sumama"
 
 #, fuzzy
 msgctxt "venue.qa-education-city"
 msgid "Education City"
-msgstr ""
+msgstr "Education City stadioni"
 
 #, fuzzy
 msgctxt "venue.qa-khalifa"
 msgid "Khalifa International"
-msgstr ""
+msgstr "Xalifa xalqaro stadioni"
 
 #, fuzzy
 msgctxt "venue.qa-lusail"
 msgid "Lusail"
-msgstr ""
+msgstr "Lusail"
 
 #, fuzzy
 msgctxt "venue.ru-ekaterinburg"
 msgid "Ekaterinburg"
-msgstr ""
+msgstr "Yekaterinburg"
 
 #, fuzzy
 msgctxt "venue.ru-kaliningrad"
 msgid "Kaliningrad"
-msgstr ""
+msgstr "Kaliningrad"
 
 #, fuzzy
 msgctxt "venue.ru-kazan"
 msgid "Kazan"
-msgstr ""
+msgstr "Qozon"
 
 #, fuzzy
 msgctxt "venue.ru-moscow"
 msgid "Moscow"
-msgstr ""
+msgstr "Moskva"
 
 #, fuzzy
 msgctxt "venue.ru-moscow_luzhniki"
 msgid "Luzhniki Stadium"
-msgstr ""
+msgstr "Lujniki stadioni"
 
 #, fuzzy
 msgctxt "venue.ru-moscow_otkrytiye"
 msgid "Otkrytiye Arena"
-msgstr ""
+msgstr "Otkritiye Arena"
 
 #, fuzzy
 msgctxt "venue.ru-nizhny-novgorod"
 msgid "Nizhny Novgorod"
-msgstr ""
+msgstr "Nijniy Novgorod"
 
 #, fuzzy
 msgctxt "venue.ru-rostov-on-don"
 msgid "Rostov-on-Don"
-msgstr ""
+msgstr "Rostov Arena"
 
 #, fuzzy
 msgctxt "venue.ru-saint-petersburg"
 msgid "Saint Petersburg"
-msgstr ""
+msgstr "Sankt-Peterburg"
 
 #, fuzzy
 msgctxt "venue.ru-samara"
 msgid "Samara"
-msgstr ""
+msgstr "Samara"
 
 #, fuzzy
 msgctxt "venue.ru-saransk"
 msgid "Saransk"
-msgstr ""
+msgstr "Saransk"
 
 #, fuzzy
 msgctxt "venue.ru-sochi"
 msgid "Sochi"
-msgstr ""
+msgstr "Sochi"
 
 #, fuzzy
 msgctxt "venue.ru-volgograd"
 msgid "Volgograd"
-msgstr ""
+msgstr "Volgograd"
 
 #, fuzzy
 msgctxt "venue.us-arlington-tx"
 msgid "Arlington, TX"
-msgstr ""
+msgstr "Arlington, TX"
 
 #, fuzzy
 msgctxt "venue.us-atlanta-ga"
 msgid "Atlanta, GA"
-msgstr ""
+msgstr "Atlanta, GA"
 
 #, fuzzy
 msgctxt "venue.us-austin-tx"
 msgid "Austin, TX"
-msgstr ""
+msgstr "Ostin, TX"
 
 #, fuzzy
 msgctxt "venue.us-boston-ma"
 msgid "Boston, MA"
-msgstr ""
+msgstr "Boston, MA"
 
 #, fuzzy
 msgctxt "venue.us-charlotte-nc"
 msgid "Charlotte, NC"
-msgstr ""
+msgstr "Sharlott, NC"
 
 #, fuzzy
 msgctxt "venue.us-cincinnati-oh"
 msgid "Cincinnati, OH"
-msgstr ""
+msgstr "Sinsinnati, OH"
 
 #, fuzzy
 msgctxt "venue.us-dallas-tx"
 msgid "Dallas, TX"
-msgstr ""
+msgstr "Dallas, TX"
 
 #, fuzzy
 msgctxt "venue.us-east-rutherford-nj"
 msgid "East Rutherford, NJ"
-msgstr ""
+msgstr "Ist-Raterford, NJ"
 
 #, fuzzy
 msgctxt "venue.us-glendale-az"
 msgid "Glendale, AZ"
-msgstr ""
+msgstr "Glendeyl, AZ"
 
 #, fuzzy
 msgctxt "venue.us-houston-tx"
 msgid "Houston, TX"
-msgstr ""
+msgstr "Xyuston, TX"
 
 #, fuzzy
 msgctxt "venue.us-inglewood-ca"
 msgid "Inglewood, CA"
-msgstr ""
+msgstr "Inglvud, CA"
 
 #, fuzzy
 msgctxt "venue.us-kansas-city-ks"
 msgid "Kansas City, KS"
-msgstr ""
+msgstr "Kanzas-Siti, KS"
 
 #, fuzzy
 msgctxt "venue.us-kansas-city-mo"
 msgid "Kansas City, MO"
-msgstr ""
+msgstr "Kanzas-Siti, MO"
 
 #, fuzzy
 msgctxt "venue.us-las-vegas-nv"
 msgid "Las Vegas, NV"
-msgstr ""
+msgstr "Las-Vegas, NV"
 
 #, fuzzy
 msgctxt "venue.us-los-angeles-ca"
 msgid "Los Angeles, CA"
-msgstr ""
+msgstr "Los-Anjeles, CA"
 
 #, fuzzy
 msgctxt "venue.us-miami-fl"
 msgid "Miami, FL"
-msgstr ""
+msgstr "Mayami, FL"
 
 #, fuzzy
 msgctxt "venue.us-nashville-tn"
 msgid "Nashville, TN"
-msgstr ""
+msgstr "Neshvill, TN"
 
 #, fuzzy
 msgctxt "venue.us-orlando-fl"
 msgid "Orlando, FL"
-msgstr ""
+msgstr "Orlando, FL"
 
 #, fuzzy
 msgctxt "venue.us-pasadena-ca"
 msgid "Pasadena, CA"
-msgstr ""
+msgstr "Pasadena, CA"
 
 #, fuzzy
 msgctxt "venue.us-philadelphia-pa"
 msgid "Philadelphia, PA"
-msgstr ""
+msgstr "Filadelfiya, PA"
 
 #, fuzzy
 msgctxt "venue.us-santa-clara-ca"
 msgid "Santa Clara, CA"
-msgstr ""
+msgstr "Santa-Klara, CA"
 
 #, fuzzy
 msgctxt "venue.us-seattle-wa"
 msgid "Seattle, WA"
-msgstr ""
+msgstr "Sietl, WA"
 
 #, fuzzy
 msgctxt "venue.us-washington-dc"
 msgid "Washington, DC"
-msgstr ""
+msgstr "Vashington, DC"
 
 #. Title text and layout. If in doubt, leave alone.
 msgid "### section: page - see notes ###"
@@ -471,7 +471,7 @@ msgstr ""
 #, fuzzy
 msgctxt "page.format.dates-and-location"
 msgid "{dates}, {location}"
-msgstr ""
+msgstr "{dates}, {location}"
 
 #. Timezone is build and inserted into {timezone} field. Text from
 #. page.timezone.label is inserted into {label} field. Farsi version includes
@@ -479,7 +479,7 @@ msgstr ""
 #, fuzzy
 msgctxt "page.format.timezone"
 msgid "{label}: {timezone}"
-msgstr ""
+msgstr "{label}: {timezone}"
 
 #. Layout of the poster title (centered, on top). Specifies order of year,
 #. competition title (from competition section), and poster label
@@ -487,27 +487,27 @@ msgstr ""
 #, fuzzy
 msgctxt "page.format.title"
 msgid "{year} {name} · {label}"
-msgstr ""
+msgstr "{year} {name} · {label}"
 
 #. Inserted into the {label} of page.format.timezone.
 #, fuzzy
 msgctxt "page.timezone.label"
 msgid "Time Zone"
-msgstr ""
+msgstr "Vaqt zonasi"
 
 #. Inserted into page.format.title when poster shows upcoming matches with no
 #. scores.
 #, fuzzy
 msgctxt "page.title.fixtures"
 msgid "Fixtures"
-msgstr ""
+msgstr "O'yinlar"
 
 #. Inserted into page.format.title when poster shows completed matches with
 #. scores.
 #, fuzzy
 msgctxt "page.title.results"
 msgid "Results"
-msgstr ""
+msgstr "Natijalar"
 
 #. Names of the stages of a soccer tournament.
 msgid "### section: stage - see notes ###"
@@ -516,50 +516,50 @@ msgstr ""
 #, fuzzy
 msgctxt "stage.final"
 msgid "Final"
-msgstr ""
+msgstr "Final"
 
 #, fuzzy
 msgctxt "stage.group"
 msgid "Group Stage"
-msgstr ""
+msgstr "Guruh bosqichi"
 
 #. Caution. A literal translation of 'Round of' may be inappropriate. Some
 #. languages use forms like 'eighths final' or 'sixteenths final'.
 #, fuzzy
 msgctxt "stage.quarters"
 msgid "Quarter-Finals"
-msgstr ""
+msgstr "Chorak final"
 
 #. Caution. A literal translation of 'Round of' may be inappropriate. Some
 #. languages use forms like 'eighths final' or 'sixteenths final'.
 #, fuzzy
 msgctxt "stage.round16"
 msgid "Round of Sixteen"
-msgstr ""
+msgstr "1/8 final"
 
 #. Caution. A literal translation of 'Round of' may be inappropriate. Some
 #. languages use forms like 'eighths final' or 'sixteenths final'.
 #, fuzzy
 msgctxt "stage.round32"
 msgid "Round of Thirty Two"
-msgstr ""
+msgstr "1/16 final"
 
 #. Caution. A literal translation of 'Round of' may be inappropriate. Some
 #. languages use forms like 'eighths final' or 'sixteenths final'.
 #, fuzzy
 msgctxt "stage.round64"
 msgid "Round of Sixty Four"
-msgstr ""
+msgstr "1/32 final"
 
 #, fuzzy
 msgctxt "stage.semis"
 msgid "Semi-Finals"
-msgstr ""
+msgstr "Yarim final"
 
 #, fuzzy
 msgctxt "stage.third"
 msgid "Third Place"
-msgstr ""
+msgstr "3-o'rin uchun"
 
 #. Abbreviations for the group stage sections of the poster.
 msgid "### section: group - see notes ###"
@@ -571,7 +571,7 @@ msgstr ""
 #, fuzzy
 msgctxt "group.goals-against"
 msgid "GA"
-msgstr ""
+msgstr "O'tkazib yuborilgan gollar"
 
 #. Abbreviation of "Goals For". Shown in a very small area. Indicates goals
 #. the team scored.
@@ -579,7 +579,7 @@ msgstr ""
 #, fuzzy
 msgctxt "group.goals-for"
 msgid "GF"
-msgstr ""
+msgstr "Urilgan gollar"
 
 #. Abbreviation of "Points". Shown in a very small area. Indicates the
 #. 'points' of
@@ -587,12 +587,12 @@ msgstr ""
 #, fuzzy
 msgctxt "group.points"
 msgid "Pts"
-msgstr ""
+msgstr "Ochko"
 
 #, fuzzy
 msgctxt "group.title"
 msgid "Group"
-msgstr ""
+msgstr "Guruh"
 
 msgid "### section: match - see notes ###"
 msgstr ""
@@ -601,7 +601,7 @@ msgstr ""
 #, fuzzy
 msgctxt "match.after-extra-time"
 msgid "(AET)"
-msgstr ""
+msgstr "Qo'shimcha vaqt"
 
 #. How to format an ordinal match number.
 #, fuzzy
@@ -616,17 +616,17 @@ msgstr ""
 #, fuzzy
 msgctxt "country.??1"
 msgid "Play-Off 1"
-msgstr ""
+msgstr "Pley-off 1"
 
 #, fuzzy
 msgctxt "country.??2"
 msgid "Play-Off 2"
-msgstr ""
+msgstr "Pley-off 2"
 
 #, fuzzy
 msgctxt "country.??3"
 msgid "Play-Off 3"
-msgstr ""
+msgstr "Pley-off 3"
 
 #, fuzzy
 msgctxt "country.??4"
@@ -641,467 +641,467 @@ msgstr ""
 #, fuzzy
 msgctxt "country.??b"
 msgid "Play-Off B"
-msgstr ""
+msgstr "Pley-off B"
 
 #, fuzzy
 msgctxt "country.??c"
 msgid "Play-Off C"
-msgstr ""
+msgstr "Pley-off C"
 
 #, fuzzy
 msgctxt "country.??d"
 msgid "Play-Off D"
-msgstr ""
+msgstr "Pley-off D"
 
 #, fuzzy
 msgctxt "country.alb"
 msgid "Albania"
-msgstr ""
+msgstr "Albaniya"
 
 #, fuzzy
 msgctxt "country.alg"
 msgid "Algeria"
-msgstr ""
+msgstr "Jazoir"
 
 #, fuzzy
 msgctxt "country.arg"
 msgid "Argentina"
-msgstr ""
+msgstr "Argentina"
 
 #, fuzzy
 msgctxt "country.arm"
 msgid "Armenia"
-msgstr ""
+msgstr "Armaniston"
 
 #, fuzzy
 msgctxt "country.aus"
 msgid "Australia"
-msgstr ""
+msgstr "Avstraliya"
 
 #, fuzzy
 msgctxt "country.aut"
 msgid "Austria"
-msgstr ""
+msgstr "Avstriya"
 
 #, fuzzy
 msgctxt "country.bah"
 msgid "Bahrain"
-msgstr ""
+msgstr "Bahrayn"
 
 #, fuzzy
 msgctxt "country.bel"
 msgid "Belgium"
-msgstr ""
+msgstr "Belgiya"
 
 #, fuzzy
 msgctxt "country.bfs"
 msgid "Burkina Faso"
-msgstr ""
+msgstr "Burkina-Faso"
 
 #, fuzzy
 msgctxt "country.bih"
 msgid "Bosnia/Herzeg."
-msgstr ""
+msgstr "Bosniya va Gers."
 
 #, fuzzy
 msgctxt "country.blr"
 msgid "Belarus"
-msgstr ""
+msgstr "Belarus"
 
 #, fuzzy
 msgctxt "country.bol"
 msgid "Bolivia"
-msgstr ""
+msgstr "Boliviya"
 
 #, fuzzy
 msgctxt "country.bra"
 msgid "Brazil"
-msgstr ""
+msgstr "Braziliya"
 
 #, fuzzy
 msgctxt "country.bul"
 msgid "Bulgaria"
-msgstr ""
+msgstr "Bolgariya"
 
 #, fuzzy
 msgctxt "country.can"
 msgid "Canada"
-msgstr ""
+msgstr "Kanada"
 
 #, fuzzy
 msgctxt "country.chi"
 msgid "China"
-msgstr ""
+msgstr "Xitoy"
 
 #, fuzzy
 msgctxt "country.civ"
 msgid "Côte d'Ivoire"
-msgstr ""
+msgstr "Kot-d'Ivuar"
 
 #, fuzzy
 msgctxt "country.cmr"
 msgid "Cameroon"
-msgstr ""
+msgstr "Kamerun"
 
 #, fuzzy
 msgctxt "country.cod"
 msgid "Congo DR"
-msgstr ""
+msgstr "Kongo DR"
 
 #, fuzzy
 msgctxt "country.col"
 msgid "Colombia"
-msgstr ""
+msgstr "Kolumbiya"
 
 #, fuzzy
 msgctxt "country.con"
 msgid "Congo"
-msgstr ""
+msgstr "Kongo"
 
 #, fuzzy
 msgctxt "country.cpv"
 msgid "Cabo Verde"
-msgstr ""
+msgstr "Kabo-Verde"
 
 #, fuzzy
 msgctxt "country.crc"
 msgid "Costa Rica"
-msgstr ""
+msgstr "Kosta-Rika"
 
 #, fuzzy
 msgctxt "country.cro"
 msgid "Croatia"
-msgstr ""
+msgstr "Xorvatiya"
 
 #, fuzzy
 msgctxt "country.cuw"
 msgid "Curaçao"
-msgstr ""
+msgstr "Kyurasao"
 
 #, fuzzy
 msgctxt "country.cze"
 msgid "Czechia"
-msgstr ""
+msgstr "Chexiya"
 
 #, fuzzy
 msgctxt "country.den"
 msgid "Denmark"
-msgstr ""
+msgstr "Daniya"
 
 #, fuzzy
 msgctxt "country.ecu"
 msgid "Ecuador"
-msgstr ""
+msgstr "Ekvador"
 
 #, fuzzy
 msgctxt "country.egy"
 msgid "Egypt"
-msgstr ""
+msgstr "Misr"
 
 #, fuzzy
 msgctxt "country.eng"
 msgid "England"
-msgstr ""
+msgstr "Angliya"
 
 #, fuzzy
 msgctxt "country.esp"
 msgid "Spain"
-msgstr ""
+msgstr "Ispaniya"
 
 #, fuzzy
 msgctxt "country.fin"
 msgid "Finland"
-msgstr ""
+msgstr "Finlyandiya"
 
 #, fuzzy
 msgctxt "country.fra"
 msgid "France"
-msgstr ""
+msgstr "Fransiya"
 
 #, fuzzy
 msgctxt "country.geo"
 msgid "Georgia"
-msgstr ""
+msgstr "Gruziya"
 
 #, fuzzy
 msgctxt "country.ger"
 msgid "Germany"
-msgstr ""
+msgstr "Germaniya"
 
 #, fuzzy
 msgctxt "country.gha"
 msgid "Ghana"
-msgstr ""
+msgstr "Gana"
 
 #, fuzzy
 msgctxt "country.gre"
 msgid "Greece"
-msgstr ""
+msgstr "Gretsiya"
 
 #, fuzzy
 msgctxt "country.hai"
 msgid "Haiti"
-msgstr ""
+msgstr "Gaiti"
 
 #, fuzzy
 msgctxt "country.hon"
 msgid "Honduras"
-msgstr ""
+msgstr "Gonduras"
 
 #, fuzzy
 msgctxt "country.hun"
 msgid "Hungary"
-msgstr ""
+msgstr "Vengriya"
 
 #, fuzzy
 msgctxt "country.ire"
 msgid "Ireland"
-msgstr ""
+msgstr "Irlandiya"
 
 #, fuzzy
 msgctxt "country.irn"
 msgid "Iran"
-msgstr ""
+msgstr "Eron"
 
 #, fuzzy
 msgctxt "country.irq"
 msgid "Iraq"
-msgstr ""
+msgstr "Iroq"
 
 #, fuzzy
 msgctxt "country.isl"
 msgid "Iceland"
-msgstr ""
+msgstr "Islandiya"
 
 #, fuzzy
 msgctxt "country.isr"
 msgid "Israel"
-msgstr ""
+msgstr "Isroil"
 
 #, fuzzy
 msgctxt "country.ita"
 msgid "Italy"
-msgstr ""
+msgstr "Italiya"
 
 #, fuzzy
 msgctxt "country.ivc"
 msgid "Ivory Coast"
-msgstr ""
+msgstr "Kot-d'Ivuar"
 
 #, fuzzy
 msgctxt "country.jam"
 msgid "Jamaica"
-msgstr ""
+msgstr "Yamayka"
 
 #, fuzzy
 msgctxt "country.jor"
 msgid "Jordan"
-msgstr ""
+msgstr "Iordaniya"
 
 #, fuzzy
 msgctxt "country.jpn"
 msgid "Japan"
-msgstr ""
+msgstr "Yaponiya"
 
 #, fuzzy
 msgctxt "country.kor"
 msgid "South Korea"
-msgstr ""
+msgstr "Janubiy Koreya"
 
 #, fuzzy
 msgctxt "country.ksa"
 msgid "Saudi Arabia"
-msgstr ""
+msgstr "Saudiya Arabistoni"
 
 #, fuzzy
 msgctxt "country.mal"
 msgid "Mali"
-msgstr ""
+msgstr "Mali"
 
 #, fuzzy
 msgctxt "country.mar"
 msgid "Morocco"
-msgstr ""
+msgstr "Marokash"
 
 #, fuzzy
 msgctxt "country.mex"
 msgid "Mexico"
-msgstr ""
+msgstr "Meksika"
 
 #, fuzzy
 msgctxt "country.mon"
 msgid "Montenegro"
-msgstr ""
+msgstr "Chernogoriya"
 
 #, fuzzy
 msgctxt "country.ned"
 msgid "Netherlands"
-msgstr ""
+msgstr "Niderlandiya"
 
 #, fuzzy
 msgctxt "country.nga"
 msgid "Nigeria"
-msgstr ""
+msgstr "Nigeriya"
 
 #, fuzzy
 msgctxt "country.nir"
 msgid "Northern Ireland"
-msgstr ""
+msgstr "Shimoliy Irlandiya"
 
 #, fuzzy
 msgctxt "country.nmc"
 msgid "North Macedonia"
-msgstr ""
+msgstr "Shimoliy Makedoniya"
 
 #, fuzzy
 msgctxt "country.nor"
 msgid "Norway"
-msgstr ""
+msgstr "Norvegiya"
 
 #, fuzzy
 msgctxt "country.nzl"
 msgid "New Zealand"
-msgstr ""
+msgstr "Yangi Zelandiya"
 
 #, fuzzy
 msgctxt "country.pan"
 msgid "Panama"
-msgstr ""
+msgstr "Panama"
 
 #, fuzzy
 msgctxt "country.par"
 msgid "Paraguay"
-msgstr ""
+msgstr "Paragvay"
 
 #, fuzzy
 msgctxt "country.per"
 msgid "Peru"
-msgstr ""
+msgstr "Peru"
 
 #, fuzzy
 msgctxt "country.phi"
 msgid "Philippines"
-msgstr ""
+msgstr "Filippin"
 
 #, fuzzy
 msgctxt "country.pol"
 msgid "Poland"
-msgstr ""
+msgstr "Polsha"
 
 #, fuzzy
 msgctxt "country.por"
 msgid "Portugal"
-msgstr ""
+msgstr "Portugaliya"
 
 #, fuzzy
 msgctxt "country.qat"
 msgid "Qatar"
-msgstr ""
+msgstr "Qatar"
 
 #, fuzzy
 msgctxt "country.rom"
 msgid "Romania"
-msgstr ""
+msgstr "Ruminiya"
 
 #, fuzzy
 msgctxt "country.rus"
 msgid "Russia"
-msgstr ""
+msgstr "Rossiya"
 
 #, fuzzy
 msgctxt "country.saf"
 msgid "South Africa"
-msgstr ""
+msgstr "JAR"
 
 #, fuzzy
 msgctxt "country.sco"
 msgid "Scotland"
-msgstr ""
+msgstr "Shotlandiya"
 
 #, fuzzy
 msgctxt "country.sen"
 msgid "Senegal"
-msgstr ""
+msgstr "Senegal"
 
 #, fuzzy
 msgctxt "country.srb"
 msgid "Serbia"
-msgstr ""
+msgstr "Serbiya"
 
 #, fuzzy
 msgctxt "country.sui"
 msgid "Switzerland"
-msgstr ""
+msgstr "Shveytsariya"
 
 #, fuzzy
 msgctxt "country.svk"
 msgid "Slovakia"
-msgstr ""
+msgstr "Slovakiya"
 
 #, fuzzy
 msgctxt "country.svn"
 msgid "Slovenia"
-msgstr ""
+msgstr "Sloveniya"
 
 #, fuzzy
 msgctxt "country.swe"
 msgid "Sweden"
-msgstr ""
+msgstr "Shvetsiya"
 
 #, fuzzy
 msgctxt "country.tun"
 msgid "Tunisia"
-msgstr ""
+msgstr "Tunis"
 
 #, fuzzy
 msgctxt "country.tur"
 msgid "Türkiye"
-msgstr ""
+msgstr "Turkiya"
 
 #, fuzzy
 msgctxt "country.uae"
 msgid "Un. Ar. Emirates"
-msgstr ""
+msgstr "BAA"
 
 #, fuzzy
 msgctxt "country.ukr"
 msgid "Ukraine"
-msgstr ""
+msgstr "Ukraina"
 
 #, fuzzy
 msgctxt "country.uru"
 msgid "Uruguay"
-msgstr ""
+msgstr "Urugvay"
 
 #, fuzzy
 msgctxt "country.usa"
 msgid "USA"
-msgstr ""
+msgstr "AQSh"
 
 #, fuzzy
 msgctxt "country.uzb"
 msgid "Uzbekistan"
-msgstr ""
+msgstr "O'zbekiston"
 
 #, fuzzy
 msgctxt "country.ven"
 msgid "Venezuela"
-msgstr ""
+msgstr "Venesuela"
 
 #, fuzzy
 msgctxt "country.vie"
 msgid "Vietnam"
-msgstr ""
+msgstr "Vyetnam"
 
 #, fuzzy
 msgctxt "country.wal"
 msgid "Wales"
-msgstr ""
+msgstr "Uels"
 
 #, fuzzy
 msgctxt "country.zam"
 msgid "Zambia"
-msgstr ""
+msgstr "Zambiya"
 
 #. Club names, keyed by their 3 letter FIFA code. Resist translating terms -
 #. the whole name from the original language is almost always used. Leave off
@@ -1112,204 +1112,204 @@ msgstr ""
 #, fuzzy
 msgctxt "club.??1"
 msgid "Play-Off 1"
-msgstr ""
+msgstr "Play-off 1"
 
 #, fuzzy
 msgctxt "club.??2"
 msgid "Play-Off 2"
-msgstr ""
+msgstr "Play-off 2"
 
 #, fuzzy
 msgctxt "club.??3"
 msgid "Play-Off 3"
-msgstr ""
+msgstr "Play-off 3"
 
 #, fuzzy
 msgctxt "club.??4"
 msgid "Play-Off 4"
-msgstr ""
+msgstr "Play-off 4"
 
 #, fuzzy
 msgctxt "club.??a"
 msgid "Play-Off A"
-msgstr ""
+msgstr "Play-off A"
 
 #, fuzzy
 msgctxt "club.??b"
 msgid "Play-Off B"
-msgstr ""
+msgstr "Play-off B"
 
 #, fuzzy
 msgctxt "club.??c"
 msgid "Play-Off C"
-msgstr ""
+msgstr "Play-off C"
 
 #, fuzzy
 msgctxt "club.??d"
 msgid "Play-Off D"
-msgstr ""
+msgstr "Play-off D"
 
 #, fuzzy
 msgctxt "club.ahl"
 msgid "Al Ahly"
-msgstr ""
+msgstr "Al-Ahli"
 
 #, fuzzy
 msgctxt "club.ain"
 msgid "Al Ain"
-msgstr ""
+msgstr "Al-Ayn"
 
 #, fuzzy
 msgctxt "club.akl"
 msgid "Auckland City"
-msgstr ""
+msgstr "Oklend Siti"
 
 #, fuzzy
 msgctxt "club.atm"
 msgid "Atlético Madrid"
-msgstr ""
+msgstr "Atletiko Madrid"
 
 #, fuzzy
 msgctxt "club.bay"
 msgid "Bayern Munich"
-msgstr ""
+msgstr "Bavariya"
 
 #, fuzzy
 msgctxt "club.boc"
 msgid "Boca Juniors"
-msgstr ""
+msgstr "Boka Xuniors"
 
 #, fuzzy
 msgctxt "club.bot"
 msgid "Botafogo"
-msgstr ""
+msgstr "Botafogo"
 
 #, fuzzy
 msgctxt "club.bvb"
 msgid "Borussia Dortmund"
-msgstr ""
+msgstr "Borussiya Dortmund"
 
 #, fuzzy
 msgctxt "club.cfm"
 msgid "Monterrey"
-msgstr ""
+msgstr "Monterrey"
 
 #, fuzzy
 msgctxt "club.che"
 msgid "Chelsea"
-msgstr ""
+msgstr "Chelsi"
 
 #, fuzzy
 msgctxt "club.est"
 msgid "Espérance de Tunis"
-msgstr ""
+msgstr "Esperans"
 
 #, fuzzy
 msgctxt "club.fla"
 msgid "Flamengo"
-msgstr ""
+msgstr "Flamengo"
 
 #, fuzzy
 msgctxt "club.flu"
 msgid "Fluminense"
-msgstr ""
+msgstr "Fluminense"
 
 #, fuzzy
 msgctxt "club.hil"
 msgid "Al Hilal"
-msgstr ""
+msgstr "Al-Hilol"
 
 #, fuzzy
 msgctxt "club.int"
 msgid "Inter Milan"
-msgstr ""
+msgstr "Inter"
 
 #, fuzzy
 msgctxt "club.juv"
 msgid "Juventus"
-msgstr ""
+msgstr "Yuventus"
 
 #, fuzzy
 msgctxt "club.laf"
 msgid "Los Angeles FC"
-msgstr ""
+msgstr "Lafk"
 
 #, fuzzy
 msgctxt "club.leo"
 msgid "León"
-msgstr ""
+msgstr "Leon"
 
 #, fuzzy
 msgctxt "club.mci"
 msgid "Manchester City"
-msgstr ""
+msgstr "Manchester Siti"
 
 #, fuzzy
 msgctxt "club.mia"
 msgid "Inter Miami"
-msgstr ""
+msgstr "Inter Mayami"
 
 #, fuzzy
 msgctxt "club.msu"
 msgid "Mamelodi Sundowns"
-msgstr ""
+msgstr "Mamelodi"
 
 #, fuzzy
 msgctxt "club.pac"
 msgid "Pachuca"
-msgstr ""
+msgstr "Pachuka"
 
 #, fuzzy
 msgctxt "club.pal"
 msgid "Palmeiras"
-msgstr ""
+msgstr "Palmeyras"
 
 #, fuzzy
 msgctxt "club.por"
 msgid "Porto"
-msgstr ""
+msgstr "Portu"
 
 #, fuzzy
 msgctxt "club.psg"
 msgid "Paris Saint-Germain"
-msgstr ""
+msgstr "PSJ"
 
 #, fuzzy
 msgctxt "club.riv"
 msgid "River Plate"
-msgstr ""
+msgstr "River Pleyt"
 
 #, fuzzy
 msgctxt "club.rma"
 msgid "Real Madrid"
-msgstr ""
+msgstr "Real Madrid"
 
 #, fuzzy
 msgctxt "club.sal"
 msgid "Salzburg"
-msgstr ""
+msgstr "Zalsburg"
 
 #, fuzzy
 msgctxt "club.sea"
 msgid "Seattle Sounders"
-msgstr ""
+msgstr "Sietl Saunders"
 
 #, fuzzy
 msgctxt "club.slb"
 msgid "Benfica"
-msgstr ""
+msgstr "Benfika"
 
 #, fuzzy
 msgctxt "club.uhd"
 msgid "Ulsan"
-msgstr ""
+msgstr "Ulsan"
 
 #, fuzzy
 msgctxt "club.urd"
 msgid "Urawa Red Diamonds"
-msgstr ""
+msgstr "Urava Red"
 
 #, fuzzy
 msgctxt "club.wac"
 msgid "Wydad"
-msgstr ""
+msgstr "Vidad"
