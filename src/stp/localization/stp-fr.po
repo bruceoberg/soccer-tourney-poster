@@ -140,7 +140,7 @@ msgstr ""
 
 msgctxt "stage.final"
 msgid "Final"
-msgstr "Final"
+msgstr "Finale"
 
 msgctxt "stage.group"
 msgid "Group Stage"
@@ -422,7 +422,7 @@ msgstr "Irlande"
 
 msgctxt "country.irn"
 msgid "Iran"
-msgstr "L'Iran"
+msgstr "Iran"
 
 msgctxt "country.irq"
 msgid "Iraq"
