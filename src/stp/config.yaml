@@ -81,7 +81,6 @@ tourneys:
     - { tz: US/Pacific  }
 
 langs:
-  default: true
   tournament: latest
   file_suffix: langs
   pages:
@@ -124,6 +123,7 @@ langs:
     - { tz: Asia/Taipei,         loc: zh_TW }
 
 published:
+  default: true
   tournament: latest
   output_dir: playground/published
   file_suffix: all

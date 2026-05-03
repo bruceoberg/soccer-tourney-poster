@@ -8,6 +8,7 @@ import logging
 import platform
 
 from babel import Locale
+from os import sep as g_chPathSeparator
 from pathlib import Path
 from typing import Type
 
@@ -65,7 +66,10 @@ class CDocument: # tag = doc
 
 		self.lPage: list[CPage] = [self.s_mpPagekClsPage[pagea.pagek](self, pagea) for pagea in self.doca.tuPagea]
 
-		pathDirOutput = Path.cwd() / self.doca.strDirOutput if self.doca.strDirOutput else Path.cwd()
+		self.pathDirOutput = Path.cwd()
+
+		if self.doca.strDirOutput:
+			self.pathDirOutput /= self.doca.strDirOutput
 
 		lStrFile = [strName]
 
@@ -74,17 +78,17 @@ class CDocument: # tag = doc
 
 		if self.doca.fAddLangTzSuffix:
 			for page in self.lPage:
-				lStrFile.append(StrFileFromLocale(page.locale).lower())
-				lStrFile.append(page.zonename.StrMinimal().lower())
+				lStrFile.append(page.pagea.strTz.replace(g_chPathSeparator, '#'))
+				lStrFile.append(page.locale.language)
 
-		strFile = '-'.join(lStrFile)
+		strFile = '+'.join(lStrFile).lower()
 
-		pathDirOutput.mkdir(parents=True, exist_ok=True)
-		pathOutput = (pathDirOutput / strFile).with_suffix('.pdf')
+		self.pathDirOutput.mkdir(parents=True, exist_ok=True)
+		self.pathOutput = (self.pathDirOutput / strFile).with_suffix('.pdf')
 
-		print(f"writing to {pathOutput.relative_to(Path.cwd())}")
+		print(f"writing to {self.pathOutput.relative_to(Path.cwd())}")
 
-		self.pdf.output(str(pathOutput))
+		self.pdf.output(str(self.pathOutput))
 
 def main():
 	args = ParseArgs()

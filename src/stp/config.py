@@ -2,7 +2,6 @@
 
 from __future__ import annotations  # Forward refs without quotes (eg foo: CFoo, not foo: 'CFoo')
 
-import os
 import sys
 import yaml
 
@@ -116,43 +115,45 @@ def IterDoca(args: Tap) -> Iterator[SDocumentArgs]:
 
 	try:
 		doca = mpStrDoca[args.document]
-
-		if not doca.strDirOutput:
-			doca = doca.model_copy(update={'strDirOutput': args.output_dir })
-
-		if doca.fAllTournaments:
-			assert(not doca.strNameTourn)
-			assert(not doca.fUnwindPages)
-
-			lPagea = []
-			
-			for strNameTourn in lStrNameTournaments:
-				for pagea in doca.tuPagea:
-					assert(not pagea.strNameTourn)
-					lPagea.append(pagea.model_copy(update={'strNameTourn': strNameTourn }))
-
-			doca = doca.model_copy(update={'tuPagea': tuple(lPagea)})
-
-			yield doca
-			
-			return
-		
-		if doca.strNameTourn == 'latest':
-			doca = doca.model_copy(update={'strNameTourn': lStrNameTournaments[-1] })
-
-		if not doca.strNameTourn:
-			doca = doca.model_copy(update={'strNameTourn': args.tournament })
-
-		if doca.fUnwindPages:
-			assert(doca.strNameTourn)
-			assert(doca.strFileSuffix)
-			doca = doca.model_copy(update={'strDirOutput': doca.strDirOutput + os.sep + doca.strNameTourn})
-
-		yield doca
 	except KeyError:
 		sys.exit(f"unknown document {args.document}")
+
+	if not doca.strDirOutput:
+		doca = doca.model_copy(update={'strDirOutput': args.output_dir })
+
+	if doca.fAllTournaments:
+		assert(not doca.strNameTourn)
+		assert(not doca.fUnwindPages)
+
+		lPagea = []
+		
+		for strNameTourn in lStrNameTournaments:
+			for pagea in doca.tuPagea:
+				assert(not pagea.strNameTourn)
+				lPagea.append(pagea.model_copy(update={'strNameTourn': strNameTourn }))
+
+		doca = doca.model_copy(update={'tuPagea': tuple(lPagea)})
+
+		yield doca
+		
+		return
 	
-	if doca.fUnwindPages:
+	if doca.strNameTourn == 'latest':
+		doca = doca.model_copy(update={'strNameTourn': lStrNameTournaments[-1] })
+
+	if not doca.strNameTourn:
+		doca = doca.model_copy(update={'strNameTourn': args.tournament })
+
+	if not doca.fUnwindPages:
+		yield doca
+	else:
+		assert(doca.strNameTourn)
+		assert(doca.strFileSuffix)
+		pathDirOutput = Path(doca.strDirOutput) / doca.strNameTourn
+		doca = doca.model_copy(update={'strDirOutput': str(pathDirOutput) })
+
+		yield doca
+
 		for iPagea, pagea in enumerate(doca.tuPagea):
 			assert(not pagea.strNameTourn)
 			
