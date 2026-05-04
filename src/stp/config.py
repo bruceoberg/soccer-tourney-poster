@@ -27,7 +27,7 @@ class REGION(StrEnum):
 	Africa = 'africa'
 	MidEastCentralAsia = 'mideast_asia'
 	WestAsiaPacific = 'asia_pacific'
-	Unknown = 'unknown'
+	Other = 'other'
 
 TFmt = Optional[str | tuple[float, float]]
 
@@ -52,7 +52,7 @@ class SPageArgs(BaseModel): # tag - pagea
 	strVariant:             str         = Field(default='',				alias='variant')
 	fmt:                    TFmt        = Field(default=None,			alias='format')
 	fmtCrop:                TFmt        = Field(default=None,			alias='crop_format')
-	region:					REGION		= Field(default=REGION.Unknown,	alias='region')
+	region:					REGION		= Field(default=REGION.Other,	alias='region')
 	fMainBorders:           bool        = Field(default=True,			alias='main_borders')
 	fEliminationBorders:    bool        = Field(default=True,			alias='elimination_borders')
 	fMatchNumbers:          bool        = Field(default=False,			alias='match_numbers')
