@@ -20,6 +20,15 @@ class PAGEK(StrEnum): # tag = pagek
 	CalOnly = 'cal_only'
 	CalElim = 'cal_elim'
 
+class REGION(StrEnum):
+	NorthAmerica = 'north_america'
+	LatinAmerica = 'latin_america'
+	Europe = 'europe'
+	Africa = 'africa'
+	MidEastCentralAsia = 'mideast_asia'
+	WestAsiaPacific = 'asia_pacific'
+	Unknown = 'unknown'
+
 TFmt = Optional[str | tuple[float, float]]
 
 class SPageArgs(BaseModel): # tag - pagea
@@ -43,6 +52,7 @@ class SPageArgs(BaseModel): # tag - pagea
 	strVariant:             str         = Field(default='',				alias='variant')
 	fmt:                    TFmt        = Field(default=None,			alias='format')
 	fmtCrop:                TFmt        = Field(default=None,			alias='crop_format')
+	region:					REGION		= Field(default=REGION.Unknown,	alias='region')
 	fMainBorders:           bool        = Field(default=True,			alias='main_borders')
 	fEliminationBorders:    bool        = Field(default=True,			alias='elimination_borders')
 	fMatchNumbers:          bool        = Field(default=False,			alias='match_numbers')

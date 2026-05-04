@@ -130,97 +130,93 @@ published:
   unwind_pages: true
   pages:
 
-    # US
+    # North America
 
-    - { tz: America/Los_Angeles,  loc: en_US }
-    - { tz: America/Denver,       loc: en_US }
-    - { tz: America/Chicago,      loc: en_US }
-    - { tz: America/New_York,     loc: en_US }
-    - { tz: America/Anchorage,    loc: en_US }
-    - { tz: Pacific/Honolulu,     loc: en_US }
+    - { tz: America/Los_Angeles,    loc: en_US, region: north_america }
+    - { tz: America/Denver,         loc: en_US, region: north_america }
+    - { tz: America/Chicago,        loc: en_US, region: north_america }
+    - { tz: America/New_York,       loc: en_US, region: north_america }
+    - { tz: America/Anchorage,      loc: en_US, region: north_america }
+    - { tz: Pacific/Honolulu,       loc: en_US, region: north_america }
 
-    # Canada
+    - { tz: America/Vancouver,      loc: en_CA, region: north_america }
+    - { tz: America/Edmonton,       loc: en_CA, region: north_america }
+    - { tz: America/Winnipeg,       loc: en_CA, region: north_america }
+    - { tz: America/Regina,         loc: en_CA, region: north_america }
+    - { tz: America/Toronto,        loc: en_CA, region: north_america }
 
-    - { tz: America/Vancouver,    loc: en_CA }
-    - { tz: America/Edmonton,     loc: en_CA }
-    - { tz: America/Winnipeg,     loc: en_CA }
-    - { tz: America/Regina,       loc: en_CA }
-    - { tz: America/Toronto,      loc: en_CA }
+    - { tz: America/Tijuana,        loc: es_MX, region: north_america }
+    - { tz: America/Mexico_City,    loc: es_MX, region: north_america }
 
     # Latin America
 
-    - { tz: America/Tijuana,      loc: es_MX }
-    - { tz: America/Mexico_City,  loc: es_MX }
-
-    - { tz: America/Panama,       loc: es_PA }
-    - { tz: America/Port-au-Prince, loc: fr_HT }
-    - { tz: America/Curacao,      loc: nl_CW }
+    - { tz: America/Panama,         loc: es_PA, region: latin_america }
+    - { tz: America/Port-au-Prince, loc: fr_HT, region: latin_america }
+    - { tz: America/Curacao,        loc: nl_CW, region: latin_america }
  
-    - { tz: America/Bogota,       loc: es_CO }
-    - { tz: America/Guayaquil,    loc: es_EC }
-    - { tz: America/Buenos_Aires, loc: es_AR }
-    - { tz: America/Montevideo,   loc: es_UY }
-    - { tz: America/Asuncion,     loc: es_PA }
-    - { tz: America/Sao_Paulo,    loc: pt_BR }
+    - { tz: America/Bogota,         loc: es_CO, region: latin_america }
+    - { tz: America/Guayaquil,      loc: es_EC, region: latin_america }
+    - { tz: America/Buenos_Aires,   loc: es_AR, region: latin_america }
+    - { tz: America/Montevideo,     loc: es_UY, region: latin_america }
+    - { tz: America/Asuncion,       loc: es_PY, region: latin_america }
+    - { tz: America/Sao_Paulo,      loc: pt_BR, region: latin_america }
 
     # Europe
 
-    - { tz: Europe/London,       loc: en_GB }
-    - { tz: Europe/Paris,        loc: fr_FR }
-    - { tz: Europe/Madrid,       loc: es_ES }
-    - { tz: Europe/Lisbon,       loc: pt_PT }
-    - { tz: Europe/Rome,         loc: it_IT }
-    - { tz: Europe/Berlin,       loc: de_DE }
-    - { tz: Europe/Amsterdam,    loc: nl_NL }
+    - { tz: Europe/London,          loc: en_GB, region: europe }
+    - { tz: Europe/Paris,           loc: fr_FR, region: europe }
+    - { tz: Europe/Madrid,          loc: es_ES, region: europe }
+    - { tz: Europe/Lisbon,          loc: pt_PT, region: europe }
+    - { tz: Europe/Rome,            loc: it_IT, region: europe }
+    - { tz: Europe/Berlin,          loc: de_DE, region: europe }
+    - { tz: Europe/Amsterdam,       loc: nl_NL, region: europe }
 
-    - { tz: Europe/Oslo,         loc: nb_NO }
-    - { tz: Europe/Stockholm,    loc: sv_SE }
-    - { tz: Europe/Brussels,     loc: nl_BE }
-    - { tz: Europe/Zurich,       loc: de_CH }
-    - { tz: Europe/Vienna,       loc: de_AT }
-    - { tz: Europe/Prague,       loc: cs_CZ }
-    - { tz: Europe/Sarajevo,     loc: hr_BA }
-    - { tz: Europe/Zagreb,       loc: hr_HR }
+    - { tz: Europe/Oslo,            loc: nb_NO, region: europe }
+    - { tz: Europe/Stockholm,       loc: sv_SE, region: europe }
+    - { tz: Europe/Brussels,        loc: nl_BE, region: europe }
+    - { tz: Europe/Zurich,          loc: de_CH, region: europe }
+    - { tz: Europe/Vienna,          loc: de_AT, region: europe }
+    - { tz: Europe/Prague,          loc: cs_CZ, region: europe }
+    - { tz: Europe/Sarajevo,        loc: hr_BA, region: europe }
+    - { tz: Europe/Zagreb,          loc: hr_HR, region: europe }
 
-    - { tz: Europe/Athens,       loc: el_GR }
-    - { tz: Europe/Warsaw,       loc: pl_PL }
-    - { tz: Europe/Istanbul,     loc: tr_TR }
-    - { tz: Europe/Moscow,       loc: ru_RU }
+    - { tz: Europe/Athens,          loc: el_GR, region: europe }
+    - { tz: Europe/Warsaw,          loc: pl_PL, region: europe }
+    - { tz: Europe/Moscow,          loc: ru_RU, region: europe }
     
     # Africa
 
-    - { tz: Atlantic/Cape_Verde, loc: pt_CV }
-    - { tz: Africa/Dakar,        loc: fr_SN }
-    - { tz: Africa/Accra,        loc: en_GH }
-    - { tz: Africa/Abidjan,      loc: fr_CI }
-    - { tz: Africa/Casablanca,   loc: ar_MA }
-    - { tz: Africa/Algiers,      loc: ar_DZ }
-    - { tz: Africa/Johannesburg, loc: en_ZA }
-    - { tz: Africa/Cairo,        loc: ar_EG }
-    - { tz: Africa/Kinshasa,     loc: sw_CD }
+    - { tz: Atlantic/Cape_Verde,    loc: pt_CV, region: africa }
+    - { tz: Africa/Dakar,           loc: fr_SN, region: africa }
+    - { tz: Africa/Accra,           loc: en_GH, region: africa }
+    - { tz: Africa/Abidjan,         loc: fr_CI, region: africa }
+    - { tz: Africa/Casablanca,      loc: ar_MA, region: africa }
+    - { tz: Africa/Algiers,         loc: ar_DZ, region: africa }
+    - { tz: Africa/Johannesburg,    loc: en_ZA, region: africa }
+    - { tz: Africa/Cairo,           loc: ar_EG, region: africa }
+    - { tz: Africa/Kinshasa,        loc: sw_CD, region: africa }
     
-    # Middle East
+    # MidEast / Central Asia
 
-    - { tz: Asia/Amman,          loc: ar_JO }
-    - { tz: Asia/Riyadh,         loc: ar_SA }
-    - { tz: Asia/Baghdad,        loc: ar_IQ }
-    - { tz: Asia/Qatar,          loc: ar_QA }
-    - { tz: Asia/Tehran,         loc: fa_IR }
-    - { tz: Asia/Tashkent,       loc: uz_UZ }
+    - { tz: Europe/Istanbul,        loc: tr_TR, region: mideast_asia }
+    - { tz: Asia/Amman,             loc: ar_JO, region: mideast_asia }
+    - { tz: Asia/Riyadh,            loc: ar_SA, region: mideast_asia }
+    - { tz: Asia/Baghdad,           loc: ar_IQ, region: mideast_asia }
+    - { tz: Asia/Qatar,             loc: ar_QA, region: mideast_asia }
+    - { tz: Asia/Tehran,            loc: fa_IR, region: mideast_asia }
+    - { tz: Asia/Tashkent,          loc: uz_UZ, region: mideast_asia }
+    - { tz: Asia/Kolkata,           loc: en_IN, region: mideast_asia }
     
-    # Asian/Pacific
+    # West Asia / Pacific
 
-    - { tz: Asia/Kolkata,        loc: en_IN }
-    - { tz: Asia/Tokyo,          loc: ja_JP }
-    - { tz: Asia/Seoul,          loc: ko_KR }
-    - { tz: Asia/Shanghai,       loc: zh_CN }
-    - { tz: Asia/Taipei,         loc: zh_TW }
+    - { tz: Asia/Tokyo,             loc: ja_JP, region: asia_pacific }
+    - { tz: Asia/Seoul,             loc: ko_KR, region: asia_pacific }
+    - { tz: Asia/Shanghai,          loc: zh_CN, region: asia_pacific }
+    - { tz: Asia/Taipei,            loc: zh_TW, region: asia_pacific }
 
-    # Oceania
-
-    - { tz: Australia/Perth,     loc: en_AU }
-    - { tz: Australia/Adelaide,  loc: en_AU }
+    - { tz: Australia/Perth,        loc: en_AU, region: asia_pacific }
+    - { tz: Australia/Adelaide,     loc: en_AU, region: asia_pacific }
 # same as sydney during their winter.
-#    - { tz: Australia/Brisbane,  loc: en_AU }
-    - { tz: Australia/Sydney,    loc: en_AU }
-    - { tz: Pacific/Auckland,    loc: en_NZ }
+#   - { tz: Australia/Brisbane,     loc: en_AU, region: asia_pacific }
+    - { tz: Australia/Sydney,       loc: en_AU, region: asia_pacific }
+    - { tz: Pacific/Auckland,       loc: en_NZ, region: asia_pacific }
