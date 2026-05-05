@@ -2,15 +2,15 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: stp 0.3.0\n"
-"POT-Creation-Date: 2026-04-30 20:17-0700\n"
-"PO-Revision-Date: 2026-04-30 20:19-0700\n"
+"POT-Creation-Date: 2026-05-04 16:39-0700\n"
+"PO-Revision-Date: 2026-05-04 17:07-0700\n"
 "Last-Translator: Bruce Oberg <bruce@oberg.org>\n"
 "Language-Team: Bruce Oberg <bruce@oberg.org>\n"
 "Language: hr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: potpo from bruce@oberg.org\n"
+"X-Generator: Poedit 3.9\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 
 #. This project supports a poster showing the fixtures or results of a
@@ -21,6 +21,38 @@ msgstr ""
 #. We're aiming for a casual readership.
 msgid "### overview - see notes ###"
 msgstr ""
+
+#. Region names, for grouping cities together.
+msgid "### section: region - see notes ###"
+msgstr ""
+
+msgctxt "region.north_america"
+msgid "North America"
+msgstr "Sjeverna Amerika"
+
+msgctxt "region.latin_america"
+msgid "Latin America"
+msgstr "Latinska Amerika"
+
+msgctxt "region.europe"
+msgid "Europe"
+msgstr "Evropa"
+
+msgctxt "region.africa"
+msgid "Africa"
+msgstr "Afrika"
+
+msgctxt "region.mideast_asia"
+msgid "Mid-East & Central Asia"
+msgstr "Bliski istok i Srednja Azija"
+
+msgctxt "region.asia_pacific"
+msgid "East Asia & Pacific"
+msgstr "Istočna Azija i Pacifik"
+
+msgctxt "region.other"
+msgid "Other Region"
+msgstr "Ostale regije"
 
 #. Name of the poster- shown in the poster header. Inserted into the {name}
 #. field of page.format.title. Year goes before or after, according to that
@@ -99,7 +131,6 @@ msgstr ""
 
 #. Date range is built and inserted into {dates} field. Country from 'host'
 #. section is inserted into {location} field.
-#, fuzzy
 msgctxt "page.format.dates-and-location"
 msgid "{dates}, {location}"
 msgstr "{dates}, {location}"
@@ -107,7 +138,6 @@ msgstr "{dates}, {location}"
 #. Timezone is build and inserted into {timezone} field. Text from
 #. page.timezone.label is inserted into {label} field. Farsi version includes
 #. an invisible RtL character so that parenthesis apprear correctly.
-#, fuzzy
 msgctxt "page.format.timezone"
 msgid "{label}: {timezone}"
 msgstr "{label}: {timezone}"
@@ -115,7 +145,6 @@ msgstr "{label}: {timezone}"
 #. Layout of the poster title (centered, on top). Specifies order of year,
 #. competition title (from competition section), and poster label
 #. (fixtures/results)
-#, fuzzy
 msgctxt "page.format.title"
 msgid "{year} {name} · {label}"
 msgstr "{year} {name} · {label}"
@@ -298,7 +327,7 @@ msgstr "Burkina Faso"
 
 msgctxt "country.bih"
 msgid "Bosnia/Herzeg."
-msgstr "Bosna i Hercegovina"
+msgstr "Bosna/Herceg."
 
 msgctxt "country.blr"
 msgid "Belarus"
@@ -985,92 +1014,92 @@ msgstr "Volgograd"
 
 msgctxt "venue.us-arlington-tx"
 msgid "Arlington, TX"
-msgstr "Arlington, Teksas"
+msgstr "Arlington, TX"
 
 msgctxt "venue.us-atlanta-ga"
 msgid "Atlanta, GA"
-msgstr "Atlanta, Georgia"
+msgstr "Atlanta, GA"
 
 msgctxt "venue.us-austin-tx"
 msgid "Austin, TX"
-msgstr "Austin, Teksas"
+msgstr "Austin, TX"
 
 msgctxt "venue.us-boston-ma"
 msgid "Boston, MA"
-msgstr "Boston, Massachusetts"
+msgstr "Boston, MA"
 
 msgctxt "venue.us-charlotte-nc"
 msgid "Charlotte, NC"
-msgstr "Charlotte, Sjeverna Karolina"
+msgstr "Charlotte, SC"
 
 msgctxt "venue.us-cincinnati-oh"
 msgid "Cincinnati, OH"
-msgstr "Cincinnati, Ohio"
+msgstr "Cincinnati, OH"
 
 msgctxt "venue.us-dallas-tx"
 msgid "Dallas, TX"
-msgstr "Dallas, Teksas"
+msgstr "Dallas, TX"
 
 msgctxt "venue.us-east-rutherford-nj"
 msgid "East Rutherford, NJ"
-msgstr "East Rutherford, New Jersey"
+msgstr "East Rutherford, NJ"
 
 msgctxt "venue.us-glendale-az"
 msgid "Glendale, AZ"
-msgstr "Glendale, Arizona"
+msgstr "Glendale, AZ"
 
 msgctxt "venue.us-houston-tx"
 msgid "Houston, TX"
-msgstr "Houston, Teksas"
+msgstr "Houston, TX"
 
 msgctxt "venue.us-inglewood-ca"
 msgid "Inglewood, CA"
-msgstr "Inglewood, Kalifornija"
+msgstr "Inglewood, CA"
 
 msgctxt "venue.us-kansas-city-ks"
 msgid "Kansas City, KS"
-msgstr "Kansas City, Kansas"
+msgstr "Kansas City, KS"
 
 msgctxt "venue.us-kansas-city-mo"
 msgid "Kansas City, MO"
-msgstr "Kansas City, Missouri"
+msgstr "Kansas City, MO"
 
 msgctxt "venue.us-las-vegas-nv"
 msgid "Las Vegas, NV"
-msgstr "Las Vegas, Nevada"
+msgstr "Las Vegas, NV"
 
 msgctxt "venue.us-los-angeles-ca"
 msgid "Los Angeles, CA"
-msgstr "Los Angeles, Kalifornija"
+msgstr "Los Angeles, CA"
 
 msgctxt "venue.us-miami-fl"
 msgid "Miami, FL"
-msgstr "Miami, Florida"
+msgstr "Miami, FL"
 
 msgctxt "venue.us-nashville-tn"
 msgid "Nashville, TN"
-msgstr "Nashville, Tennessee"
+msgstr "Nashville, TN"
 
 msgctxt "venue.us-orlando-fl"
 msgid "Orlando, FL"
-msgstr "Orlando, Florida"
+msgstr "Orlando, FL"
 
 msgctxt "venue.us-pasadena-ca"
 msgid "Pasadena, CA"
-msgstr "Pasadena, Kalifornija"
+msgstr "Pasadena, CA"
 
 msgctxt "venue.us-philadelphia-pa"
 msgid "Philadelphia, PA"
-msgstr "Filadelfija, Pennsylvania"
+msgstr "Filadelfija, PA"
 
 msgctxt "venue.us-santa-clara-ca"
 msgid "Santa Clara, CA"
-msgstr "Santa Clara, Kalifornija"
+msgstr "Santa Clara, CA"
 
 msgctxt "venue.us-seattle-wa"
 msgid "Seattle, WA"
-msgstr "Seattle, Washington"
+msgstr "Seattle, WA"
 
 msgctxt "venue.us-washington-dc"
 msgid "Washington, DC"
-msgstr "Washington, D.C."
+msgstr "Washington, DC"

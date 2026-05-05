@@ -2,15 +2,15 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: stp 0.3.0\n"
-"POT-Creation-Date: 2026-04-30 20:17-0700\n"
-"PO-Revision-Date: 2026-04-30 20:19-0700\n"
+"POT-Creation-Date: 2026-05-04 16:39-0700\n"
+"PO-Revision-Date: 2026-05-04 17:11-0700\n"
 "Last-Translator: Bruce Oberg <bruce@oberg.org>\n"
 "Language-Team: Bruce Oberg <bruce@oberg.org>\n"
 "Language: el\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: potpo from bruce@oberg.org\n"
+"X-Generator: Poedit 3.9\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 
 #. This project supports a poster showing the fixtures or results of a
@@ -21,6 +21,38 @@ msgstr ""
 #. We're aiming for a casual readership.
 msgid "### overview - see notes ###"
 msgstr ""
+
+#. Region names, for grouping cities together.
+msgid "### section: region - see notes ###"
+msgstr ""
+
+msgctxt "region.north_america"
+msgid "North America"
+msgstr "Βόρεια Αμερική"
+
+msgctxt "region.latin_america"
+msgid "Latin America"
+msgstr "Λατινική Αμερική"
+
+msgctxt "region.europe"
+msgid "Europe"
+msgstr "Ευρώπη"
+
+msgctxt "region.africa"
+msgid "Africa"
+msgstr "Αφρική"
+
+msgctxt "region.mideast_asia"
+msgid "Mid-East & Central Asia"
+msgstr "Μέση Ανατολή & Κεντρική Ασία"
+
+msgctxt "region.asia_pacific"
+msgid "East Asia & Pacific"
+msgstr "Ανατολική Ασία & Ειρηνικός"
+
+msgctxt "region.other"
+msgid "Other Region"
+msgstr "Άλλη Περιοχή"
 
 #. Name of the poster- shown in the poster header. Inserted into the {name}
 #. field of page.format.title. Year goes before or after, according to that
@@ -294,7 +326,7 @@ msgstr "Μπουρκίνα Φάσο"
 
 msgctxt "country.bih"
 msgid "Bosnia/Herzeg."
-msgstr "Βοσνία και Ερζεγοβίνη"
+msgstr "Βοσνία/Ερζεγ."
 
 msgctxt "country.blr"
 msgid "Belarus"

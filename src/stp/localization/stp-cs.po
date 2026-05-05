@@ -2,8 +2,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: stp 0.3.0\n"
-"POT-Creation-Date: 2026-04-30 20:17-0700\n"
-"PO-Revision-Date: 2026-04-30 20:19-0700\n"
+"POT-Creation-Date: 2026-05-04 16:39-0700\n"
+"PO-Revision-Date: 2026-05-04 17:12-0700\n"
 "Last-Translator: Bruce Oberg <bruce@oberg.org>\n"
 "Language-Team: Bruce Oberg <bruce@oberg.org>\n"
 "Language: cs\n"
@@ -21,6 +21,38 @@ msgstr ""
 #. We're aiming for a casual readership.
 msgid "### overview - see notes ###"
 msgstr ""
+
+#. Region names, for grouping cities together.
+msgid "### section: region - see notes ###"
+msgstr ""
+
+msgctxt "region.north_america"
+msgid "North America"
+msgstr "Severní Amerika"
+
+msgctxt "region.latin_america"
+msgid "Latin America"
+msgstr "Latinská Amerika"
+
+msgctxt "region.europe"
+msgid "Europe"
+msgstr "Evropa"
+
+msgctxt "region.africa"
+msgid "Africa"
+msgstr "Afrika"
+
+msgctxt "region.mideast_asia"
+msgid "Mid-East & Central Asia"
+msgstr "Blízký východ a Střední Asie"
+
+msgctxt "region.asia_pacific"
+msgid "East Asia & Pacific"
+msgstr "Východní Asie a Pacifik"
+
+msgctxt "region.other"
+msgid "Other Region"
+msgstr "Jiný region"
 
 #. Name of the poster- shown in the poster header. Inserted into the {name}
 #. field of page.format.title. Year goes before or after, according to that

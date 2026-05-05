@@ -22,6 +22,38 @@ msgstr ""
 msgid "### overview - see notes ###"
 msgstr ""
 
+#. Region names, for grouping cities together.
+msgid "### section: region - see notes ###"
+msgstr ""
+
+msgctxt "region.north_america"
+msgid "North America"
+msgstr ""
+
+msgctxt "region.latin_america"
+msgid "Latin America"
+msgstr ""
+
+msgctxt "region.europe"
+msgid "Europe"
+msgstr ""
+
+msgctxt "region.africa"
+msgid "Africa"
+msgstr ""
+
+msgctxt "region.mideast_asia"
+msgid "Mid-East & Central Asia"
+msgstr ""
+
+msgctxt "region.asia_pacific"
+msgid "East Asia & Pacific"
+msgstr ""
+
+msgctxt "region.other"
+msgid "Other Region"
+msgstr ""
+
 #. Name of the poster- shown in the poster header. Inserted into the {name}
 #. field of page.format.title. Year goes before or after, according to that
 #. key.
