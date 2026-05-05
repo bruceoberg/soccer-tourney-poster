@@ -10,12 +10,12 @@ import platform
 from babel import Locale
 from os import sep as g_chPathSeparator
 from pathlib import Path
-from typing import Type
+from typing import Type, NamedTuple
 
 from bolay import CPdf
 
 from . import g_pathCode
-from .config import PAGEK, SDocumentArgs, IterDoca, ParseArgs, StrFromFmt
+from .config import PAGEK, TFmt, SDocumentArgs, IterDoca, ParseArgs, StrFromFmt
 from .fonts import SetStrTtfFromSetStrScript
 from .loc import StrFileFromLocale, StrScriptFromLocale
 from .profiling import Profiling, DumpTopCumulative
@@ -23,6 +23,59 @@ from .database import CTournamentDataBase
 from .page import CPage, CGroupsTestPage, CDaysTestPage, CCalOnlyPage, CCalElimPage
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
+
+class SDocKey(NamedTuple): # tag = dk
+	strTz: str
+	strLang: str
+	fmt: TFmt
+
+class CManifest: # tag = manif
+	def __init__(self) -> None:
+		self.setStrTz: set[str] = set()
+		self.setStrLang: set[str] = set()
+		self.setFmt: set[TFmt] = set()
+		self.mpDkDoc: dict[SDocKey, CDocument] = {}
+
+	def RegisterDk(self, dk: SDocKey) -> None:
+		self.setStrTz.add(dk.strTz)
+		self.setStrLang.add(dk.strLang)
+		self.setFmt.add(dk.fmt)
+
+	def RegisterDoc(self, doc: CDocument) -> None:
+		if not doc.doca.fAutoFileSuffix:
+			return
+		
+		for page in doc.lPage:
+			dk = SDocKey(
+					page.pagea.strTz,
+					page.locale.language.lower(),
+					page.fmt)
+			
+			self.RegisterDk(dk)
+
+			assert dk not in self.mpDkDoc
+			self.mpDkDoc[dk] = doc
+
+	def SetDkMissing(self) -> set[SDocKey]:
+		setDkAll: set[SDocKey] = set()
+
+		for strTz in self.setStrTz:
+			for strLang in self.setStrLang:
+				for fmt in self.setFmt:
+					setDkAll.add(SDocKey(strTz, strLang, fmt))
+
+		assert len(setDkAll) == len(self.setStrTz) * len(self.setStrLang) * len(self.setFmt)
+
+		return setDkAll - set(self.mpDkDoc.keys())
+
+	def PrintMissing(self) -> None:
+		if not self.mpDkDoc:
+			return
+		
+		setDkMissing = self.SetDkMissing()
+		
+		print(f"missing: {len(setDkMissing)} files from {len(self.setStrTz)} zones * {len(self.setStrLang)} langs * {len(self.setFmt)} sizes")
+		print(f"extant: {len(self.mpDkDoc)} files from total of {len(self.setStrTz) * len(self.setStrLang) * len(self.setFmt)}")
 
 class CDocument: # tag = doc
 	s_pathDirFonts = g_pathCode / 'fonts'
@@ -76,7 +129,7 @@ class CDocument: # tag = doc
 		if self.doca.strFileSuffix:
 			lStrFile.append(self.doca.strFileSuffix)
 
-		if self.doca.fAddLangTzSuffix:
+		if self.doca.fAutoFileSuffix:
 			for page in self.lPage:
 				lStrFile.append(page.pagea.strTz.replace(g_chPathSeparator, '#'))
 				lStrFile.append(page.locale.language)
@@ -102,9 +155,13 @@ def main():
 	tNow = arrow.now()
 	pathProf = Path('profiles') / f"run-{tNow.format('YYYYMMDD-HHmmss')}.prof"
 
+	manif = CManifest()
+
 	with Profiling(pathProf, fEnabled=fProfile):
 		for doca in IterDoca(args):
-			CDocument(doca)
+			manif.RegisterDoc(CDocument(doca))
+
+		manif.PrintMissing()
 
 	if fProfile:
 		print(f"wrote profile to {pathProf}")

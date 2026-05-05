@@ -84,7 +84,7 @@ class SDocumentArgs(BaseModel): # tag = doca
 	strNameTourn:		str			= Field(default='',		alias='tournament')
 	strDirOutput:		str			= Field(default='',		alias='output_dir')
 	strFileSuffix:		str			= Field(default='',		alias='file_suffix')
-	fAddLangTzSuffix:	bool		= Field(default=False,	alias='add_lang_tz_suffix')
+	fAutoFileSuffix:	bool		= Field(default=False,	alias='auto_file_suffix')
 	fUnwindPages:		bool		= Field(default=False,	alias='unwind_pages')
 	fAllTournaments:	bool		= Field(default=False,	alias='all_tournaments')
 	fDefault:			bool		= Field(default=False,	alias='default')
@@ -127,6 +127,18 @@ def ParseArgs() -> Tap:
 
 	return ArgumentParser().parse_args()
 
+def DocaUnwind(doca: SDocumentArgs, pagea: SPageArgs) -> SDocumentArgs:
+	strLang = Locale.parse(pagea.strLocale).language.lower()
+	pathDirOutputLang = Path(doca.strDirOutput) / strLang
+
+	return SDocumentArgs(
+			name = doca.strName,
+			pages = (pagea,),
+			tournament = doca.strNameTourn,
+			output_dir = str(pathDirOutputLang),
+			file_suffix='',
+			auto_file_suffix=True,
+			unwind_pages=False)
 
 def IterDoca(args: Tap) -> Iterator[SDocumentArgs]:
 
@@ -187,19 +199,9 @@ def IterDoca(args: Tap) -> Iterator[SDocumentArgs]:
 						tournament = doca.strNameTourn,
 						output_dir = doca.strDirOutput,
 						file_suffix='',
-						add_lang_tz_suffix=False,
+						auto_file_suffix=False,
 						unwind_pages=False)
-				
-			strLang = Locale.parse(pagea.strLocale).language.lower()
-			pathDirOutputLang = pathDirOutput / strLang
 
-			yield SDocumentArgs(
-					name = doca.strName,
-					pages = (pagea,),
-					tournament = doca.strNameTourn,
-					output_dir = str(pathDirOutputLang),
-					file_suffix='',
-					add_lang_tz_suffix=True,
-					unwind_pages=False)
+			yield DocaUnwind(doca, pagea)				
 
 		yield doca
