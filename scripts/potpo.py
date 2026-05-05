@@ -210,17 +210,21 @@ def MergePotIntoPo(
 			continue
 
 		# brand new entry.
+		lFlags = list(entryPot.flags)
+		if 'fuzzy' not in lFlags:
+			lFlags.append('fuzzy')
 		entryNew = polib.POEntry(
 			msgid=entryPot.msgid,
 			msgstr='',
 			msgctxt=entryPot.msgctxt,
 			comment=entryPot.comment,
-			flags=list(entryPot.flags),
+			flags=lFlags,
 			occurrences=list(entryPot.occurrences),
 		)
 		pofOut.append(entryNew)
 		stats.cNew += 1
 		stats.cUntranslated += 1
+		stats.cFuzzy += 1
 
 	# count drops: real (non-divider) entries in existing not consumed.
 	for key in mpKeyEntry:
