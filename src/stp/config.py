@@ -2,9 +2,11 @@
 
 from __future__ import annotations  # Forward refs without quotes (eg foo: CFoo, not foo: 'CFoo')
 
+import shutil
 import sys
 import yaml
 
+from babel import Locale
 from enum import StrEnum
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
@@ -30,6 +32,15 @@ class REGION(StrEnum):
 	Other = 'other'
 
 TFmt = Optional[str | tuple[float, float]]
+
+def StrFromFmt(fmt : TFmt) -> str:
+	if fmt is None:
+		return 'none'
+
+	if isinstance(fmt, str):
+		return fmt
+	
+	return f"{fmt[0]:.2f}x{fmt[1]:.2f}"
 
 class SPageArgs(BaseModel): # tag - pagea
 	"""Page configuration arguments.
@@ -160,9 +171,11 @@ def IterDoca(args: Tap) -> Iterator[SDocumentArgs]:
 		assert(doca.strNameTourn)
 		assert(doca.strFileSuffix)
 		pathDirOutput = Path(doca.strDirOutput) / doca.strNameTourn
+		
+		if pathDirOutput.exists():
+			shutil.rmtree(pathDirOutput)
+		
 		doca = doca.model_copy(update={'strDirOutput': str(pathDirOutput) })
-
-		yield doca
 
 		for iPagea, pagea in enumerate(doca.tuPagea):
 			assert(not pagea.strNameTourn)
@@ -170,15 +183,23 @@ def IterDoca(args: Tap) -> Iterator[SDocumentArgs]:
 			if iPagea == 0:
 				yield SDocumentArgs(
 						name = doca.strName,
+						pages = (pagea,),
 						tournament = doca.strNameTourn,
 						output_dir = doca.strDirOutput,
 						file_suffix='',
-						pages=(pagea,))
+						add_lang_tz_suffix=False,
+						unwind_pages=False)
+				
+			strLang = Locale.parse(pagea.strLocale).language.lower()
+			pathDirOutputLang = pathDirOutput / strLang
 
 			yield SDocumentArgs(
 					name = doca.strName,
+					pages = (pagea,),
 					tournament = doca.strNameTourn,
-					output_dir = doca.strDirOutput,
+					output_dir = str(pathDirOutputLang),
 					file_suffix='',
-					pages=(pagea,),
-					add_lang_tz_suffix=True)
+					add_lang_tz_suffix=True,
+					unwind_pages=False)
+
+		yield doca

@@ -15,7 +15,7 @@ from typing import Type
 from bolay import CPdf
 
 from . import g_pathCode
-from .config import PAGEK, SDocumentArgs, IterDoca, ParseArgs
+from .config import PAGEK, SDocumentArgs, IterDoca, ParseArgs, StrFromFmt
 from .fonts import SetStrTtfFromSetStrScript
 from .loc import StrFileFromLocale, StrScriptFromLocale
 from .profiling import Profiling, DumpTopCumulative
@@ -80,6 +80,7 @@ class CDocument: # tag = doc
 			for page in self.lPage:
 				lStrFile.append(page.pagea.strTz.replace(g_chPathSeparator, '#'))
 				lStrFile.append(page.locale.language)
+				lStrFile.append(StrFromFmt(page.fmt))
 
 		strFile = '+'.join(lStrFile).lower()
 

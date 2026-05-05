@@ -481,6 +481,7 @@ class CFooterBlot(CBlot): # tag = headerb
 		]
 
 		lStrCreditCenter: list[str] = [
+			self.page.pagea.strTz,
 			str(StrFileFromLocale(self.page.locale)),
 			str(self.page.fmt),
 		]
