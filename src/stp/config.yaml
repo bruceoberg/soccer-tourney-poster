@@ -144,6 +144,7 @@ published:
     - { tz: America/Winnipeg,       loc: en_CA, region: north_america }
     - { tz: America/Regina,         loc: en_CA, region: north_america }
     - { tz: America/Toronto,        loc: en_CA, region: north_america }
+    - { tz: America/Montreal,       loc: fr_CA, region: north_america }
 
     - { tz: America/Tijuana,        loc: es_MX, region: north_america }
     - { tz: America/Mexico_City,    loc: es_MX, region: north_america }
