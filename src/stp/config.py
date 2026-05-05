@@ -8,10 +8,11 @@ import yaml
 
 from babel import Locale
 from enum import StrEnum
+from os import sep as g_chPathSeparator
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from tap import Tap
-from typing import Optional, Iterator
+from typing import Optional, Iterable, Iterator, NamedTuple
 
 from . import g_pathCode
 from .database import CDataBase
@@ -74,6 +75,11 @@ class SPageArgs(BaseModel): # tag - pagea
 
 TTuPagea = tuple[SPageArgs, ...]
 
+class SDocKey(NamedTuple): # tag = dk
+	strTz: str
+	strLang: str
+	fmt: TFmt
+
 class SDocumentArgs(BaseModel): # tag = doca
 	"""Document configuration arguments."""
 	
@@ -88,6 +94,26 @@ class SDocumentArgs(BaseModel): # tag = doca
 	fUnwindPages:		bool		= Field(default=False,	alias='unwind_pages')
 	fAllTournaments:	bool		= Field(default=False,	alias='all_tournaments')
 	fDefault:			bool		= Field(default=False,	alias='default')
+
+	def PathOutput(self, strName: str, iterDk: Iterable[SDocKey] = []) -> Path:
+		pathDirOutput = Path.cwd()
+
+		if self.strDirOutput:
+			pathDirOutput /= self.strDirOutput
+
+		lStrFile = [strName]
+
+		if self.strFileSuffix:
+			lStrFile.append(self.strFileSuffix)
+
+		for dk in iterDk:
+			lStrFile.append(dk.strTz.replace(g_chPathSeparator, '#'))
+			lStrFile.append(dk.strLang)
+			lStrFile.append(StrFromFmt(dk.fmt))
+
+		strFile = '+'.join(lStrFile).lower()
+
+		return (pathDirOutput / strFile).with_suffix('.pdf')
 
 def MpStrDocaLoad(pathYaml: Path) -> dict[str, SDocumentArgs]:
 	"""Load all document configurations from a single YAML file."""

@@ -8,14 +8,13 @@ import logging
 import platform
 
 from babel import Locale
-from os import sep as g_chPathSeparator
 from pathlib import Path
-from typing import Type, NamedTuple
+from pypdf import PdfWriter
 
 from bolay import CPdf
 
 from . import g_pathCode
-from .config import PAGEK, TFmt, SDocumentArgs, IterDoca, ParseArgs, StrFromFmt
+from .config import PAGEK, TFmt, SDocKey, SDocumentArgs, IterDoca, ParseArgs, StrFromFmt
 from .fonts import SetStrTtfFromSetStrScript
 from .loc import StrFileFromLocale, StrScriptFromLocale
 from .profiling import Profiling, DumpTopCumulative
@@ -23,11 +22,6 @@ from .database import CTournamentDataBase
 from .page import CPage, CGroupsTestPage, CDaysTestPage, CCalOnlyPage, CCalElimPage
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
-
-class SDocKey(NamedTuple): # tag = dk
-	strTz: str
-	strLang: str
-	fmt: TFmt
 
 class CManifest: # tag = manif
 	def __init__(self) -> None:
@@ -46,10 +40,7 @@ class CManifest: # tag = manif
 			return
 		
 		for page in doc.lPage:
-			dk = SDocKey(
-					page.pagea.strTz,
-					page.locale.language.lower(),
-					page.fmt)
+			dk = page.Dk()
 			
 			self.RegisterDk(dk)
 
@@ -67,6 +58,25 @@ class CManifest: # tag = manif
 		assert len(setDkAll) == len(self.setStrTz) * len(self.setStrLang) * len(self.setFmt)
 
 		return setDkAll - set(self.mpDkDoc.keys())
+	
+	def Wind(self, doca: SDocumentArgs) -> None:
+
+		pathOutput = doca.PathOutput(doca.strNameTourn)
+
+		if not self.mpDkDoc:
+			# BB bruceo: SDocumentArgs.StrPath()?
+			print(f"warning: no unwound documents for {pathOutput.relative_to(Path.cwd())}")
+			return
+
+		writer = PdfWriter()
+		for doc in self.mpDkDoc.values():
+			writer.append(doc.pathOutput)
+
+		print(f"writing to {pathOutput.relative_to(Path.cwd())}")
+
+		pathOutput.parent.mkdir(parents=True, exist_ok=True)
+		with pathOutput.open("wb") as fileDst:
+			writer.write(fileDst)		
 
 	def PrintMissing(self) -> None:
 		if not self.mpDkDoc:
@@ -119,26 +129,14 @@ class CDocument: # tag = doc
 
 		self.lPage: list[CPage] = [self.s_mpPagekClsPage[pagea.pagek](self, pagea) for pagea in self.doca.tuPagea]
 
-		self.pathDirOutput = Path.cwd()
-
-		if self.doca.strDirOutput:
-			self.pathDirOutput /= self.doca.strDirOutput
-
-		lStrFile = [strName]
-
-		if self.doca.strFileSuffix:
-			lStrFile.append(self.doca.strFileSuffix)
-
 		if self.doca.fAutoFileSuffix:
-			for page in self.lPage:
-				lStrFile.append(page.pagea.strTz.replace(g_chPathSeparator, '#'))
-				lStrFile.append(page.locale.language)
-				lStrFile.append(StrFromFmt(page.fmt))
+			lDkPages: list[SDocKey] = [page.Dk() for page in self.lPage]
+		else:
+			lDkPages: list[SDocKey] = []
 
-		strFile = '+'.join(lStrFile).lower()
+		self.pathOutput = self.doca.PathOutput(strName, lDkPages)
 
-		self.pathDirOutput.mkdir(parents=True, exist_ok=True)
-		self.pathOutput = (self.pathDirOutput / strFile).with_suffix('.pdf')
+		self.pathOutput.parent.mkdir(parents=True, exist_ok=True)
 
 		print(f"writing to {self.pathOutput.relative_to(Path.cwd())}")
 
@@ -159,9 +157,12 @@ def main():
 
 	with Profiling(pathProf, fEnabled=fProfile):
 		for doca in IterDoca(args):
-			manif.RegisterDoc(CDocument(doca))
+			if doca.fUnwindPages:
+				manif.Wind(doca)
+			else:
+				manif.RegisterDoc(CDocument(doca))
 
-		manif.PrintMissing()
+		# manif.PrintMissing()
 
 	if fProfile:
 		print(f"wrote profile to {pathProf}")

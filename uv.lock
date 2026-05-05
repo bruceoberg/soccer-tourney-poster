@@ -358,6 +358,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pypdf"
+version = "6.10.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7b/3f/9f2167401c2e94833ca3b69535bad89e533b5de75fefe4197a2c224baec2/pypdf-6.10.2.tar.gz", hash = "sha256:7d09ce108eff6bf67465d461b6ef352dcb8d84f7a91befc02f904455c6eea11d", size = 5315679, upload-time = "2026-04-15T16:37:36.978Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0c/d6/1d5c60cc17bbdf37c1552d9c03862fc6d32c5836732a0415b2d637edc2d0/pypdf-6.10.2-py3-none-any.whl", hash = "sha256:aa53be9826655b51c96741e5d7983ca224d898ac0a77896e64636810517624aa", size = 336308, upload-time = "2026-04-15T16:37:34.851Z" },
+]
+
+[[package]]
 name = "python-bidi"
 version = "0.6.7"
 source = { registry = "https://pypi.org/simple" }
@@ -473,6 +482,7 @@ dependencies = [
     { name = "polib" },
     { name = "pydantic" },
     { name = "pygments" },
+    { name = "pypdf" },
     { name = "python-bidi" },
     { name = "python-dateutil" },
     { name = "pytz" },
@@ -501,6 +511,7 @@ requires-dist = [
     { name = "polib", specifier = ">=1.2.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pygments", specifier = ">=2.20.0" },
+    { name = "pypdf", specifier = ">=6.10.2" },
     { name = "python-bidi", specifier = ">=0.6.7" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
     { name = "pytz", specifier = ">=2025.2" },
