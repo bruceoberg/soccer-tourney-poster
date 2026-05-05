@@ -3,14 +3,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: stp 0.3.0\n"
 "POT-Creation-Date: 2026-05-04 17:14-0700\n"
-"PO-Revision-Date: 2026-05-04 17:15-0700\n"
+"PO-Revision-Date: 2026-05-04 17:16-0700\n"
 "Last-Translator: Bruce Oberg <bruce@oberg.org>\n"
 "Language-Team: Bruce Oberg <bruce@oberg.org>\n"
 "Language: hr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: potpo from bruce@oberg.org\n"
+"X-Generator: Poedit 3.9\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 
 #. This project supports a poster showing the fixtures or results of a
@@ -216,7 +216,6 @@ msgid "(AET)"
 msgstr "(NP)"
 
 #. How to format an ordinal match number.
-#, fuzzy
 msgctxt "match.format.label"
 msgid "#{id}"
 msgstr "{id}."
