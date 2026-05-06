@@ -148,6 +148,7 @@ def ParseArgs() -> Tap:
 		tournament: str = 'latest' # Tournament to generate for.
 		document: str = strDocaDefault  # Document to output.
 		output_dir: str = 'playground'  # Destination directory.
+		jobs: int = 0  # Parallel worker count; 0 = os.cpu_count(), 1 = serial.
 		profile: bool = False  # Enable cProfile instrumentation; writes profiles/run-<ts>.prof.
 		profile_dump: Optional[str] = None  # Dump top cumulative-time stats from this .prof file and exit.
 
@@ -155,6 +156,7 @@ def ParseArgs() -> Tap:
 			self.add_argument('-t', '--tournament')
 			self.add_argument('-d', '--document')
 			self.add_argument('-o', '--output_dir')
+			self.add_argument('-j', '--jobs')
 
 	return ArgumentParser().parse_args()
 

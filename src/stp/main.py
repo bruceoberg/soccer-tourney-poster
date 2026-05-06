@@ -5,9 +5,11 @@ from __future__ import annotations  # Forward refs without quotes (eg foo: CFoo,
 import arrow
 import fpdf
 import logging
+import os
 import platform
 
 from babel import Locale
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from pypdf import PdfWriter
 from typing import Optional, Type
@@ -174,9 +176,28 @@ class CDocument: # tag = doc
 	def Dr(self) -> Optional[SDocResult]:
 		if not self.doca.fAutoFileSuffix:
 			return None
-		
+
 		return SDocResult(self.pathOutput, [page.Dk() for page in self.lPage])
-	
+
+def DrBuildDocaAsync(doca: SDocumentArgs) -> Optional[SDocResult]:
+	# Top-level so ProcessPoolExecutor can pickle it.
+	return CDocument(doca).Dr()
+
+def LDrBuildLDoca(lDoca: list[SDocumentArgs], cJob: int) -> list[SDocResult]:
+	if cJob == 1 or len(lDoca) <= 1:
+		return [dr for doca in lDoca if (dr := DrBuildDocaAsync(doca))]
+
+	cJob = min(cJob, len(lDoca))
+	print(f"building {len(lDoca)} document(s) across {cJob} worker(s)")
+
+	lDr: list[SDocResult] = []
+	with ProcessPoolExecutor(max_workers=cJob) as pool:
+		lFuture = [pool.submit(DrBuildDocaAsync, doca) for doca in lDoca]
+		for future in as_completed(lFuture):
+			if dr := future.result():
+				lDr.append(dr)
+	return lDr
+
 def main():
 	args = ParseArgs()
 
@@ -188,23 +209,24 @@ def main():
 	tNow = arrow.now()
 	pathProf = Path('profiles') / f"run-{tNow.format('YYYYMMDD-HHmmss')}.prof"
 
+	# cProfile in workers would scatter stats across processes; force serial when profiling.
+	cJob = 1 if fProfile else (args.jobs if args.jobs > 0 else max(1, (os.cpu_count() or 1) - 2))
+
 	with Profiling(pathProf, fEnabled=fProfile):
 
 		wl = WlFromArgs(args)
-		lDr: list[SDocResult] = []
 
 		for doca in wl.lDoca:
 			assert not doca.fUnwindPages
 			assert not doca.fFillGrid
-			if dr := CDocument(doca).Dr():
-				lDr.append(dr)
+
+		lDr = LDrBuildLDoca(wl.lDoca, cJob)
 
 		manif = CManifest(wl.docaWind, lDr)
 
 		if wl := manif.WlFillGrid():
 			assert wl.docaWind is None
-			for doca in wl.lDoca:
-				CDocument(doca)
+			LDrBuildLDoca(wl.lDoca, cJob)
 
 	if fProfile:
 		print(f"wrote profile to {pathProf}")
