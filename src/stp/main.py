@@ -10,13 +10,14 @@ import platform
 from babel import Locale
 from pathlib import Path
 from pypdf import PdfWriter
+from typing import Optional, Type
 
 from bolay import CPdf
 
 from . import g_pathCode
-from .config import PAGEK, TFmt, SDocKey, SDocumentArgs, IterDoca, ParseArgs, StrFromFmt
+from .config import PAGEK, TFmt, SDocKey, SDocResult, SDocumentArgs, SWorklist, WlFromArgs, ParseArgs, StrFromFmt
 from .fonts import SetStrTtfFromSetStrScript
-from .loc import StrFileFromLocale, StrScriptFromLocale
+from .loc import StrScriptFromLocale
 from .profiling import Profiling, DumpTopCumulative
 from .database import CTournamentDataBase
 from .page import CPage, CGroupsTestPage, CDaysTestPage, CCalOnlyPage, CCalElimPage
@@ -24,30 +25,36 @@ from .page import CPage, CGroupsTestPage, CDaysTestPage, CCalOnlyPage, CCalElimP
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
 class CManifest: # tag = manif
-	def __init__(self) -> None:
+	def __init__(self, doca: Optional[SDocumentArgs], lDr: list[SDocResult]) -> None:
+		self.doca = doca
 		self.setStrTz: set[str] = set()
 		self.setStrLang: set[str] = set()
 		self.setFmt: set[TFmt] = set()
-		self.mpDkDoc: dict[SDocKey, CDocument] = {}
+		self.mpDkPath: dict[SDocKey, Path] = {}
 
-	def RegisterDk(self, dk: SDocKey) -> None:
-		self.setStrTz.add(dk.strTz)
-		self.setStrLang.add(dk.strLang)
-		self.setFmt.add(dk.fmt)
-
-	def RegisterDoc(self, doc: CDocument) -> None:
-		if not doc.doca.fAutoFileSuffix:
+		if not self.doca:
 			return
-		
-		for page in doc.lPage:
-			dk = page.Dk()
-			
-			self.RegisterDk(dk)
 
-			assert dk not in self.mpDkDoc
-			self.mpDkDoc[dk] = doc
+		if not self.doca.fUnwindPages:
+			return
+
+		for dr in lDr:
+			for dk in dr.lDk:
+				assert dk not in self.mpDkPath
+				self.mpDkPath[dk] = dr.pathOutput
+
+				self.setStrTz.add(dk.strTz)
+				self.setStrLang.add(dk.strLang)
+				self.setFmt.add(dk.fmt)
+
+		# self.PrintMissing()
+
+		self.Wind()
 
 	def SetDkMissing(self) -> set[SDocKey]:
+		if not self.doca or not self.doca.fUnwindPages:
+			return set()
+
 		setDkAll: set[SDocKey] = set()
 
 		for strTz in self.setStrTz:
@@ -57,35 +64,57 @@ class CManifest: # tag = manif
 
 		assert len(setDkAll) == len(self.setStrTz) * len(self.setStrLang) * len(self.setFmt)
 
-		return setDkAll - set(self.mpDkDoc.keys())
+		return setDkAll - set(self.mpDkPath.keys())
 	
-	def Wind(self, doca: SDocumentArgs) -> None:
+	def Wind(self) -> None:
+		assert self.doca
 
-		pathOutput = doca.PathOutput(doca.strNameTourn)
+		pathOutput = self.doca.PathOutput(self.doca.strNameTourn)
 
-		if not self.mpDkDoc:
+		if not self.mpDkPath:
 			# BB bruceo: SDocumentArgs.StrPath()?
 			print(f"warning: no unwound documents for {pathOutput.relative_to(Path.cwd())}")
 			return
 
 		writer = PdfWriter()
-		for doc in self.mpDkDoc.values():
-			writer.append(doc.pathOutput)
+		for path in self.mpDkPath.values():
+			writer.append(path)
 
-		print(f"writing to {pathOutput.relative_to(Path.cwd())}")
+		print(f"collating to {pathOutput.relative_to(Path.cwd())}")
 
 		pathOutput.parent.mkdir(parents=True, exist_ok=True)
 		with pathOutput.open("wb") as fileDst:
 			writer.write(fileDst)		
 
 	def PrintMissing(self) -> None:
-		if not self.mpDkDoc:
+		assert self.doca
+
+		if not self.doca.fUnwindPages:
+			return
+
+		if not self.mpDkPath:
 			return
 		
 		setDkMissing = self.SetDkMissing()
 		
 		print(f"missing: {len(setDkMissing)} files from {len(self.setStrTz)} zones * {len(self.setStrLang)} langs * {len(self.setFmt)} sizes")
-		print(f"extant: {len(self.mpDkDoc)} files from total of {len(self.setStrTz) * len(self.setStrLang) * len(self.setFmt)}")
+		print(f"extant: {len(self.mpDkPath)} files from total of {len(self.setStrTz) * len(self.setStrLang) * len(self.setFmt)}")
+
+	def WlFillGrid(self) -> Optional[SWorklist]:
+		if not self.doca:
+			return None
+		
+		if not self.doca.fUnwindPages:
+			return None
+
+		if not self.doca.fFillGrid:
+			return None
+
+		if not self.mpDkPath:
+			# warn?
+			return None
+		
+		return None
 
 class CDocument: # tag = doc
 	s_pathDirFonts = g_pathCode / 'fonts'
@@ -142,6 +171,12 @@ class CDocument: # tag = doc
 
 		self.pdf.output(str(self.pathOutput))
 
+	def Dr(self) -> Optional[SDocResult]:
+		if not self.doca.fAutoFileSuffix:
+			return None
+		
+		return SDocResult(self.pathOutput, [page.Dk() for page in self.lPage])
+	
 def main():
 	args = ParseArgs()
 
@@ -153,16 +188,23 @@ def main():
 	tNow = arrow.now()
 	pathProf = Path('profiles') / f"run-{tNow.format('YYYYMMDD-HHmmss')}.prof"
 
-	manif = CManifest()
-
 	with Profiling(pathProf, fEnabled=fProfile):
-		for doca in IterDoca(args):
-			if doca.fUnwindPages:
-				manif.Wind(doca)
-			else:
-				manif.RegisterDoc(CDocument(doca))
 
-		# manif.PrintMissing()
+		wl = WlFromArgs(args)
+		lDr: list[SDocResult] = []
+
+		for doca in wl.lDoca:
+			assert not doca.fUnwindPages
+			assert not doca.fFillGrid
+			if dr := CDocument(doca).Dr():
+				lDr.append(dr)
+
+		manif = CManifest(wl.docaWind, lDr)
+
+		if wl := manif.WlFillGrid():
+			assert wl.docaWind is None
+			for doca in wl.lDoca:
+				CDocument(doca)
 
 	if fProfile:
 		print(f"wrote profile to {pathProf}")

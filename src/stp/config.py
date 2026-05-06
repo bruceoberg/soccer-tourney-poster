@@ -80,6 +80,10 @@ class SDocKey(NamedTuple): # tag = dk
 	strLang: str
 	fmt: TFmt
 
+class SDocResult(NamedTuple): # tag = dr
+	pathOutput: Path
+	lDk: list[SDocKey]
+
 class SDocumentArgs(BaseModel): # tag = doca
 	"""Document configuration arguments."""
 	
@@ -92,6 +96,7 @@ class SDocumentArgs(BaseModel): # tag = doca
 	strFileSuffix:		str			= Field(default='',		alias='file_suffix')
 	fAutoFileSuffix:	bool		= Field(default=False,	alias='auto_file_suffix')
 	fUnwindPages:		bool		= Field(default=False,	alias='unwind_pages')
+	fFillGrid:			bool		= Field(default=False,	alias='fill_grid')
 	fAllTournaments:	bool		= Field(default=False,	alias='all_tournaments')
 	fDefault:			bool		= Field(default=False,	alias='default')
 
@@ -165,6 +170,20 @@ def DocaUnwind(doca: SDocumentArgs, pagea: SPageArgs) -> SDocumentArgs:
 			file_suffix='',
 			auto_file_suffix=True,
 			unwind_pages=False)
+
+class SWorklist(NamedTuple): # tag = wl
+	lDoca: list[SDocumentArgs]
+	docaWind: Optional[SDocumentArgs] = None
+
+def WlFromArgs(args: Tap) -> SWorklist:
+	lDoca: list[SDocumentArgs] = list(IterDoca(args))
+	if lDoca and lDoca[-1].fUnwindPages:
+		return SWorklist(lDoca[:-1], lDoca[-1])
+	
+	assert not any([doca.fUnwindPages for doca in lDoca])
+
+	return SWorklist(lDoca)
+	
 
 def IterDoca(args: Tap) -> Iterator[SDocumentArgs]:
 
