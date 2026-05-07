@@ -12,12 +12,12 @@ from babel import Locale
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from pypdf import PdfWriter
-from typing import Optional, Type
+from typing import Optional, Type, NamedTuple
 
 from bolay import CPdf
 
 from . import g_pathCode
-from .config import PAGEK, TFmt, SDocKey, SDocResult, SDocumentArgs, SWorklist, WlFromArgs, ParseArgs, StrFromFmt
+from .config import PAGEK, TFmt, REGION, SPageArgs, SDocumentArgs, SWorklist, WlFromArgs, ParseArgs, DocaUnwind
 from .fonts import SetStrTtfFromSetStrScript
 from .loc import StrScriptFromLocale
 from .profiling import Profiling, DumpTopCumulative
@@ -26,13 +26,48 @@ from .page import CPage, CGroupsTestPage, CDaysTestPage, CCalOnlyPage, CCalElimP
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
+def LocaleLang(locale: Locale) -> Locale:
+	return Locale(locale.language, script=locale.script)
+
+class SManifestKey(NamedTuple): # tag = mank
+	strTz: str
+	localeLang: Locale
+	fmt: TFmt
+
+class SPageResult(NamedTuple): # tag = pager
+	strTz: str
+	locale: Locale
+	fmt: TFmt
+	region: REGION
+
+	def Mank(self) -> SManifestKey:
+		return SManifestKey(
+				self.strTz,
+				LocaleLang(self.locale),
+				self.fmt)
+	
+def PagerFromPage(page: CPage) ->SPageResult:
+	return SPageResult(
+			page.pagea.strTz,
+			page.locale,
+			page.fmt,
+			page.pagea.region)
+
+class SDocResult(NamedTuple): # tag = docr
+	pathOutput: Path
+	lPager: list[SPageResult]
+
+class SManifestPage(NamedTuple): # tag = manp
+	pathOutput: Path
+	pager: SPageResult
+
 class CManifest: # tag = manif
-	def __init__(self, doca: Optional[SDocumentArgs], lDr: list[SDocResult]) -> None:
+	def __init__(self, doca: Optional[SDocumentArgs], lDocr: list[SDocResult]) -> None:
 		self.doca = doca
 		self.setStrTz: set[str] = set()
-		self.setStrLang: set[str] = set()
+		self.setLocaleLang: set[Locale] = set()
 		self.setFmt: set[TFmt] = set()
-		self.mpDkPath: dict[SDocKey, Path] = {}
+		self.mpMankManp: dict[SManifestKey, SManifestPage] = {}
 
 		if not self.doca:
 			return
@@ -40,47 +75,54 @@ class CManifest: # tag = manif
 		if not self.doca.fUnwindPages:
 			return
 
-		for dr in lDr:
-			for dk in dr.lDk:
-				assert dk not in self.mpDkPath
-				self.mpDkPath[dk] = dr.pathOutput
+		for docr in lDocr:
+			for pager in docr.lPager:
+				mank = pager.Mank()
 
-				self.setStrTz.add(dk.strTz)
-				self.setStrLang.add(dk.strLang)
-				self.setFmt.add(dk.fmt)
+				assert mank not in self.mpMankManp
+				self.mpMankManp[mank] = SManifestPage(docr.pathOutput, pager)
+
+				self.setStrTz.add(mank.strTz)
+				self.setLocaleLang.add(mank.localeLang)
+				self.setFmt.add(mank.fmt)
 
 		# self.PrintMissing()
 
-		self.Wind()
+		self.CollateUnwoundPages()
 
-	def SetDkMissing(self) -> set[SDocKey]:
-		if not self.doca or not self.doca.fUnwindPages:
+	def SetMankMissing(self) -> set[SManifestKey]:
+		if not self.doca or not self.doca.fFillGrid:
 			return set()
-
-		setDkAll: set[SDocKey] = set()
+		
+		setMankAll: set[SManifestKey] = set()
 
 		for strTz in self.setStrTz:
-			for strLang in self.setStrLang:
+			for localeLang in self.setLocaleLang:
 				for fmt in self.setFmt:
-					setDkAll.add(SDocKey(strTz, strLang, fmt))
+					setMankAll.add(SManifestKey(strTz, localeLang, fmt))
 
-		assert len(setDkAll) == len(self.setStrTz) * len(self.setStrLang) * len(self.setFmt)
+		assert len(setMankAll) == len(self.setStrTz) * len(self.setLocaleLang) * len(self.setFmt)
 
-		return setDkAll - set(self.mpDkPath.keys())
+		return setMankAll - set(self.mpMankManp.keys())
 	
-	def Wind(self) -> None:
+	def CollateUnwoundPages(self) -> None:
 		assert self.doca
+
+		# skip collated file when filling the grid
+
+		if self.doca.fFillGrid:
+			return
 
 		pathOutput = self.doca.PathOutput(self.doca.strNameTourn)
 
-		if not self.mpDkPath:
+		if not self.mpMankManp:
 			# BB bruceo: SDocumentArgs.StrPath()?
 			print(f"warning: no unwound documents for {pathOutput.relative_to(Path.cwd())}")
 			return
 
 		writer = PdfWriter()
-		for path in self.mpDkPath.values():
-			writer.append(path)
+		for manp in self.mpMankManp.values():
+			writer.append(manp.pathOutput)
 
 		print(f"collating to {pathOutput.relative_to(Path.cwd())}")
 
@@ -94,29 +136,32 @@ class CManifest: # tag = manif
 		if not self.doca.fUnwindPages:
 			return
 
-		if not self.mpDkPath:
+		if not self.mpMankManp:
 			return
 		
-		setDkMissing = self.SetDkMissing()
+		setMankMissing = self.SetMankMissing()
 		
-		print(f"missing: {len(setDkMissing)} files from {len(self.setStrTz)} zones * {len(self.setStrLang)} langs * {len(self.setFmt)} sizes")
-		print(f"extant: {len(self.mpDkPath)} files from total of {len(self.setStrTz) * len(self.setStrLang) * len(self.setFmt)}")
+		print(f"missing: {len(setMankMissing)} files from {len(self.setStrTz)} zones * {len(self.setLocaleLang)} langs * {len(self.setFmt)} sizes")
+		print(f"extant: {len(self.mpMankManp)} files from total of {len(self.setStrTz) * len(self.setLocaleLang) * len(self.setFmt)}")
 
 	def WlFillGrid(self) -> Optional[SWorklist]:
 		if not self.doca:
 			return None
 		
-		if not self.doca.fUnwindPages:
-			return None
-
 		if not self.doca.fFillGrid:
 			return None
 
-		if not self.mpDkPath:
+		if not self.mpMankManp:
 			# warn?
 			return None
 		
-		return None
+		lDoca: list[SDocumentArgs] = []
+		
+		for mank in self.SetMankMissing():
+			# BB bruceo: need to choose a territory here
+			lDoca.append(DocaUnwind(self.doca, SPageArgs(tz=mank.strTz, loc=str(mank.localeLang), format=mank.fmt)))
+		
+		return SWorklist(lDoca, None)
 
 class CDocument: # tag = doc
 	s_pathDirFonts = g_pathCode / 'fonts'
@@ -160,12 +205,9 @@ class CDocument: # tag = doc
 
 		self.lPage: list[CPage] = [self.s_mpPagekClsPage[pagea.pagek](self, pagea) for pagea in self.doca.tuPagea]
 
-		if self.doca.fAutoFileSuffix:
-			lDkPages: list[SDocKey] = [page.Dk() for page in self.lPage]
-		else:
-			lDkPages: list[SDocKey] = []
+		lMankPages: list[SManifestKey] = [PagerFromPage(page).Mank() for page in self.lPage]
 
-		self.pathOutput = self.doca.PathOutput(strName, lDkPages)
+		self.pathOutput = self.doca.PathOutput(strName, lMankPages)
 
 		self.pathOutput.parent.mkdir(parents=True, exist_ok=True)
 
@@ -173,30 +215,30 @@ class CDocument: # tag = doc
 
 		self.pdf.output(str(self.pathOutput))
 
-	def Dr(self) -> Optional[SDocResult]:
+	def Docr(self) -> Optional[SDocResult]:
 		if not self.doca.fAutoFileSuffix:
 			return None
 
-		return SDocResult(self.pathOutput, [page.Dk() for page in self.lPage])
+		return SDocResult(self.pathOutput, [PagerFromPage(page) for page in self.lPage])
 
-def DrBuildDocaAsync(doca: SDocumentArgs) -> Optional[SDocResult]:
+def DocrBuildDocaAsync(doca: SDocumentArgs) -> Optional[SDocResult]:
 	# Top-level so ProcessPoolExecutor can pickle it.
-	return CDocument(doca).Dr()
+	return CDocument(doca).Docr()
 
-def LDrBuildLDoca(lDoca: list[SDocumentArgs], cJob: int) -> list[SDocResult]:
+def LDocrBuildLDoca(lDoca: list[SDocumentArgs], cJob: int) -> list[SDocResult]:
 	if cJob == 1 or len(lDoca) <= 1:
-		return [dr for doca in lDoca if (dr := DrBuildDocaAsync(doca))]
+		return [docr for doca in lDoca if (docr := DocrBuildDocaAsync(doca))]
 
 	cJob = min(cJob, len(lDoca))
 	print(f"building {len(lDoca)} document(s) across {cJob} worker(s)")
 
-	lDr: list[SDocResult] = []
+	lDocr: list[SDocResult] = []
 	with ProcessPoolExecutor(max_workers=cJob) as pool:
-		lFuture = [pool.submit(DrBuildDocaAsync, doca) for doca in lDoca]
+		lFuture = [pool.submit(DocrBuildDocaAsync, doca) for doca in lDoca]
 		for future in as_completed(lFuture):
-			if dr := future.result():
-				lDr.append(dr)
-	return lDr
+			if docr := future.result():
+				lDocr.append(docr)
+	return lDocr
 
 def main():
 	args = ParseArgs()
@@ -216,17 +258,13 @@ def main():
 
 		wl = WlFromArgs(args)
 
-		for doca in wl.lDoca:
-			assert not doca.fUnwindPages
-			assert not doca.fFillGrid
+		lDocr = LDocrBuildLDoca(wl.lDoca, cJob)
 
-		lDr = LDrBuildLDoca(wl.lDoca, cJob)
-
-		manif = CManifest(wl.docaWind, lDr)
+		manif = CManifest(wl.docaWind, lDocr)
 
 		if wl := manif.WlFillGrid():
 			assert wl.docaWind is None
-			LDrBuildLDoca(wl.lDoca, cJob)
+			LDocrBuildLDoca(wl.lDoca, cJob)
 
 	if fProfile:
 		print(f"wrote profile to {pathProf}")

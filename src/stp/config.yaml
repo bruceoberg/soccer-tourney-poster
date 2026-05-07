@@ -128,7 +128,7 @@ published:
   output_dir: playground/published
   file_suffix: all
   unwind_pages: true
-  pages:
+  pages: &published_pages
 
     # North America
 
@@ -221,3 +221,30 @@ published:
 #   - { tz: Australia/Brisbane,     loc: en_AU, region: asia_pacific }
     - { tz: Australia/Sydney,       loc: en_AU, region: asia_pacific }
     - { tz: Pacific/Auckland,       loc: en_NZ, region: asia_pacific }
+
+testgrid:
+  tournament: latest
+  output_dir: playground/testgrid
+  file_suffix: all
+  unwind_pages: true
+  fill_grid: true
+  pages:
+    - { tz: America/Los_Angeles,    loc: en_US, region: north_america }
+    - { tz: America/Montreal,       loc: fr_CA, region: north_america }
+    - { tz: America/Mexico_City,    loc: es_MX, region: north_america }
+    - { tz: Europe/London,          loc: en_GB, region: europe }
+    - { tz: Europe/Paris,           loc: fr_FR, region: europe }
+    - { tz: Africa/Kinshasa,        loc: sw_CD, region: africa }
+    - { tz: Asia/Riyadh,            loc: ar_SA, region: mideast_asia }
+    - { tz: Asia/Tashkent,          loc: uz_UZ, region: mideast_asia }
+    - { tz: Asia/Tokyo,             loc: ja_JP, region: asia_pacific }
+    - { tz: Asia/Shanghai,          loc: zh_CN, region: asia_pacific }
+    - { tz: Asia/Taipei,            loc: zh_TW, region: asia_pacific }
+
+grid:
+  tournament: latest
+  output_dir: playground/grid
+  file_suffix: all
+  unwind_pages: true
+  fill_grid: true
+  pages: *published_pages

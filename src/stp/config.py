@@ -12,10 +12,14 @@ from os import sep as g_chPathSeparator
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from tap import Tap
-from typing import Optional, Iterable, Iterator, NamedTuple
+from typing import TYPE_CHECKING, Optional, Iterable, Iterator, NamedTuple, TypeAlias
 
 from . import g_pathCode
 from .database import CDataBase
+from .loc import StrLangShortFromLocale
+
+if TYPE_CHECKING:
+	from .main import SManifestKey
 
 class PAGEK(StrEnum): # tag = pagek
 	GroupsTest = 'groups_test'
@@ -32,7 +36,7 @@ class REGION(StrEnum):
 	WestAsiaPacific = 'asia_pacific'
 	Other = 'other'
 
-TFmt = Optional[str | tuple[float, float]]
+TFmt: TypeAlias = Optional[str | tuple[float, float]]
 
 def StrFromFmt(fmt : TFmt) -> str:
 	if fmt is None:
@@ -75,15 +79,6 @@ class SPageArgs(BaseModel): # tag - pagea
 
 TTuPagea = tuple[SPageArgs, ...]
 
-class SDocKey(NamedTuple): # tag = dk
-	strTz: str
-	strLang: str
-	fmt: TFmt
-
-class SDocResult(NamedTuple): # tag = dr
-	pathOutput: Path
-	lDk: list[SDocKey]
-
 class SDocumentArgs(BaseModel): # tag = doca
 	"""Document configuration arguments."""
 	
@@ -97,10 +92,11 @@ class SDocumentArgs(BaseModel): # tag = doca
 	fAutoFileSuffix:	bool		= Field(default=False,	alias='auto_file_suffix')
 	fUnwindPages:		bool		= Field(default=False,	alias='unwind_pages')
 	fFillGrid:			bool		= Field(default=False,	alias='fill_grid')
+	fGridMember:		bool		= Field(default=False,	alias='grid_member')
 	fAllTournaments:	bool		= Field(default=False,	alias='all_tournaments')
 	fDefault:			bool		= Field(default=False,	alias='default')
 
-	def PathOutput(self, strName: str, iterDk: Iterable[SDocKey] = []) -> Path:
+	def PathOutput(self, strName: str, iterMank: Iterable[SManifestKey] = []) -> Path:
 		pathDirOutput = Path.cwd()
 
 		if self.strDirOutput:
@@ -111,12 +107,15 @@ class SDocumentArgs(BaseModel): # tag = doca
 		if self.strFileSuffix:
 			lStrFile.append(self.strFileSuffix)
 
-		for dk in iterDk:
-			lStrFile.append(dk.strTz.replace(g_chPathSeparator, '#'))
-			lStrFile.append(dk.strLang)
-			lStrFile.append(StrFromFmt(dk.fmt))
+		if self.fAutoFileSuffix:
+			for mank in iterMank:
+				lStrFile.append(StrLangShortFromLocale(mank.localeLang))
+				lStrFile.append(mank.strTz.split(g_chPathSeparator, 1)[1])
+				if self.fGridMember:
+					lStrFile.append(StrFromFmt(mank.fmt))
 
-		strFile = '+'.join(lStrFile).lower()
+
+		strFile = '-'.join(lStrFile).lower()
 
 		return (pathDirOutput / strFile).with_suffix('.pdf')
 
@@ -161,8 +160,9 @@ def ParseArgs() -> Tap:
 	return ArgumentParser().parse_args()
 
 def DocaUnwind(doca: SDocumentArgs, pagea: SPageArgs) -> SDocumentArgs:
-	strLang = Locale.parse(pagea.strLocale).language.lower()
-	pathDirOutputLang = Path(doca.strDirOutput) / strLang
+	pathDirOutputLang = Path(doca.strDirOutput)
+	if doca.fFillGrid:
+		pathDirOutputLang /= StrLangShortFromLocale(Locale.parse(pagea.strLocale))
 
 	return SDocumentArgs(
 			name = doca.strName,
@@ -171,7 +171,8 @@ def DocaUnwind(doca: SDocumentArgs, pagea: SPageArgs) -> SDocumentArgs:
 			output_dir = str(pathDirOutputLang),
 			file_suffix='',
 			auto_file_suffix=True,
-			unwind_pages=False)
+			unwind_pages=False,
+			grid_member=doca.fFillGrid)
 
 class SWorklist(NamedTuple): # tag = wl
 	lDoca: list[SDocumentArgs]
@@ -180,9 +181,10 @@ class SWorklist(NamedTuple): # tag = wl
 def WlFromArgs(args: Tap) -> SWorklist:
 	lDoca: list[SDocumentArgs] = list(IterDoca(args))
 	if lDoca and lDoca[-1].fUnwindPages:
+		assert not any([doca.fUnwindPages or doca.fFillGrid for doca in lDoca[:-1]])
 		return SWorklist(lDoca[:-1], lDoca[-1])
 	
-	assert not any([doca.fUnwindPages for doca in lDoca])
+	assert not any([doca.fUnwindPages or doca.fFillGrid for doca in lDoca])
 
 	return SWorklist(lDoca)
 	
@@ -204,6 +206,7 @@ def IterDoca(args: Tap) -> Iterator[SDocumentArgs]:
 	if doca.fAllTournaments:
 		assert(not doca.strNameTourn)
 		assert(not doca.fUnwindPages)
+		assert(not doca.fFillGrid)
 
 		lPagea = []
 		
@@ -239,7 +242,7 @@ def IterDoca(args: Tap) -> Iterator[SDocumentArgs]:
 		for iPagea, pagea in enumerate(doca.tuPagea):
 			assert(not pagea.strNameTourn)
 			
-			if iPagea == 0:
+			if iPagea == 0 and not doca.fFillGrid:
 				yield SDocumentArgs(
 						name = doca.strName,
 						pages = (pagea,),

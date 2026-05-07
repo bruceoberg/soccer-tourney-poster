@@ -14,9 +14,9 @@ from bolay import JH, JV, SPoint, SRect
 from bolay import ColorFromStr, SColor
 from bolay import colorBlack, colorWhite, colorGrey
 
-from .config import SDocKey, SPageArgs
+from .config import SPageArgs
 from .fonts import StrTtfLookup
-from .loc import g_loc, CZoneName, StrFmtBestFit, StrFileFromLocale, StrScriptFromLocale
+from .loc import g_loc, CZoneName, StrFmtBestFit, StrLangTerritoryFromLocale, StrScriptFromLocale
 from .versioning import g_repover
 from .database import CTournamentDataBase, CMatch, STAGE
 from .group import CGroupBlot, CGroupSetBlot
@@ -157,12 +157,6 @@ class CPage:
 		else:
 			self.rectInside = self.rect
 			self.rectCropMarks = self.rect
-
-	def Dk(self) -> SDocKey:
-		return SDocKey(
-				self.pagea.strTz,
-				self.locale.language.lower(),
-				self.fmt)
 
 	def StrTranslation(self, strKey: str) -> str:
 		return g_loc.StrTranslation(strKey, self.locale)
@@ -488,7 +482,7 @@ class CFooterBlot(CBlot): # tag = headerb
 
 		lStrCreditCenter: list[str] = [
 			self.page.pagea.strTz,
-			StrFileFromLocale(self.page.locale),
+			StrLangTerritoryFromLocale(self.page.locale),
 			str(self.page.fmt),
 		]
 

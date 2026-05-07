@@ -220,10 +220,27 @@ class CZoneName: # tag = zonename
 		else:
 			return self.strAbbrev
 		
-def StrFileFromLocale(locale: Locale) -> str:
+def StrLangTerritoryFromLocale(locale: Locale) -> str:
 	strTerritory = locale.territory if locale.territory else 'us'
 
 	return f"{locale.language}_{strTerritory}"
+
+def StrLangScriptFromLocale(locale: Locale) -> str:
+	if not locale.script:
+		return locale.language
+	
+	return f"{locale.language}_{locale.script}"
+
+s_mpStrLangScriptStrLangShort = {
+	'zh_hans': 'zhs',
+	'zh_hant': 'zht',
+	'uz_latn': 'uz',
+}
+
+def StrLangShortFromLocale(locale: Locale) -> str:
+	strLangScript = StrLangScriptFromLocale(locale)
+
+	return s_mpStrLangScriptStrLangShort.get(strLangScript.lower(), strLangScript)
 
 g_mpStrSubtag = get_global('likely_subtags')
 
