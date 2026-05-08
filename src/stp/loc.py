@@ -131,7 +131,7 @@ g_mpStrTzTzs: dict[str, STZs] = {
 	"Asia/Riyadh":			STZs("ARST"),
 	"Asia/Tehran":			STZs("IRST"),
 	"Asia/Tashkent":		STZs("UZT"),
-	"Asia/Shanghai":		STZs("CHST"),
+	"Asia/Shanghai":		STZs("CNST"),
 	"Asia/Taipei":			STZs("TST"),
 }
 
