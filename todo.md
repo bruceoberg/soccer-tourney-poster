@@ -1,7 +1,5 @@
 ## now
 
-- when using weird day for left calendar column, show a break line where correct starting weekday would be.
-- add new cities/languages to published list.
 - build markdown page for publishing every timezone/language on oberg.org.
 
 ## future
@@ -19,6 +17,8 @@
 			- `CCol` / `CRow`
 - monochrome
 - fix FPDF2 to generate embedded fonts that illustrator can recognize.
+- move to NotoSansMono fonts.
+- use condensed Noto fonts to approximate look of trade gothic?
 
 ## never
 
@@ -59,3 +59,5 @@
   - move points dots next to rank in group area.
   - slide points dots together and use space for a "total" number.
   - fix dots for RtL layout.
+- when using weird day for left calendar column, show a break line where correct starting weekday would be.
+- add new cities/languages to published list.
