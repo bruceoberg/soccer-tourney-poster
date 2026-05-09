@@ -7,6 +7,7 @@ import fpdf
 import logging
 import os
 import platform
+import sys
 
 from babel import Locale
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -19,7 +20,7 @@ from bolay import CPdf
 from . import g_pathCode
 from .config import PAGEK, TFmt, REGION, SPageArgs, SDocumentArgs, SWorklist, WlFromArgs, ParseArgs, DocaUnwind
 from .fonts import SetStrTtfFromSetStrScript
-from .loc import StrScriptFromLocale
+from .loc import CZoneName, StrScriptFromLocale, StrLocaleFromTzLocaleLang, StrLocaleFromLocaleLang
 from .profiling import Profiling, DumpTopCumulative
 from .database import CTournamentDataBase
 from .page import CPage, CGroupsTestPage, CDaysTestPage, CCalOnlyPage, CCalElimPage
@@ -36,9 +37,11 @@ class SManifestKey(NamedTuple): # tag = mank
 
 class SPageResult(NamedTuple): # tag = pager
 	strTz: str
+	zonename: CZoneName
 	locale: Locale
 	fmt: TFmt
 	region: REGION
+	lStrTzAliases: list[str]
 
 	def Mank(self) -> SManifestKey:
 		return SManifestKey(
@@ -49,9 +52,11 @@ class SPageResult(NamedTuple): # tag = pager
 def PagerFromPage(page: CPage) ->SPageResult:
 	return SPageResult(
 			page.pagea.strTz,
+			page.zonename,
 			page.locale,
 			page.fmt,
-			page.pagea.region)
+			page.pagea.region,
+			page.pagea.lStrTzAlias)
 
 class SDocResult(NamedTuple): # tag = docr
 	pathOutput: Path
@@ -64,10 +69,11 @@ class SManifestPage(NamedTuple): # tag = manp
 class CManifest: # tag = manif
 	def __init__(self, doca: Optional[SDocumentArgs], lDocr: list[SDocResult]) -> None:
 		self.doca = doca
+		self.mpMankManp: dict[SManifestKey, SManifestPage] = {}
 		self.setStrTz: set[str] = set()
 		self.setLocaleLang: set[Locale] = set()
 		self.setFmt: set[TFmt] = set()
-		self.mpMankManp: dict[SManifestKey, SManifestPage] = {}
+		self.mpStrTzStrUtcOnly: dict[str, str] = {}
 
 		if not self.doca:
 			return
@@ -85,6 +91,13 @@ class CManifest: # tag = manif
 				self.setStrTz.add(mank.strTz)
 				self.setLocaleLang.add(mank.localeLang)
 				self.setFmt.add(mank.fmt)
+
+				strUtcOnlyPager = pager.zonename.StrUtcOnly()
+				if strUtcOnlyFound := self.mpStrTzStrUtcOnly.get(mank.strTz):
+					if strUtcOnlyFound != strUtcOnlyPager:
+						sys.exit("error: tz {mank.strTz} maps to both {strUtcOnly} and {strUtcOnlyPager}")
+				else:
+					self.mpStrTzStrUtcOnly[mank.strTz] = strUtcOnlyPager
 
 		# self.PrintMissing()
 
@@ -156,10 +169,58 @@ class CManifest: # tag = manif
 			return None
 		
 		lDoca: list[SDocumentArgs] = []
+		mpMankUtcOnlySetMankMissing: dict[SManifestKey, set[SManifestKey]] = {}
 		
-		for mank in self.SetMankMissing():
+		
+		for mankMissing in self.SetMankMissing():
+			strLocale = StrLocaleFromTzLocaleLang(mankMissing.strTz, mankMissing.localeLang)
+
+			if not strLocale:
+				# timezone(city) does not natively support this language (eg french in the US).
+
+				# fall back to a generic UTC only timezone. later we'll choose the "standard" territory
+				# for that language.
+
+				# since we're falling back to UTC only, we may map multiple missing manks to the same
+				# destination file. that's good! we want this to minimize the number of PDFs we create.
+				# for cities in the same timezone, whose territories don't support a language, we want
+				# to map the output to the same generic language+tz file. this can reduce our PDF count
+				# by 60% to 70%. instead of oodles of similar PDFs for obscure city/language combos, we
+				# can have just tz/language combos and point multiple cities to each tz.
+
+				strUtcOnly = self.mpStrTzStrUtcOnly[mankMissing.strTz]
+
+				mankUtcOnly = SManifestKey(strUtcOnly, mankMissing.localeLang, mankMissing.fmt)
+				setMankMissing = mpMankUtcOnlySetMankMissing.setdefault(mankUtcOnly, set())
+				setMankMissing.add(mankMissing)
+
+				continue
+
 			# BB bruceo: need to choose a territory here
-			lDoca.append(DocaUnwind(self.doca, SPageArgs(tz=mank.strTz, loc=str(mank.localeLang), format=mank.fmt)))
+			lDoca.append(DocaUnwind(self.doca, SPageArgs(tz=mankMissing.strTz, loc=strLocale, format=mankMissing.fmt)))
+
+		for mankUtcOnly, setMankMissing in mpMankUtcOnlySetMankMissing.items():
+			lStrTzAlias = [mankMissing.strTz for mankMissing in setMankMissing]
+
+			# use the "most common" locale for the given language.
+
+			strLocale = StrLocaleFromLocaleLang(mankUtcOnly.localeLang)
+
+			# the strTz in mankUtcOnly is a pseudo tz string of the form UTC±HHMM. we need to use one of the
+			# parsable ones from our missing sets. it doesn't matter which one, since they all map to the same
+			# UTC offset.
+
+			lDoca.append(
+				DocaUnwind(
+					self.doca,
+					SPageArgs(
+						tz=lStrTzAlias[0],
+						loc=strLocale,
+						format=mankUtcOnly.fmt,
+						# NOTE bruceo: could argue that single city UTC only entries should have city names.
+						# with utc_only always true, we get more UTC names, which is what we want for the big grid.
+						utc_only=True, #len(lStrTzAlias)>1,
+						tz_aliases=lStrTzAlias[1:])))
 		
 		return SWorklist(lDoca, None)
 
@@ -205,13 +266,15 @@ class CDocument: # tag = doc
 
 		self.lPage: list[CPage] = [self.s_mpPagekClsPage[pagea.pagek](self, pagea) for pagea in self.doca.tuPagea]
 
-		lMankPages: list[SManifestKey] = [PagerFromPage(page).Mank() for page in self.lPage]
-
-		self.pathOutput = self.doca.PathOutput(strName, lMankPages)
+		self.pathOutput = self.doca.PathOutput(strName, self.lPage)
 
 		self.pathOutput.parent.mkdir(parents=True, exist_ok=True)
 
-		print(f"writing to {self.pathOutput.relative_to(Path.cwd())}")
+		if any([page.pagea.fUtcOnly for page in self.lPage]):
+			if self.pathOutput.exists():
+				sys.exit(f"error: overwriting grid file {self.pathOutput.relative_to(Path.cwd())}")
+		else:
+			print(f"writing to {self.pathOutput.relative_to(Path.cwd())}")
 
 		self.pdf.output(str(self.pathOutput))
 

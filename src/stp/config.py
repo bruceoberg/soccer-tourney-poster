@@ -12,14 +12,14 @@ from os import sep as g_chPathSeparator
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from tap import Tap
-from typing import TYPE_CHECKING, Optional, Iterable, Iterator, NamedTuple, TypeAlias
+from typing import TYPE_CHECKING, Optional, Iterator, NamedTuple, TypeAlias
 
 from . import g_pathCode
 from .database import CDataBase
 from .loc import StrLangShortFromLocale
 
 if TYPE_CHECKING:
-	from .main import SManifestKey
+	from .page import CPage
 
 class PAGEK(StrEnum): # tag = pagek
 	GroupsTest = 'groups_test'
@@ -76,6 +76,8 @@ class SPageArgs(BaseModel): # tag - pagea
 	fEliminationHints:      bool        = Field(default=True,			alias='elimination_hints')
 	fGroupDots:             bool        = Field(default=True,			alias='group_dots')
 	fFixturesOnly:          bool        = Field(default=False,			alias='fixtures_only')
+	fUtcOnly:          		bool        = Field(default=False,			alias='utc_only') # no friendly timezone name.
+	lStrTzAlias:			list[str]	= Field(default=[],				alias='tz_aliases')
 
 TTuPagea = tuple[SPageArgs, ...]
 
@@ -96,7 +98,7 @@ class SDocumentArgs(BaseModel): # tag = doca
 	fAllTournaments:	bool		= Field(default=False,	alias='all_tournaments')
 	fDefault:			bool		= Field(default=False,	alias='default')
 
-	def PathOutput(self, strName: str, iterMank: Iterable[SManifestKey] = []) -> Path:
+	def PathOutput(self, strName: str, lPage: list[CPage] = []) -> Path:
 		pathDirOutput = Path.cwd()
 
 		if self.strDirOutput:
@@ -108,11 +110,14 @@ class SDocumentArgs(BaseModel): # tag = doca
 			lStrFile.append(self.strFileSuffix)
 
 		if self.fAutoFileSuffix:
-			for mank in iterMank:
-				lStrFile.append(StrLangShortFromLocale(mank.localeLang))
-				lStrFile.append(mank.strTz.split(g_chPathSeparator, 1)[1])
+			for page in lPage:
+				lStrFile.append(StrLangShortFromLocale(page.locale))
+				if page.pagea.fUtcOnly:
+					lStrFile.append(page.zonename.StrUtcOnly())
+				else:
+					lStrFile.append(page.zoneinfo.key.split(g_chPathSeparator, 1)[1])
 				if self.fGridMember:
-					lStrFile.append(StrFromFmt(mank.fmt))
+					lStrFile.append(StrFromFmt(page.fmt))
 
 
 		strFile = '-'.join(lStrFile).lower()
@@ -198,7 +203,7 @@ def IterDoca(args: Tap) -> Iterator[SDocumentArgs]:
 	try:
 		doca = mpStrDoca[args.document]
 	except KeyError:
-		sys.exit(f"unknown document {args.document}")
+		sys.exit(f"error: unknown document {args.document}")
 
 	if not doca.strDirOutput:
 		doca = doca.model_copy(update={'strDirOutput': args.output_dir })

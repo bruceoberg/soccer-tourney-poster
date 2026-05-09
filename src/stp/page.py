@@ -423,7 +423,8 @@ class CHeaderBlot(CBlot): # tag = headerb
 
 		strLabelTimeZone = self.page.StrTranslation('page.timezone.label')
 		strFormatTimeZone = self.page.StrTranslation('page.format.timezone')
-		strTimeZone = strFormatTimeZone.format(label=strLabelTimeZone, timezone=self.page.zonename.StrFriendly())
+		strZonename = self.page.zonename.StrUtcOnly() if self.page.pagea.fUtcOnly else self.page.zonename.StrFriendly()
+		strTimeZone = strFormatTimeZone.format(label=strLabelTimeZone, timezone=strZonename)
 
 		# notes left and right
 
@@ -480,8 +481,13 @@ class CFooterBlot(CBlot): # tag = headerb
 			g_repover.StrVersionShort(),
 		]
 
-		lStrCreditCenter: list[str] = [
-			self.page.pagea.strTz,
+		lStrCreditCenter: list[str] = []
+
+		if not self.page.FAllMatchesHaveResults():
+			strZonename = self.page.zonename.StrUtcOnly() if self.page.pagea.fUtcOnly else self.page.pagea.strTz
+			lStrCreditCenter.append(strZonename)
+
+		lStrCreditCenter += [
 			StrLangTerritoryFromLocale(self.page.locale),
 			str(self.page.fmt),
 		]

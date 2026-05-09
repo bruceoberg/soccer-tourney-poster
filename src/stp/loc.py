@@ -6,14 +6,20 @@ import arrow
 import polib
 
 from babel import Locale
-from babel.core import get_global, parse_locale
+from babel.core import get_global, parse_locale, UnknownLocaleError
 from datetime import timedelta
-from typing import NamedTuple
+from typing import Optional, NamedTuple
 from zoneinfo import ZoneInfo
 
 from bolay import CPdf
 
 from . import __project__, g_pathCode
+
+# tables from babel
+
+g_mpStrQueryStrSubtag = get_global('likely_subtags')
+g_mpStrTzStrAlias = get_global('zone_aliases')
+g_mpStrTzStrTerritory = get_global('zone_territories')
 
 # paper sizes offered for poster printing at fedex office stores
 
@@ -112,33 +118,33 @@ class STZs(NamedTuple):  # tag = tzs
 
 		return self.strDst if fIsDst else self.strStd
 
-# name for unnamed timezones (where datetime.strftime('%Z') returns a number instead of a name)
-# timezones: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-
-g_mpStrTzTzs: dict[str, STZs] = {
- 	"America/Bogota":		STZs("EST"),
- 	"America/Guayaquil":	STZs("EST"),
-	"America/Buenos_Aires":	STZs("ADT"),
-	"America/Montevideo":	STZs("ADT"),
-	"America/Asuncion":		STZs("ADT"),
-	"America/Sao_Paulo":	STZs("BRT"),
-	"Europe/Istanbul":		STZs("TRT"),
-	"Atlantic/Cape_Verde":	STZs("CVT"),
-	"Africa/Casablanca":	STZs("WAT"),
-	"Asia/Amman":           STZs("ARST"),
-	"Asia/Baghdad":         STZs("ARST"),
-	"Asia/Qatar":           STZs("ARST"),
-	"Asia/Riyadh":			STZs("ARST"),
-	"Asia/Tehran":			STZs("IRST"),
-	"Asia/Tashkent":		STZs("UZT"),
-	"Asia/Shanghai":		STZs("CNST"),
-	"Asia/Taipei":			STZs("TST"),
-}
-
 class CZoneName: # tag = zonename
 	""" the timezone name(s) for a date/time """
 
 	s_mpStrAbbrevSetHM: dict[str, set[tuple[int, int]]] = {}
+
+	# name for unnamed timezones (where datetime.strftime('%Z') returns a number instead of a name)
+	# timezones: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+
+	s_mpStrTzTzs: dict[str, STZs] = {
+		"America/Bogota":		STZs("EST"),
+		"America/Guayaquil":	STZs("EST"),
+		"America/Buenos_Aires":	STZs("ADT"),
+		"America/Montevideo":	STZs("ADT"),
+		"America/Asuncion":		STZs("ADT"),
+		"America/Sao_Paulo":	STZs("BRT"),
+		"Europe/Istanbul":		STZs("TRT"),
+		"Atlantic/Cape_Verde":	STZs("CVT"),
+		"Africa/Casablanca":	STZs("WAT"),
+		"Asia/Amman":           STZs("ARST"),
+		"Asia/Baghdad":         STZs("ARST"),
+		"Asia/Qatar":           STZs("ARST"),
+		"Asia/Riyadh":			STZs("ARST"),
+		"Asia/Tehran":			STZs("IRST"),
+		"Asia/Tashkent":		STZs("UZT"),
+		"Asia/Shanghai":		STZs("CNST"),
+		"Asia/Taipei":			STZs("TST"),
+	}
 
 	def __init__(self, tUtc: arrow.Arrow, zoneinfo: ZoneInfo):
 
@@ -149,7 +155,7 @@ class CZoneName: # tag = zonename
 		self.cMin = 0
 
 		try:
-			tzs = g_mpStrTzTzs[zoneinfo.key]
+			tzs = self.s_mpStrTzTzs[zoneinfo.key]
 			strTzLookup = tzs.StrLookup(tTz)
 		except KeyError:
 			strTzLookup = tTz.strftime('%Z')
@@ -188,6 +194,9 @@ class CZoneName: # tag = zonename
 
 		assert not any([ch.isdecimal() for ch in self.strAbbrev])
 
+	def StrUtcOnly(self) -> str:
+		return f'UTC{self.StrRawOffset()}'
+
 	def StrRawOffset(self) -> str:
 		return f'{int(self.cHour):+03d}{int(self.cMin):02d}'
 	
@@ -220,6 +229,33 @@ class CZoneName: # tag = zonename
 		else:
 			return self.strAbbrev
 		
+def StrLocaleFromTzLocaleLang(strTz: str, localeLang: Locale) -> Optional[str]:
+	strTerritory = g_mpStrTzStrTerritory.get(strTz)
+
+	if not strTerritory and (strTzAlias := g_mpStrTzStrAlias.get(strTz)):
+		strTerritory = g_mpStrTzStrTerritory.get(strTzAlias)
+
+	if strTerritory:
+		try:
+			localeNew = Locale(language=localeLang.language, script=localeLang.script, territory=strTerritory)
+			return str(localeNew)
+		except UnknownLocaleError:
+			pass
+
+	return None
+
+def StrLocaleFromLocaleLang(localeLang: Locale) -> str:
+
+	if strSubtag := g_mpStrQueryStrSubtag.get(str(localeLang)):
+		return strSubtag
+	
+	if strSubtag := g_mpStrQueryStrSubtag.get(localeLang.language):
+		return strSubtag
+	
+	print(f"warning: can't find a territory for {str(localeLang)}")
+
+	return str(localeLang)
+		
 def StrLangTerritoryFromLocale(locale: Locale) -> str:
 	strTerritory = locale.territory if locale.territory else 'us'
 
@@ -242,14 +278,12 @@ def StrLangShortFromLocale(locale: Locale) -> str:
 
 	return s_mpStrLangScriptStrLangShort.get(strLangScript.lower(), strLangScript)
 
-g_mpStrSubtag = get_global('likely_subtags')
-
 def StrScriptFromLocale(locale: Locale) -> str:
 	if locale.script:
 		return locale.script
 	
 	for strQuery in (str(locale), locale.language):
-		strSubtag = g_mpStrSubtag.get(strQuery)
+		strSubtag = g_mpStrQueryStrSubtag.get(strQuery)
 		if strSubtag is not None:
 			_, _, strScript, *_ = parse_locale(strSubtag)
 			if strScript:
