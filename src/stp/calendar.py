@@ -112,9 +112,17 @@ class CMatchBlot(CBlot): # tag = dayb
 		xLineMin = self.rect.x + (self.rect.dX / 2.0) - (dXLine / 2.0)
 		xLineMax = xLineMin + dXLine
 		yLine = yScore + (self.dayb.s_dSScore / 2.0)
-		self.pdf.set_line_width(self.dayb.s_dSLineScore)
-		self.pdf.set_draw_color(0) # black
-		self.pdf.line(xLineMin, yLine, xLineMax, yLine)
+
+		if self.page.pagea.fGroupHints and not self.fElimination and not self.page.FMatchHasResults(self.match):
+			strGroup = self.match.lStrGroup[0]
+			colorGroup = self.tourn.mpStrGroupGroup[strGroup].colors.colorDarker
+			rectGroup = SRect(xLineMin, yScore, dXLine, self.dayb.s_dSScore)
+			oltbGroup = self.Oltb(rectGroup, self.page.Fontkey('group.name'), self.dayb.s_dYFontTime)
+			oltbGroup.DrawText(strGroup, colorGroup, JH.Center, JV.Middle)
+		else:
+			self.pdf.set_line_width(self.dayb.s_dSLineScore)
+			self.pdf.set_draw_color(0) # black
+			self.pdf.line(xLineMin, yLine, xLineMax, yLine)
 
 		# score boxes
 
@@ -245,7 +253,7 @@ class CMatchBlot(CBlot): # tag = dayb
 					if len(setStrLabelChars) <= len(self.tourn.setStrGroup) // 2:
 						return ('match.form.label', strLabel)
 
-					strLabelInverse = '~' + ''.join(sorted(self.tourn.setStrGroup - setStrLabelChars)) + '~'
+					strLabelInverse = '(' + ''.join(sorted(self.tourn.setStrGroup - setStrLabelChars)) + ')'
 					return ('match.form.label-inverse', strLabelInverse)
 
 				for xLineFormMin, strLabel in ((xLineFormLeftMin, strHome), (xLineFormRightMin, strAway)):
@@ -302,11 +310,11 @@ class CMatchBlot(CBlot): # tag = dayb
 
 			# group name, subtly
 
-			if self.page.pagea.fGroupHints and self.dYTimeAndGap:
-				strGroup = self.match.lStrGroup[0]
-				colorGroup = self.tourn.mpStrGroupGroup[strGroup].colors.colorDarker
-				oltbGroup = self.Oltb(self.rect, self.page.Fontkey('group.name'), self.dayb.s_dYFontTime, dSMargin = oltbAwayScore.dSMargin)
-				oltbGroup.DrawText(strGroup, colorGroup, JH.Right, JV.Top)
+			# if self.page.pagea.fGroupHints and self.dYTimeAndGap:
+			# 	strGroup = self.match.lStrGroup[0]
+			# 	colorGroup = self.tourn.mpStrGroupGroup[strGroup].colors.colorDarker
+			# 	oltbGroup = self.Oltb(self.rect, self.page.Fontkey('group.name'), self.dayb.s_dYFontTime, dSMargin = oltbAwayTeam.dSMargin)
+			# 	oltbGroup.DrawText(strGroup, colorGroup, JH.Right, JV.Top)
 
 class CDayBlot(CBlot): # tag = dayb
 
