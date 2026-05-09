@@ -13,6 +13,7 @@ from babel import Locale
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from pypdf import PdfWriter
+from tqdm import tqdm
 from typing import Optional, Type, NamedTuple
 
 from bolay import CPdf
@@ -273,8 +274,6 @@ class CDocument: # tag = doc
 		if any([page.pagea.fUtcOnly for page in self.lPage]):
 			if self.pathOutput.exists():
 				sys.exit(f"error: overwriting grid file {self.pathOutput.relative_to(Path.cwd())}")
-		else:
-			print(f"writing to {self.pathOutput.relative_to(Path.cwd())}")
 
 		self.pdf.output(str(self.pathOutput))
 
@@ -289,18 +288,28 @@ def DocrBuildDocaAsync(doca: SDocumentArgs) -> Optional[SDocResult]:
 	return CDocument(doca).Docr()
 
 def LDocrBuildLDoca(lDoca: list[SDocumentArgs], cJob: int) -> list[SDocResult]:
+	lDocr: list[SDocResult] = []
+
 	if cJob == 1 or len(lDoca) <= 1:
-		return [docr for doca in lDoca if (docr := DocrBuildDocaAsync(doca))]
+		for doca in lDoca:
+			doc = CDocument(doca)
+			if docr := doc.Docr():
+				lDocr.append(docr)
+			print(f"writing to {doc.pathOutput.relative_to(Path.cwd())}")
+		return lDocr
 
 	cJob = min(cJob, len(lDoca))
-	print(f"building {len(lDoca)} document(s) across {cJob} worker(s)")
 
-	lDocr: list[SDocResult] = []
-	with ProcessPoolExecutor(max_workers=cJob) as pool:
-		lFuture = [pool.submit(DocrBuildDocaAsync, doca) for doca in lDoca]
-		for future in as_completed(lFuture):
-			if docr := future.result():
-				lDocr.append(docr)
+	strBarFormat = "{desc} {n_fmt}/{total_fmt}: {percentage:3.0f}%|{bar}|"
+
+	with tqdm(total=len(lDoca), desc="building", bar_format=strBarFormat) as pbar:
+		with ProcessPoolExecutor(max_workers=cJob) as pool:
+			lFuture = [pool.submit(DocrBuildDocaAsync, doca) for doca in lDoca]
+			for future in as_completed(lFuture):
+				if docr := future.result():
+					lDocr.append(docr)
+				pbar.update(1)
+
 	return lDocr
 
 def main():
