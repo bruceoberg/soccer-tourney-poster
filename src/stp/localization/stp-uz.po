@@ -540,6 +540,10 @@ msgctxt "country.rus"
 msgid "Russia"
 msgstr "Rossiya"
 
+msgctxt "country.rsa"
+msgid "South Africa"
+msgstr "JAR"
+
 msgctxt "country.saf"
 msgid "South Africa"
 msgstr "JAR"
