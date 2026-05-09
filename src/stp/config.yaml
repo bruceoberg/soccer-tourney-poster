@@ -232,6 +232,8 @@ testgrid:
     - { tz: America/Los_Angeles,    loc: en_US, region: north_america }
     - { tz: America/Montreal,       loc: fr_CA, region: north_america }
     - { tz: America/Mexico_City,    loc: es_MX, region: north_america }
+    - { tz: America/Panama,         loc: es_PA, region: latin_america }
+    - { tz: America/Bogota,         loc: es_CO, region: latin_america }
     - { tz: Europe/London,          loc: en_GB, region: europe }
     - { tz: Europe/Paris,           loc: fr_FR, region: europe }
     - { tz: Africa/Kinshasa,        loc: sw_CD, region: africa }
