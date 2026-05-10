@@ -20,6 +20,7 @@ from . import __project__, g_pathCode
 g_mpStrQueryStrSubtag = get_global('likely_subtags')
 g_mpStrTzStrAlias = get_global('zone_aliases')
 g_mpStrTzStrTerritory = get_global('zone_territories')
+g_mpStrTerritoryStrLangObjStatus = get_global('territory_languages')
 
 # paper sizes offered for poster printing at fedex office stores
 
@@ -69,24 +70,27 @@ mpCTeamSizeMin: dict[int, tuple[float, float]] ={
 	48: (22.665, 29.969),
 }
 
-def FUsesIsoPaperSizes(locale: Locale) -> bool:
-	setStrTerritoryUsLetter = {
-		'us',  # United States
-		'ca',  # Canada
-		'mx',  # Mexico
-		'cl',  # Chile
-		'co',  # Colombia
-		'cr',  # Costa Rica
-		'gt',  # Guatemala
-		'pa',  # Panama
-		'ph',  # Philippines
-		'pr',  # Puerto Rico
-		've',  # Venezuela
-		'sv',  # El Salvador
-	}
-  
-	return not locale.territory or not locale.territory.lower() in setStrTerritoryUsLetter
+s_setStrTerritoryUsLetter = {
+	'us',  # United States
+	'ca',  # Canada
+	'mx',  # Mexico
+	'cl',  # Chile
+	'co',  # Colombia
+	'cr',  # Costa Rica
+	'gt',  # Guatemala
+	'pa',  # Panama
+	'ph',  # Philippines
+	'pr',  # Puerto Rico
+	've',  # Venezuela
+	'sv',  # El Salvador
+}
+
+def FTerritoryUsesIsoPaperSizes(strTerritory: Optional[str]) -> bool:
+	return not strTerritory or not strTerritory.lower() in s_setStrTerritoryUsLetter
 	
+def FLocaleUsesIsoPaperSizes(locale: Locale) -> bool:
+	return FTerritoryUsesIsoPaperSizes(locale.territory)
+  
 def StrFmtBestFit(cTeam: int, locale: Locale) -> str:
 	dxInMin, dYInMin = mpCTeamSizeMin[cTeam]
 	dXPtMin = dxInMin * 72
@@ -94,7 +98,7 @@ def StrFmtBestFit(cTeam: int, locale: Locale) -> str:
 	sAreaPtMin = dXPtMin * dYPtMin
 	sWastedBest = None
 	strFmtBest = 'unknown'
-	lStrFmt = lFmtIso if FUsesIsoPaperSizes(locale) else lFmtUS
+	lStrFmt = lFmtIso if FLocaleUsesIsoPaperSizes(locale) else lFmtUS
 	for strFmt in lStrFmt:
 		dXPt, dYPt = CPdf.s_mpStrFormatWH[strFmt]
 		if dXPt < dXPtMin or dYPt < dYPtMin:
@@ -229,20 +233,24 @@ class CZoneName: # tag = zonename
 		else:
 			return self.strAbbrev
 		
+def StrTerritoryFromTz(strTz: str) -> str:
+	try:
+		return g_mpStrTzStrTerritory[strTz]
+	except KeyError:
+		strTzAlias = g_mpStrTzStrAlias[strTz]
+		return g_mpStrTzStrTerritory[strTzAlias]	
+		
 def StrLocaleFromTzLocaleLang(strTz: str, localeLang: Locale) -> Optional[str]:
-	strTerritory = g_mpStrTzStrTerritory.get(strTz)
+	try:
+		strTerritory = StrTerritoryFromTz(strTz)
+	except KeyError:
+		return None
 
-	if not strTerritory and (strTzAlias := g_mpStrTzStrAlias.get(strTz)):
-		strTerritory = g_mpStrTzStrTerritory.get(strTzAlias)
-
-	if strTerritory:
-		try:
-			localeNew = Locale(language=localeLang.language, script=localeLang.script, territory=strTerritory)
-			return str(localeNew)
-		except UnknownLocaleError:
-			pass
-
-	return None
+	try:
+		localeNew = Locale(language=localeLang.language, script=localeLang.script, territory=strTerritory)
+		return str(localeNew)
+	except UnknownLocaleError:
+		return None
 
 def StrLocaleFromLocaleLang(localeLang: Locale) -> str:
 
@@ -293,6 +301,40 @@ def StrScriptFromLocale(locale: Locale) -> str:
 
 	return 'Latn'
 
+class CZoneScope: # tag = zscope
+	__slots__ = ('strTerritory', 'setLocaleLang')
+
+	def __init__(self, strTz: str, setLocaleLangValid: set[Locale]) -> None:
+		self.strTerritory: str = StrTerritoryFromTz(strTz)
+
+		if self.strTerritory == 'UZ':
+			pass
+
+		setStrLang: set[str] = set()
+		
+		for strLang, objStatus in g_mpStrTerritoryStrLangObjStatus[self.strTerritory].items():
+			if objStatus['official_status'] is None:
+				continue
+
+			setStrLang.add(strLang)
+
+		# we use zh_Hans to mean 'zh' and uz_Latn to mean 'uz'
+
+		if 'zh' in setStrLang:
+			setStrLang.add('zh_Hans')
+		if 'uz' in setStrLang:
+			setStrLang.add('uz_Latn')
+
+		setLocaleLangFound: set[Locale] = set()
+
+		for strLang in setStrLang:
+			try:
+				setLocaleLangFound.add(Locale.parse(strLang))
+			except UnknownLocaleError:
+				pass
+
+		self.setLocaleLang: set[Locale] = setLocaleLangFound & setLocaleLangValid
+	
 def StrLocaleFromPof(pof: polib.POFile) -> str:
 	return pof.metadata.get('Language', '').strip().lower()
 

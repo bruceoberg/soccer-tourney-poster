@@ -14,14 +14,14 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from pypdf import PdfWriter
 from tqdm import tqdm
-from typing import Optional, Type, NamedTuple
+from typing import Optional, Type, NamedTuple, Iterator
 
 from bolay import CPdf
 
 from . import g_pathCode
-from .config import PAGEK, TFmt, REGION, SPageArgs, SDocumentArgs, SWorklist, WlFromArgs, ParseArgs, DocaUnwind
+from .config import PAGEK, TFmt, REGION, SPageArgs, SDocumentArgs, SWorklist, WlFromArgs, ParseArgs, DocaUnwind, StrFromFmt
 from .fonts import SetStrTtfFromSetStrScript
-from .loc import CZoneName, StrScriptFromLocale, StrLocaleFromTzLocaleLang, StrLocaleFromLocaleLang
+from .loc import CZoneName, StrScriptFromLocale, StrLocaleFromTzLocaleLang, StrLocaleFromLocaleLang, StrLangShortFromLocale, CZoneScope
 from .profiling import Profiling, DumpTopCumulative
 from .database import CTournamentDataBase
 from .page import CPage, CGroupsTestPage, CDaysTestPage, CCalOnlyPage, CCalElimPage
@@ -44,11 +44,12 @@ class SPageResult(NamedTuple): # tag = pager
 	region: REGION
 	lStrTzAliases: list[str]
 
-	def Mank(self) -> SManifestKey:
-		return SManifestKey(
-				self.strTz,
-				LocaleLang(self.locale),
-				self.fmt)
+	def IterMank(self) -> Iterator[SManifestKey]:
+		for strTz in [self.strTz] + self.lStrTzAliases:
+			yield SManifestKey(
+					strTz,
+					LocaleLang(self.locale),
+					self.fmt)
 	
 def PagerFromPage(page: CPage) ->SPageResult:
 	return SPageResult(
@@ -74,7 +75,9 @@ class CManifest: # tag = manif
 		self.setStrTz: set[str] = set()
 		self.setLocaleLang: set[Locale] = set()
 		self.setFmt: set[TFmt] = set()
+		self.mpStrTzFmtDefault: dict[str, TFmt] = {}
 		self.mpStrTzStrUtcOnly: dict[str, str] = {}
+		self.setMankMissing: set[SManifestKey] = set()
 
 		if not self.doca:
 			return
@@ -84,23 +87,30 @@ class CManifest: # tag = manif
 
 		for docr in lDocr:
 			for pager in docr.lPager:
-				mank = pager.Mank()
+				for mank in pager.IterMank():
 
-				assert mank not in self.mpMankManp
-				self.mpMankManp[mank] = SManifestPage(docr.pathOutput, pager)
+					assert mank not in self.mpMankManp
+					self.mpMankManp[mank] = SManifestPage(docr.pathOutput, pager)
 
-				self.setStrTz.add(mank.strTz)
-				self.setLocaleLang.add(mank.localeLang)
-				self.setFmt.add(mank.fmt)
+					self.setStrTz.add(mank.strTz)
+					self.setLocaleLang.add(mank.localeLang)
+					self.setFmt.add(mank.fmt)
 
-				strUtcOnlyPager = pager.zonename.StrUtcOnly()
-				if strUtcOnlyFound := self.mpStrTzStrUtcOnly.get(mank.strTz):
-					if strUtcOnlyFound != strUtcOnlyPager:
-						sys.exit("error: tz {mank.strTz} maps to both {strUtcOnly} and {strUtcOnlyPager}")
-				else:
-					self.mpStrTzStrUtcOnly[mank.strTz] = strUtcOnlyPager
+					try:
+						fmtFound = self.mpStrTzFmtDefault[mank.strTz]
+						if fmtFound != mank.fmt:
+							sys.exit(f"error: tz {mank.strTz} specifies two page formats: {str(fmtFound)} and {str(mank.fmt)}")
+					except KeyError:
+						self.mpStrTzFmtDefault[mank.strTz] = mank.fmt
 
-		# self.PrintMissing()
+					strUtcOnlyPager = pager.zonename.StrUtcOnly()
+					if strUtcOnlyFound := self.mpStrTzStrUtcOnly.get(mank.strTz):
+						if strUtcOnlyFound != strUtcOnlyPager:
+							sys.exit("error: tz {mank.strTz} maps to both {strUtcOnly} and {strUtcOnlyPager}")
+					else:
+						self.mpStrTzStrUtcOnly[mank.strTz] = strUtcOnlyPager
+
+		self.setMankMissing = self.SetMankMissing()
 
 		self.CollateUnwoundPages()
 
@@ -153,12 +163,10 @@ class CManifest: # tag = manif
 		if not self.mpMankManp:
 			return
 		
-		setMankMissing = self.SetMankMissing()
-		
-		print(f"missing: {len(setMankMissing)} files from {len(self.setStrTz)} zones * {len(self.setLocaleLang)} langs * {len(self.setFmt)} sizes")
+		print(f"missing: {len(self.setMankMissing)} files from {len(self.setStrTz)} zones * {len(self.setLocaleLang)} langs * {len(self.setFmt)} sizes")
 		print(f"extant: {len(self.mpMankManp)} files from total of {len(self.setStrTz) * len(self.setLocaleLang) * len(self.setFmt)}")
 
-	def WlFillGrid(self) -> Optional[SWorklist]:
+	def WlMissing(self) -> Optional[SWorklist]:
 		if not self.doca:
 			return None
 		
@@ -173,7 +181,7 @@ class CManifest: # tag = manif
 		mpMankUtcOnlySetMankMissing: dict[SManifestKey, set[SManifestKey]] = {}
 		
 		
-		for mankMissing in self.SetMankMissing():
+		for mankMissing in self.setMankMissing:
 			strLocale = StrLocaleFromTzLocaleLang(mankMissing.strTz, mankMissing.localeLang)
 
 			if not strLocale:
@@ -224,6 +232,47 @@ class CManifest: # tag = manif
 						tz_aliases=lStrTzAlias[1:])))
 		
 		return SWorklist(lDoca, None)
+	
+	def WriteGridManifests(self, lDocr: list[SDocResult]) -> None:
+		if not self.doca:
+			return None
+		
+		if not self.doca.fFillGrid:
+			return None
+
+		if not self.mpMankManp:
+			# warn?
+			return None
+		
+		# very similar to loop in __init__
+		
+		for docr in lDocr:
+			for pager in docr.lPager:
+				for mank in pager.IterMank():
+
+					assert mank not in self.mpMankManp
+					self.mpMankManp[mank] = SManifestPage(docr.pathOutput, pager)
+
+					assert mank.strTz in self.setStrTz
+					assert mank.localeLang in self.setLocaleLang
+					assert mank.fmt in self.setFmt
+
+		# everything should be covered now
+
+		assert not self.SetMankMissing()
+
+		# build top level mank list ...
+		# - original cities
+		# - all their supported languages.
+		# - only their preferred paper format
+
+		for strTz in self.setStrTz:
+			zscope = CZoneScope(strTz, self.setLocaleLang)
+			fmtDefault = self.mpStrTzFmtDefault[strTz]
+
+			lStrLangs = [StrLangShortFromLocale(locale) for locale in zscope.setLocaleLang]
+			print(f"manifest: {strTz} ({zscope.strTerritory}) <{StrFromFmt(fmtDefault)}> [{'/'.join(lStrLangs)}]")
+
 
 class CDocument: # tag = doc
 	s_pathDirFonts = g_pathCode / 'fonts'
@@ -334,9 +383,9 @@ def main():
 
 		manif = CManifest(wl.docaWind, lDocr)
 
-		if wl := manif.WlFillGrid():
+		if wl := manif.WlMissing():
 			assert wl.docaWind is None
-			LDocrBuildLDoca(wl.lDoca, cJob)
+			manif.WriteGridManifests(LDocrBuildLDoca(wl.lDoca, cJob))
 
 	if fProfile:
 		print(f"wrote profile to {pathProf}")
