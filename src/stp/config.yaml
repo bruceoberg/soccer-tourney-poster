@@ -123,7 +123,6 @@ langs:
     - { tz: Asia/Taipei,         loc: zh_TW }
 
 published:
-  default: true
   tournament: latest
   output_dir: playground/published
   file_suffix: all
@@ -223,6 +222,7 @@ published:
     - { tz: Pacific/Auckland,       loc: en_NZ, region: asia_pacific }
 
 testgrid:
+  default: true
   tournament: latest
   output_dir: playground/testgrid
   file_suffix: all

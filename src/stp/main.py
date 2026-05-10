@@ -21,7 +21,7 @@ from bolay import CPdf
 from . import g_pathCode
 from .config import PAGEK, TFmt, REGION, SPageArgs, SDocumentArgs, SWorklist, WlFromArgs, ParseArgs, DocaUnwind, StrFromFmt
 from .fonts import SetStrTtfFromSetStrScript
-from .loc import CZoneName, StrScriptFromLocale, StrLocaleFromTzLocaleLang, StrLocaleFromLocaleLang, StrLangShortFromLocale, CZoneScope
+from .loc import CZoneName, StrScriptFromLocale, StrLocaleFromTzLocaleLang, StrLocaleFromLocaleLang, CZoneScope, StrCityFromTzLocale, g_loc
 from .profiling import Profiling, DumpTopCumulative
 from .database import CTournamentDataBase
 from .page import CPage, CGroupsTestPage, CDaysTestPage, CCalOnlyPage, CCalElimPage
@@ -75,6 +75,7 @@ class CManifest: # tag = manif
 		self.setStrTz: set[str] = set()
 		self.setLocaleLang: set[Locale] = set()
 		self.setFmt: set[TFmt] = set()
+		self.mpStrTzRegion: dict[str, REGION] = {}
 		self.mpStrTzFmtDefault: dict[str, TFmt] = {}
 		self.mpStrTzStrUtcOnly: dict[str, str] = {}
 		self.setMankMissing: set[SManifestKey] = set()
@@ -102,6 +103,13 @@ class CManifest: # tag = manif
 							sys.exit(f"error: tz {mank.strTz} specifies two page formats: {str(fmtFound)} and {str(mank.fmt)}")
 					except KeyError:
 						self.mpStrTzFmtDefault[mank.strTz] = mank.fmt
+
+					try:
+						regionFound = self.mpStrTzRegion[mank.strTz]
+						if regionFound != pager.region:
+							sys.exit(f"error: tz {pager.region} specifies two page formats: {str(regionFound)} and {str(pager.region)}")
+					except KeyError:
+						self.mpStrTzRegion[mank.strTz] = pager.region
 
 					strUtcOnlyPager = pager.zonename.StrUtcOnly()
 					if strUtcOnlyFound := self.mpStrTzStrUtcOnly.get(mank.strTz):
@@ -266,12 +274,18 @@ class CManifest: # tag = manif
 		# - all their supported languages.
 		# - only their preferred paper format
 
+		localeOutput = Locale('en', 'US')
+
 		for strTz in self.setStrTz:
 			zscope = CZoneScope(strTz, self.setLocaleLang)
 			fmtDefault = self.mpStrTzFmtDefault[strTz]
+			region = self.mpStrTzRegion[strTz]
 
-			lStrLangs = [StrLangShortFromLocale(locale) for locale in zscope.setLocaleLang]
-			print(f"manifest: {strTz} ({zscope.strTerritory}) <{StrFromFmt(fmtDefault)}> [{'/'.join(lStrLangs)}]")
+			strCity = StrCityFromTzLocale(strTz, localeOutput)
+			strRegion = g_loc.StrTranslation("region." + str(region), localeOutput)
+			strFmt = StrFromFmt(fmtDefault)
+			strLangs = '/'.join(sorted([locale.get_display_name() for locale in zscope.setLocaleLang]))
+			print(f"manifest: {strCity} ({strRegion}) <{strFmt}> [{strLangs}]")
 
 
 class CDocument: # tag = doc

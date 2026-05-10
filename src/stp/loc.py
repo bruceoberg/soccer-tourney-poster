@@ -7,6 +7,7 @@ import polib
 
 from babel import Locale
 from babel.core import get_global, parse_locale, UnknownLocaleError
+from babel.dates import get_timezone_location, get_timezone
 from datetime import timedelta
 from typing import Optional, NamedTuple
 from zoneinfo import ZoneInfo
@@ -334,6 +335,9 @@ class CZoneScope: # tag = zscope
 				pass
 
 		self.setLocaleLang: set[Locale] = setLocaleLangFound & setLocaleLangValid
+
+def StrCityFromTzLocale(strTz: str, locale: Locale) -> str:
+	return get_timezone_location(get_timezone(strTz), locale=locale, return_city=True)
 	
 def StrLocaleFromPof(pof: polib.POFile) -> str:
 	return pof.metadata.get('Language', '').strip().lower()
