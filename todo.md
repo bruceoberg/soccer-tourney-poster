@@ -19,6 +19,7 @@
 - fix FPDF2 to generate embedded fonts that illustrator can recognize.
 - move to NotoSansMono fonts.
 - use condensed Noto fonts to approximate look of trade gothic?
+- turn fUnwindPages/fFillGrid into an enum. unwinding in CCollector doesn't need all of grid filling infra.
 
 ## never
 

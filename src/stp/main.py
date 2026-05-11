@@ -68,7 +68,7 @@ class SManifestPage(NamedTuple): # tag = manp
 	pathOutput: Path
 	pager: SPageResult
 
-class CManifest: # tag = manif
+class CCollector: # tag = collector
 	def __init__(self, doca: Optional[SDocumentArgs], lDocr: list[SDocResult]) -> None:
 		self.doca = doca
 		self.mpMankManp: dict[SManifestKey, SManifestPage] = {}
@@ -287,7 +287,6 @@ class CManifest: # tag = manif
 			strLangs = '/'.join(sorted([locale.get_display_name() for locale in zscope.setLocaleLang]))
 			print(f"manifest: {strCity} ({strRegion}) <{strFmt}> [{strLangs}]")
 
-
 class CDocument: # tag = doc
 	s_pathDirFonts = g_pathCode / 'fonts'
 
@@ -395,11 +394,11 @@ def main():
 
 		lDocr = LDocrBuildLDoca(wl.lDoca, cJob)
 
-		manif = CManifest(wl.docaWind, lDocr)
+		collector = CCollector(wl.docaWind, lDocr)
 
-		if wl := manif.WlMissing():
+		if wl := collector.WlMissing():
 			assert wl.docaWind is None
-			manif.WriteGridManifests(LDocrBuildLDoca(wl.lDoca, cJob))
+			collector.WriteGridManifests(LDocrBuildLDoca(wl.lDoca, cJob))
 
 	if fProfile:
 		print(f"wrote profile to {pathProf}")
