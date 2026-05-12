@@ -230,6 +230,7 @@ testgrid:
   fill_grid: true
   pages:
     - { tz: America/Los_Angeles,    loc: en_US, region: north_america }
+    - { tz: America/Toronto,        loc: en_CA, region: north_america }
     - { tz: America/Montreal,       loc: fr_CA, region: north_america }
     - { tz: America/Mexico_City,    loc: es_MX, region: north_america }
     - { tz: America/Panama,         loc: es_PA, region: latin_america }
