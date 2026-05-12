@@ -345,6 +345,11 @@ class CZoneScope: # tag = zscope
 
 		self.setLocaleLang: set[Locale] = setLocaleLangFound & setLocaleLangValid
 
+# timezones in the CLDR whose city names map to another timezone's city.
+# we need a 1-1 mapping, so we choose to translate the city name ourselves
+# and then look it up from our loc database.
+# see: https://claude.ai/share/d8ec8b9b-4273-4d7c-90a7-fb85c2088cb9
+
 s_mpStrTzStrKeyCityOverride: dict[str, str] ={
 	'America/Montreal':			'venue.ca-montreal',
 }

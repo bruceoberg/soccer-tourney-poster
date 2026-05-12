@@ -8,21 +8,26 @@ import icu
 import logging
 import os
 import platform
+import re
 import sys
+import yaml
 
 from babel import Locale
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from enum import IntEnum, auto
+from os import sep as g_chPathSeparator
 from pathlib import Path
+from pydantic import BaseModel, Field, ConfigDict
 from pypdf import PdfWriter
 from tqdm import tqdm
-from typing import Optional, Type, NamedTuple, Iterator
+from typing import Optional, Type, NamedTuple, Iterator, Any
 
 from bolay import CPdf
 
 from . import g_pathCode
 from .config import PAGEK, TFmt, REGION, SPageArgs, SDocumentArgs, SWorklist, WlFromArgs, ParseArgs, DocaUnwind, StrFromFmt
 from .fonts import SetStrTtfFromSetStrScript
-from .loc import CZoneName, StrScriptFromLocale, StrLocaleFromTzLocaleLang, StrLocaleFromLocaleLang, CZoneScope, StrCityFromTzLocale, g_loc
+from .loc import CZoneName, StrLangShortFromLocale, StrScriptFromLocale, StrLocaleFromTzLocaleLang, StrLocaleFromLocaleLang, CZoneScope, StrCityFromTzLocale, g_loc
 from .profiling import Profiling, DumpTopCumulative
 from .database import CTournamentDataBase
 from .page import CPage, CGroupsTestPage, CDaysTestPage, CCalOnlyPage, CCalElimPage
@@ -78,6 +83,156 @@ class SDocResult(NamedTuple): # tag = docr
 class SManifestPage(NamedTuple): # tag = manp
 	pathOutput: Path
 	pager: SPageResult
+
+class CCityMap: # tag = citymap
+	def __init__(self, setStrTz: set[str], locale: Locale) -> None:
+		mpStrCitySetStrTz: dict[str, set[str]] = {}
+		
+		for strTz in setStrTz:
+			strCity = StrCityFromTzLocale(strTz, locale)
+			mpStrCitySetStrTz.setdefault(strCity, set()).add(strTz)
+
+		if len(setStrTz) != len(mpStrCitySetStrTz):
+			for strCity, setStrTz in mpStrCitySetStrTz.items():
+				if len(setStrTz) <= 1:
+					continue
+				print(f"error: {strCity} maps to multiple zones (add to s_mpStrTzStrKeyCityOverride?):\n  {'\n  '.join(setStrTz)}")
+			sys.exit()
+
+		self.mpStrTzStrCity: dict[str, str] = {next(iter(setStrTz)): strCity for strCity, setStrTz in mpStrCitySetStrTz.items()}
+		self.mpStrCityStrTz: dict[str, str] = {strCity: strTz for strTz, strCity  in self.mpStrTzStrCity.items()}
+
+# Manifest Destination
+
+class MAND(IntEnum): # tag = mand
+	Published = auto()
+	Language = auto()
+
+type SCityObj = dict[str, str] # tag = cityo
+type SRegionObj = dict[str, SCityObj] # tag = rego
+
+class SManifestObj(BaseModel): # tag = mano
+	strLang:		str						= Field(default='',				alias='language')
+	strTitle:       str         			= Field(default='',				alias='title')
+	mpStrRego:		dict[str, SRegionObj]	= Field(default={},				alias='regions')
+
+def TuAlphaBeforeNumeric(strIn: str) -> tuple:
+    fNumericLead = strIn[0].isdigit()  # 0 sorts before 1, so alpha comes first
+    lStrPart = re.split(r'(\d+)', strIn)
+    lUNStrNormal = tuple(int(strPart) if strPart.isdigit() else strPart.lower() for strPart in lStrPart)
+    return (fNumericLead, lUNStrNormal)
+
+class SNameFmt(NamedTuple): # tag = namefmt
+	strName: str
+	fmt: TFmt
+
+class CManifestWriter: # tag = manwriter
+	def __init__(self, collector: CCollector) -> None:
+		self.collector = collector
+		self.mpRegionSetStrTz: dict[REGION, set[str]] = {}
+		self.mpLocaleCitymap: dict[Locale, CCityMap] = {}
+		self.mpFmtStr: dict[TFmt, str] = {}
+		self.lNamefmt: list[SNameFmt] = [SNameFmt(StrFromFmt(fmt), fmt) for fmt in self.collector.setFmt]
+		self.lNamefmt.sort(key=lambda namefmt: TuAlphaBeforeNumeric(namefmt.strName))
+		
+		for strTz in collector.setStrTz:
+			region = collector.mpStrTzPagezr[strTz].region
+			self.mpRegionSetStrTz.setdefault(region, set()).add(strTz)
+
+		for locale in collector.setLocaleLang:
+			self.mpLocaleCitymap[locale] = CCityMap(collector.setStrTz, locale)
+
+	def ManoBuild(self, locale: Locale, mand: MAND) -> SManifestObj:
+		sorter = icu.Collator.createInstance(icu.Locale(str(locale))) # type: ignore[attr-defined]
+		pagelr = self.collector.mpLocaleLangPagelr[locale]
+		citymap = self.mpLocaleCitymap[locale]
+
+		mano = SManifestObj(language=str(locale), title=pagelr.strTitle)
+
+		for region in REGION:
+			setStrTz = self.mpRegionSetStrTz.get(region)
+			if not setStrTz:
+				continue
+
+			rego: SRegionObj = {}
+
+			lStrCity = [citymap.mpStrTzStrCity[strTz] for strTz in setStrTz]
+
+			for strCity in sorted(lStrCity, key=sorter.getSortKey):
+				strTz = citymap.mpStrCityStrTz[strCity]
+
+				cityo: SCityObj = {}
+
+				match mand:
+					case MAND.Published:
+						# published manifest has:
+						# - all cities
+						# - all their supported languages.
+						# - only their preferred paper format
+
+						fmtDefault = self.collector.mpStrTzPagezr[strTz].fmt
+						zscope = CZoneScope(strTz, self.collector.setLocaleLang)
+
+						mpStrLangLocaleLang = {locale.get_display_name(): locale for locale in zscope.setLocaleLang}
+						assert len(mpStrLangLocaleLang) == len(zscope.setLocaleLang)
+						assert all(mpStrLangLocaleLang.keys())
+
+						for strLang in sorted(mpStrLangLocaleLang.keys(), key=sorter.getSortKey):
+							assert strLang
+							localeLang = mpStrLangLocaleLang[strLang]
+
+							mank = SManifestKey(strTz, localeLang, fmtDefault)
+							manp = self.collector.mpMankManp[mank]
+
+							cityo[strLang] = StrLangShortFromLocale(localeLang) + g_chPathSeparator + manp.pathOutput.name
+
+					case MAND.Language:
+						# language manifest manifest has:
+						# - all cities
+						# - specified language
+						# - all paper formats
+
+						for namefmt in self.lNamefmt:
+							mank = SManifestKey(strTz, locale, namefmt.fmt)
+							manp = self.collector.mpMankManp[mank]
+
+							cityo[namefmt.strName] = manp.pathOutput.name
+
+				rego[strCity] = cityo
+
+			strRegion = g_loc.StrTranslation("region." + str(region), locale)
+			mano.mpStrRego[strRegion] = rego
+
+		return mano
+	
+	def WriteOne(self, locale: Locale, mand: MAND) -> None:
+		pathDirOutput = Path.cwd()
+
+		assert self.collector.doca
+		if self.collector.doca.strDirOutput:
+			pathDirOutput /= self.collector.doca.strDirOutput
+
+		if mand == MAND.Language:
+			pathDirOutput /= StrLangShortFromLocale(locale)
+
+		pathOutput = pathDirOutput / "manifest.yaml"
+
+		mano = self.ManoBuild(locale, mand)
+
+		print(f"manifesting to {pathOutput.relative_to(Path.cwd())}")
+		
+		pathOutput.write_text(
+			yaml.dump(
+        		mano.model_dump(mode="json", by_alias=True),
+				allow_unicode=True,   		# don't escape non-ASCII
+				sort_keys=False,      		# preserve field declaration order
+				default_flow_style=False))	# prettier?
+	
+	def WriteAll(self) -> None:
+		self.WriteOne(Locale('en'), MAND.Published)
+
+		for locale in self.collector.setLocaleLang:
+			self.WriteOne(locale, MAND.Language)
 
 class CCollector: # tag = collector
 	def __init__(self, doca: Optional[SDocumentArgs], lDocr: list[SDocResult]) -> None:
@@ -243,7 +398,7 @@ class CCollector: # tag = collector
 						tz_aliases=lStrTzAlias[1:])))
 		
 		return SWorklist(lDoca, None)
-	
+		
 	def WriteGridManifests(self, lDocr: list[SDocResult]) -> None:
 		if not self.doca:
 			return None
@@ -272,66 +427,9 @@ class CCollector: # tag = collector
 
 		assert not self.SetMankMissing()
 
-		# build top level mank list ...
-		# - original cities
-		# - all their supported languages.
-		# - only their preferred paper format
+		# write out the manifests
 
-		for localeLangOutput in [Locale('es')]: #self.setLocaleLang:
-			sorter = icu.Collator.createInstance(icu.Locale(str(localeLangOutput)))
-
-			pagelr = self.mpLocaleLangPagelr[localeLangOutput]
-
-			print(f"{str(localeLangOutput)}")
-			print(f"  {pagelr.strTitle}")
-
-			mpRegionSetStrTz: dict[REGION, set[str]] = {}
-			mpStrCitySetStrTz: dict[str, set[str]] = {}
-			for strTz in self.setStrTz:
-				region = self.mpStrTzPagezr[strTz].region
-				mpRegionSetStrTz.setdefault(region, set()).add(strTz)
-
-				strCity = StrCityFromTzLocale(strTz, localeLangOutput)
-				mpStrCitySetStrTz.setdefault(strCity, set()).add(strTz)
-
-			if len(self.setStrTz) != len(mpStrCitySetStrTz):
-				for strCity, setStrTz in mpStrCitySetStrTz.items():
-					if len(setStrTz) <= 1:
-						continue
-					print(f"error: {strCity} maps to multiple zones:\n  {'\n  '.join(setStrTz)}")
-				sys.exit()
-
-			mpStrTzStrCity: dict[str, str] = {next(iter(setStrTz)): strCity for strCity, setStrTz in mpStrCitySetStrTz.items()}
-			mpStrCityStrTz: dict[str, str] = {strCity: strTz for strTz, strCity  in mpStrTzStrCity.items()}
-
-			for region in REGION:
-				setStrTz = mpRegionSetStrTz.get(region)
-				if not setStrTz:
-					continue
-
-				strRegion = g_loc.StrTranslation("region." + str(region), localeLangOutput)
-				print(f"    {strRegion}:")
-
-				lStrCity = [mpStrTzStrCity[strTz] for strTz in setStrTz]
-
-				for strCity in sorted(lStrCity, key=sorter.getSortKey):
-					print(f"      {strCity}")
-					strTz = mpStrCityStrTz[strCity]
-
-					zscope = CZoneScope(strTz, self.setLocaleLang)
-					fmtDefault = self.mpStrTzPagezr[strTz].fmt
-					#strFmt = StrFromFmt(fmtDefault)
-
-					mpStrLangLocaleLang = {locale.get_display_name(): locale for locale in zscope.setLocaleLang}
-					assert len(mpStrLangLocaleLang) == len(zscope.setLocaleLang)
-
-					for strLang in sorted(mpStrLangLocaleLang.keys(), key=sorter.getSortKey):
-						localeLang = mpStrLangLocaleLang[strLang]
-
-						mank = SManifestKey(strTz, localeLang, fmtDefault)
-						manp = self.mpMankManp[mank]
-
-						print(f"        {strLang}: {manp.pathOutput.name}")
+		CManifestWriter(self).WriteAll()
 
 class CDocument: # tag = doc
 	s_pathDirFonts = g_pathCode / 'fonts'
