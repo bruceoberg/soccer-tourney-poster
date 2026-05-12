@@ -16,7 +16,7 @@ from bolay import colorBlack, colorWhite, colorGrey
 
 from .config import SPageArgs
 from .fonts import StrTtfLookup
-from .loc import g_loc, CZoneName, StrFmtBestFit, StrLangTerritoryFromLocale, StrScriptFromLocale
+from .loc import g_loc, CZoneName, StrFmtBestFit, StrLangTerritoryFromLocale, StrScriptFromLocale, StrDateRange
 from .versioning import g_repover
 from .database import CTournamentDataBase, CMatch, STAGE
 from .group import CGroupBlot, CGroupSetBlot
@@ -128,8 +128,13 @@ class CPage:
 
 		# with our dates set, we can calcucate our timezone names
 
-		tMin = arrow.get(min(self.mpDateSetMatch))
-		self.zonename = CZoneName(tMin, self.zoneinfo)
+		self.tMin = arrow.get(min(self.mpDateSetMatch))
+		self.tMax = arrow.get(max(self.mpDateSetMatch))
+		self.zonename = CZoneName(self.tMin, self.zoneinfo)
+
+		self.strTitle = self.StrTitle()
+		self.strDateRange = StrDateRange(self.tMin, self.tMax, self.locale)
+		self.strLocation = self.StrTranslation(self.tourn.StrKeyHost())
 
 		# if self.pagea.fmt is None:
 		# 	print(f"{self.tourn.strName} ({str(self.locale).lower()}/{self.zoneinfo.key}): choosing {self.fmt}")
@@ -165,8 +170,7 @@ class CPage:
 		return self.StrTranslation(self.tourn.StrKeyTeam(strKey))
 
 	def StrTitle(self):
-		tMin = arrow.get(min(self.mpDateSetMatch))
-		strYear = tMin.strftime('%Y')
+		strYear = self.tMin.strftime('%Y')
 		strName = self.StrTranslation(self.tourn.StrKeyCompetition())
 		strLabel = self.StrTranslation('page.title.results' if self.FAllMatchesHaveResults() else 'page.title.fixtures')
 		strFormatTitle = self.StrTranslation('page.format.title')
@@ -188,15 +192,6 @@ class CPage:
 
 	def JhEnd(self) -> JH:
 		return JH.Right if self.locale.character_order == 'left-to-right' else JH.Left
-
-	def StrDateRangeForHeader(self, tMin: arrow.Arrow, tMax: arrow.Arrow) -> str:
-		if tMin.year != tMax.year:
-			strDateFmt = 'yMMM' # multi year: month + year to month + year
-		else:
-			strDateFmt = 'MMMd' # single year: month + day to month + day
-		strDateRange = babel.dates.format_interval(tMin.datetime, tMax.datetime, strDateFmt, locale=self.locale)
-		strDateRange = strDateRange.translate({ord(ch):' ' for ch in '   '}) # our fonts don't have these weirdo spaces
-		return strDateRange
 
 	def StrDateForCalendar(self, tDate: arrow.Arrow, tPrev: Optional[arrow.Arrow] = None) -> str:
 		# NOTE (bruceo) only include month sometimes when it is changing
@@ -406,18 +401,13 @@ class CHeaderBlot(CBlot): # tag = headerb
 		# title
 
 		oltbTitle = self.Oltb(rectAll, self.page.Fontkey('page.header.title'), self.s_dYFontTitle)
-		strTitle = self.page.StrTitle()
-		rectTitle = oltbTitle.RectDrawText(strTitle, colorWhite, JH.Center, JV.Middle)
+		rectTitle = oltbTitle.RectDrawText(self.page.strTitle, colorWhite, JH.Center, JV.Middle)
 		dSMarginSides = rectAll.yMax - rectTitle.yMax
 
 		# dates
 
-		tMin = arrow.get(min(self.page.mpDateSetMatch))
-		tMax = arrow.get(max(self.page.mpDateSetMatch))
-		strDateRange = self.page.StrDateRangeForHeader(tMin, tMax)
-		strLocation = self.page.StrTranslation(self.page.tourn.StrKeyHost())
 		strFormatDates = self.page.StrTranslation('page.format.dates-and-location')
-		strDatesLocation = strFormatDates.format(dates=strDateRange, location=strLocation)
+		strDatesLocation = strFormatDates.format(dates=self.page.strDateRange, location=self.page.strLocation)
 
 		# time zone
 
@@ -429,8 +419,8 @@ class CHeaderBlot(CBlot): # tag = headerb
 		# notes left and right
 
 		if self.page.FAllMatchesHaveResults():
-			strNoteLeft = strDateRange
-			strNoteRight = strLocation
+			strNoteLeft = self.page.strDateRange
+			strNoteRight = self.page.strLocation
 		else:
 			strNoteLeft = strDatesLocation
 			strNoteRight = strTimeZone

@@ -4,6 +4,7 @@ from __future__ import annotations  # Forward refs without quotes (eg foo: CFoo,
 
 import arrow
 import fpdf
+import icu
 import logging
 import os
 import platform
@@ -36,12 +37,19 @@ class SManifestKey(NamedTuple): # tag = mank
 	localeLang: Locale
 	fmt: TFmt
 
+class SPageZoneResult(NamedTuple): # tag - pagezr
+	fmt: TFmt
+	strUtcOnly: str
+	region: REGION
+
+class SPageLangResult(NamedTuple): # tag = pagelr
+	strTitle: str
+
 class SPageResult(NamedTuple): # tag = pager
 	strTz: str
-	zonename: CZoneName
 	locale: Locale
-	fmt: TFmt
-	region: REGION
+	pagezr: SPageZoneResult
+	pagelr: SPageLangResult
 	lStrTzAliases: list[str]
 
 	def IterMank(self) -> Iterator[SManifestKey]:
@@ -49,15 +57,18 @@ class SPageResult(NamedTuple): # tag = pager
 			yield SManifestKey(
 					strTz,
 					LocaleLang(self.locale),
-					self.fmt)
+					self.pagezr.fmt)
 	
 def PagerFromPage(page: CPage) ->SPageResult:
 	return SPageResult(
 			page.pagea.strTz,
-			page.zonename,
 			page.locale,
-			page.fmt,
-			page.pagea.region,
+			SPageZoneResult(
+				page.fmt,
+				page.zonename.StrUtcOnly(),
+				page.pagea.region),
+			SPageLangResult(
+				page.strTitle),
 			page.pagea.lStrTzAlias)
 
 class SDocResult(NamedTuple): # tag = docr
@@ -75,9 +86,8 @@ class CCollector: # tag = collector
 		self.setStrTz: set[str] = set()
 		self.setLocaleLang: set[Locale] = set()
 		self.setFmt: set[TFmt] = set()
-		self.mpStrTzRegion: dict[str, REGION] = {}
-		self.mpStrTzFmtDefault: dict[str, TFmt] = {}
-		self.mpStrTzStrUtcOnly: dict[str, str] = {}
+		self.mpStrTzPagezr: dict[str, SPageZoneResult] = {}
+		self.mpLocaleLangPagelr: dict[Locale, SPageLangResult] = {}
 		self.setMankMissing: set[SManifestKey] = set()
 
 		if not self.doca:
@@ -98,25 +108,18 @@ class CCollector: # tag = collector
 					self.setFmt.add(mank.fmt)
 
 					try:
-						fmtFound = self.mpStrTzFmtDefault[mank.strTz]
-						if fmtFound != mank.fmt:
-							sys.exit(f"error: tz {mank.strTz} specifies two page formats: {str(fmtFound)} and {str(mank.fmt)}")
+						pagezrFound = self.mpStrTzPagezr[mank.strTz]
+						if pagezrFound != pager.pagezr:
+							sys.exit(f"error: tz {mank.strTz} has two results: {str(pagezrFound)} and {str(pager.pagezr)}")
 					except KeyError:
-						self.mpStrTzFmtDefault[mank.strTz] = mank.fmt
+						self.mpStrTzPagezr[mank.strTz] = pager.pagezr
 
 					try:
-						regionFound = self.mpStrTzRegion[mank.strTz]
-						if regionFound != pager.region:
-							sys.exit(f"error: tz {pager.region} specifies two page formats: {str(regionFound)} and {str(pager.region)}")
+						pagelrFound = self.mpLocaleLangPagelr[mank.localeLang]
+						if pagelrFound != pager.pagelr:
+							sys.exit(f"error: language {mank.localeLang} has two results: {str(pagelrFound)} and {str(pager.pagelr)}")
 					except KeyError:
-						self.mpStrTzRegion[mank.strTz] = pager.region
-
-					strUtcOnlyPager = pager.zonename.StrUtcOnly()
-					if strUtcOnlyFound := self.mpStrTzStrUtcOnly.get(mank.strTz):
-						if strUtcOnlyFound != strUtcOnlyPager:
-							sys.exit("error: tz {mank.strTz} maps to both {strUtcOnly} and {strUtcOnlyPager}")
-					else:
-						self.mpStrTzStrUtcOnly[mank.strTz] = strUtcOnlyPager
+						self.mpLocaleLangPagelr[mank.localeLang] = pager.pagelr
 
 		self.setMankMissing = self.SetMankMissing()
 
@@ -205,7 +208,7 @@ class CCollector: # tag = collector
 				# by 60% to 70%. instead of oodles of similar PDFs for obscure city/language combos, we
 				# can have just tz/language combos and point multiple cities to each tz.
 
-				strUtcOnly = self.mpStrTzStrUtcOnly[mankMissing.strTz]
+				strUtcOnly = self.mpStrTzPagezr[mankMissing.strTz].strUtcOnly
 
 				mankUtcOnly = SManifestKey(strUtcOnly, mankMissing.localeLang, mankMissing.fmt)
 				setMankMissing = mpMankUtcOnlySetMankMissing.setdefault(mankUtcOnly, set())
@@ -274,18 +277,61 @@ class CCollector: # tag = collector
 		# - all their supported languages.
 		# - only their preferred paper format
 
-		localeOutput = Locale('en', 'US')
+		for localeLangOutput in [Locale('es')]: #self.setLocaleLang:
+			sorter = icu.Collator.createInstance(icu.Locale(str(localeLangOutput)))
 
-		for strTz in self.setStrTz:
-			zscope = CZoneScope(strTz, self.setLocaleLang)
-			fmtDefault = self.mpStrTzFmtDefault[strTz]
-			region = self.mpStrTzRegion[strTz]
+			pagelr = self.mpLocaleLangPagelr[localeLangOutput]
 
-			strCity = StrCityFromTzLocale(strTz, localeOutput)
-			strRegion = g_loc.StrTranslation("region." + str(region), localeOutput)
-			strFmt = StrFromFmt(fmtDefault)
-			strLangs = '/'.join(sorted([locale.get_display_name() for locale in zscope.setLocaleLang]))
-			print(f"manifest: {strCity} ({strRegion}) <{strFmt}> [{strLangs}]")
+			print(f"{str(localeLangOutput)}")
+			print(f"  {pagelr.strTitle}")
+
+			mpRegionSetStrTz: dict[REGION, set[str]] = {}
+			mpStrCitySetStrTz: dict[str, set[str]] = {}
+			for strTz in self.setStrTz:
+				region = self.mpStrTzPagezr[strTz].region
+				mpRegionSetStrTz.setdefault(region, set()).add(strTz)
+
+				strCity = StrCityFromTzLocale(strTz, localeLangOutput)
+				mpStrCitySetStrTz.setdefault(strCity, set()).add(strTz)
+
+			if len(self.setStrTz) != len(mpStrCitySetStrTz):
+				for strCity, setStrTz in mpStrCitySetStrTz.items():
+					if len(setStrTz) <= 1:
+						continue
+					print(f"error: {strCity} maps to multiple zones:\n  {'\n  '.join(setStrTz)}")
+				sys.exit()
+
+			mpStrTzStrCity: dict[str, str] = {next(iter(setStrTz)): strCity for strCity, setStrTz in mpStrCitySetStrTz.items()}
+			mpStrCityStrTz: dict[str, str] = {strCity: strTz for strTz, strCity  in mpStrTzStrCity.items()}
+
+			for region in REGION:
+				setStrTz = mpRegionSetStrTz.get(region)
+				if not setStrTz:
+					continue
+
+				strRegion = g_loc.StrTranslation("region." + str(region), localeLangOutput)
+				print(f"    {strRegion}:")
+
+				lStrCity = [mpStrTzStrCity[strTz] for strTz in setStrTz]
+
+				for strCity in sorted(lStrCity, key=sorter.getSortKey):
+					print(f"      {strCity}")
+					strTz = mpStrCityStrTz[strCity]
+
+					zscope = CZoneScope(strTz, self.setLocaleLang)
+					fmtDefault = self.mpStrTzPagezr[strTz].fmt
+					#strFmt = StrFromFmt(fmtDefault)
+
+					mpStrLangLocaleLang = {locale.get_display_name(): locale for locale in zscope.setLocaleLang}
+					assert len(mpStrLangLocaleLang) == len(zscope.setLocaleLang)
+
+					for strLang in sorted(mpStrLangLocaleLang.keys(), key=sorter.getSortKey):
+						localeLang = mpStrLangLocaleLang[strLang]
+
+						mank = SManifestKey(strTz, localeLang, fmtDefault)
+						manp = self.mpMankManp[mank]
+
+						print(f"        {strLang}: {manp.pathOutput.name}")
 
 class CDocument: # tag = doc
 	s_pathDirFonts = g_pathCode / 'fonts'

@@ -7,7 +7,7 @@ import polib
 
 from babel import Locale
 from babel.core import get_global, parse_locale, UnknownLocaleError
-from babel.dates import get_timezone_location, get_timezone
+from babel.dates import format_interval, get_timezone_location, get_timezone
 from datetime import timedelta
 from typing import Optional, NamedTuple
 from zoneinfo import ZoneInfo
@@ -110,6 +110,15 @@ def StrFmtBestFit(cTeam: int, locale: Locale) -> str:
 			strFmtBest = strFmt
 
 	return strFmtBest
+
+def StrDateRange(tMin: arrow.Arrow, tMax: arrow.Arrow, locale: Locale) -> str:
+	if tMin.year != tMax.year:
+		strDateFmt = 'yMMM' # multi year: month + year to month + year
+	else:
+		strDateFmt = 'MMMd' # single year: month + day to month + day
+	strDateRange = format_interval(tMin.datetime, tMax.datetime, strDateFmt, locale=locale)
+	strDateRange = strDateRange.translate({ord(ch):' ' for ch in '   '}) # our fonts don't have these weirdo spaces
+	return strDateRange
 
 class STZs(NamedTuple):  # tag = tzs
 	strStd: str
@@ -336,7 +345,13 @@ class CZoneScope: # tag = zscope
 
 		self.setLocaleLang: set[Locale] = setLocaleLangFound & setLocaleLangValid
 
+s_mpStrTzStrKeyCityOverride: dict[str, str] ={
+	'America/Montreal':			'venue.ca-montreal',
+}
+
 def StrCityFromTzLocale(strTz: str, locale: Locale) -> str:
+	if strKey := s_mpStrTzStrKeyCityOverride.get(strTz):
+		return g_loc.StrTranslation(strKey, locale)
 	return get_timezone_location(get_timezone(strTz), locale=locale, return_city=True)
 	
 def StrLocaleFromPof(pof: polib.POFile) -> str:
