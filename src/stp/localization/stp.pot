@@ -852,6 +852,10 @@ msgctxt "venue.au-sydney_football"
 msgid "Sydney Football Stadium"
 msgstr ""
 
+msgctxt "venue.ca-montreal"
+msgid "Montreal"
+msgstr ""
+
 msgctxt "venue.ca-toronto"
 msgid "Toronto"
 msgstr ""
