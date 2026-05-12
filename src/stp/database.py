@@ -10,7 +10,7 @@ import re
 from enum import IntEnum, auto
 from typing import Optional, cast
 
-from bolay import IntEnum0, EnumTuple, SColor, ColorFromStr, ColorResaturate, FIsSaturated
+from bolay import IntEnum0, EnumTuple, SColor, ColorFromStr, ColorResaturate, ColorResaturateDarker, FIsSaturated
 
 from . import __project__, __version__, __author_email__, g_pathCode
 from .loc import g_loc
@@ -92,10 +92,10 @@ class SColors: # tag = colors
 	def __init__(self, strColor: str) -> None:
 		self.color: SColor = ColorFromStr(strColor)
 		if FIsSaturated(self.color):
-			self.colorDarker: SColor = ColorResaturate(self.color, dS=self.s_dSDarker)
+			self.colorDarker: SColor = ColorResaturateDarker(self.color, dS=self.s_dSDarker)
 			self.colorLighter: SColor = ColorResaturate(self.color, rV=self.s_rVLighter, rS=self.s_rSLighter)
 		else:
-			self.colorDarker: SColor = ColorResaturate(self.color, rV=self.s_rVDarker)
+			self.colorDarker: SColor = ColorResaturateDarker(self.color, rV=self.s_rVDarker)
 			self.colorLighter: SColor = ColorResaturate(self.color, dV=self.s_dVLighter)
 
 class CGroup:
