@@ -5,6 +5,7 @@
   [
     gettext # manipulate .pot/.po files
     just    # run stuff in the justfile
+    icu     # for language aware string sorting
   ];
 
   languages.python =
