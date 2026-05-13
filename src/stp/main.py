@@ -35,6 +35,9 @@ from .page import CPage, CGroupsTestPage, CDaysTestPage, CCalOnlyPage, CCalElimP
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
 def LocaleLang(locale: Locale) -> Locale:
+	if locale.script == 'Latn':
+		return Locale(locale.language)
+	
 	return Locale(locale.language, script=locale.script)
 
 class SManifestKey(NamedTuple): # tag = mank
@@ -111,10 +114,13 @@ class MAND(IntEnum): # tag = mand
 type SCityObj = dict[str, str] # tag = cityo
 type SRegionObj = dict[str, SCityObj] # tag = rego
 
-class SManifestObj(BaseModel): # tag = mano
-	strLang:		str						= Field(default='',				alias='language')
+class SSectionObj(BaseModel): # tag = secto
 	strTitle:       str         			= Field(default='',				alias='title')
 	mpStrRego:		dict[str, SRegionObj]	= Field(default={},				alias='regions')
+
+class SManifestObj(BaseModel): # tag = mano
+	sectoPublished:	SSectionObj				= Field(alias='published')
+	mpStrLangSecto:	dict[str, SSectionObj]	= Field(alias='languages')
 
 def TuAlphaBeforeNumeric(strIn: str) -> tuple:
     fNumericLead = strIn[0].isdigit()  # 0 sorts before 1, so alpha comes first
@@ -126,7 +132,46 @@ class SNameFmt(NamedTuple): # tag = namefmt
 	strName: str
 	fmt: TFmt
 
-class CManifestWriter: # tag = manwriter
+def StrDisplayFromLocale(locale: Locale) -> str:
+	if locale.language == 'nb':
+		locale = Locale('no')
+
+	strDisplay = locale.get_display_name()
+
+	assert strDisplay
+
+	return strDisplay
+
+class CManifest: # tag = manif
+	s_lStrLocaleLangOrder: list[str] = [
+		'en',
+		'fr',
+		'es',
+		'pt',
+		'it',
+		'de',
+		'nl',
+		'nb',
+		'sv',
+		'pl',
+		'ru',
+		'hr',
+		'cs',
+		'el',
+		'tr',
+		'sw',
+		'fa',
+		'ar',
+		'uz',
+		'ja',
+		'ko',
+		'zh_Hans',
+		'zh_Hant',
+	]
+
+	s_lLocaleLangOrder: list[Locale] = [Locale.parse(strLocaleLang) for strLocaleLang in s_lStrLocaleLangOrder]
+	s_setLocaleLangOrdered: set[Locale] = set(s_lLocaleLangOrder)
+
 	def __init__(self, collector: CCollector) -> None:
 		self.collector = collector
 		self.mpRegionSetStrTz: dict[REGION, set[str]] = {}
@@ -142,12 +187,15 @@ class CManifestWriter: # tag = manwriter
 		for locale in collector.setLocaleLang:
 			self.mpLocaleCitymap[locale] = CCityMap(collector.setStrTz, locale)
 
-	def ManoBuild(self, locale: Locale, mand: MAND) -> SManifestObj:
+		if setLocaleUnordered := collector.setLocaleLang - self.s_setLocaleLangOrdered:
+			sys.exit(f"error: locales not ordered... {','.join([str(locale) for locale in setLocaleUnordered])}")
+
+	def SectoBuild(self, locale: Locale, mand: MAND) -> SSectionObj:
 		sorter = icu.Collator.createInstance(icu.Locale(str(locale))) # type: ignore[attr-defined]
 		pagelr = self.collector.mpLocaleLangPagelr[locale]
 		citymap = self.mpLocaleCitymap[locale]
 
-		mano = SManifestObj(language=str(locale), title=pagelr.strTitle)
+		secto = SSectionObj(title=pagelr.strTitle)
 
 		for region in REGION:
 			setStrTz = self.mpRegionSetStrTz.get(region)
@@ -173,7 +221,7 @@ class CManifestWriter: # tag = manwriter
 						fmtDefault = self.collector.mpStrTzPagezr[strTz].fmt
 						zscope = CZoneScope(strTz, self.collector.setLocaleLang)
 
-						mpStrLangLocaleLang = {locale.get_display_name(): locale for locale in zscope.setLocaleLang}
+						mpStrLangLocaleLang = {StrDisplayFromLocale(localeLang): localeLang for localeLang in zscope.setLocaleLang}
 						assert len(mpStrLangLocaleLang) == len(zscope.setLocaleLang)
 						assert all(mpStrLangLocaleLang.keys())
 
@@ -196,28 +244,33 @@ class CManifestWriter: # tag = manwriter
 							mank = SManifestKey(strTz, locale, namefmt.fmt)
 							manp = self.collector.mpMankManp[mank]
 
-							cityo[namefmt.strName] = manp.pathOutput.name
+							cityo[namefmt.strName] = StrLangShortFromLocale(locale) + g_chPathSeparator + manp.pathOutput.name
 
 				rego[strCity] = cityo
 
 			strRegion = g_loc.StrTranslation("region." + str(region), locale)
-			mano.mpStrRego[strRegion] = rego
+			secto.mpStrRego[strRegion] = rego
 
-		return mano
+		return secto
 	
-	def WriteOne(self, locale: Locale, mand: MAND) -> None:
+	def Write(self) -> None:
 		pathDirOutput = Path.cwd()
 
 		assert self.collector.doca
 		if self.collector.doca.strDirOutput:
 			pathDirOutput /= self.collector.doca.strDirOutput
 
-		if mand == MAND.Language:
-			pathDirOutput /= StrLangShortFromLocale(locale)
-
 		pathOutput = pathDirOutput / "manifest.yaml"
 
-		mano = self.ManoBuild(locale, mand)
+		sectoPublished = self.SectoBuild(Locale('en'), MAND.Published)
+		mpLocaleSecto = { locale: self.SectoBuild(locale, MAND.Language) for locale in self.collector.setLocaleLang }
+		mpStrLangSecto: dict[str, SSectionObj] = {}
+
+		for localeLang in self.s_lLocaleLangOrder:
+			if secto := mpLocaleSecto.get(localeLang):
+				mpStrLangSecto[StrDisplayFromLocale(localeLang)] = secto
+
+		mano = SManifestObj(published=sectoPublished, languages=mpStrLangSecto)
 
 		print(f"manifesting to {pathOutput.relative_to(Path.cwd())}")
 		
@@ -228,12 +281,6 @@ class CManifestWriter: # tag = manwriter
 				sort_keys=False,      		# preserve field declaration order
 				default_flow_style=False))	# prettier?
 	
-	def WriteAll(self) -> None:
-		self.WriteOne(Locale('en'), MAND.Published)
-
-		for locale in self.collector.setLocaleLang:
-			self.WriteOne(locale, MAND.Language)
-
 class CCollector: # tag = collector
 	def __init__(self, doca: Optional[SDocumentArgs], lDocr: list[SDocResult]) -> None:
 		self.doca = doca
@@ -429,7 +476,7 @@ class CCollector: # tag = collector
 
 		# write out the manifests
 
-		CManifestWriter(self).WriteAll()
+		CManifest(self).Write()
 
 class CDocument: # tag = doc
 	s_pathDirFonts = g_pathCode / 'fonts'
