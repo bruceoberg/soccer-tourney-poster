@@ -132,7 +132,8 @@ class CPage:
 		self.tMax = arrow.get(max(self.mpDateSetMatch))
 		self.zonename = CZoneName(self.tMin, self.zoneinfo)
 
-		self.strTitle = self.StrTitle()
+		self.strEdition = self.StrEdition()
+		self.strTitle = self.StrTitle(self.strEdition)
 		self.strDateRange = StrDateRange(self.tMin, self.tMax, self.locale)
 		self.strLocation = self.StrTranslation(self.tourn.StrKeyHost())
 
@@ -175,8 +176,7 @@ class CPage:
 		strFormatEdition = self.StrTranslation('page.format.edition')
 		return strFormatEdition.format(year= strYear, competition=strCompetition)
 
-	def StrTitle(self):
-		strEdition = self.StrEdition()
+	def StrTitle(self, strEdition: str) -> str:
 		strType = self.StrTranslation('page.type.results' if self.FAllMatchesHaveResults() else 'page.type.fixtures')
 		strFormatTitle = self.StrTranslation('page.format.title')
 		return strFormatTitle.format(edition=strEdition, type=strType)

@@ -51,7 +51,7 @@ class SPageZoneResult(NamedTuple): # tag - pagezr
 	region: REGION
 
 class SPageLangResult(NamedTuple): # tag = pagelr
-	strTitle: str
+	strEdition: str
 
 class SPageResult(NamedTuple): # tag = pager
 	strTz: str
@@ -76,7 +76,7 @@ def PagerFromPage(page: CPage) ->SPageResult:
 				page.zonename.StrUtcOnly(),
 				page.pagea.region),
 			SPageLangResult(
-				page.strTitle),
+				page.strEdition),
 			page.pagea.lStrTzAlias)
 
 class SDocResult(NamedTuple): # tag = docr
@@ -115,7 +115,7 @@ type SCityObj = dict[str, str] # tag = cityo
 type SRegionObj = dict[str, SCityObj] # tag = rego
 
 class SSectionObj(BaseModel): # tag = secto
-	strTitle:       str         			= Field(default='',				alias='title')
+	strEdition:     str         			= Field(default='',				alias='edition')
 	mpStrRego:		dict[str, SRegionObj]	= Field(default={},				alias='regions')
 
 class SManifestObj(BaseModel): # tag = mano
@@ -195,7 +195,7 @@ class CManifest: # tag = manif
 		pagelr = self.collector.mpLocaleLangPagelr[locale]
 		citymap = self.mpLocaleCitymap[locale]
 
-		secto = SSectionObj(title=pagelr.strTitle)
+		secto = SSectionObj(edition=pagelr.strEdition)
 
 		for region in REGION:
 			setStrTz = self.mpRegionSetStrTz.get(region)
@@ -558,10 +558,9 @@ def LDocrBuildLDoca(lDoca: list[SDocumentArgs], cJob: int) -> list[SDocResult]:
 	with tqdm(total=len(lDoca), desc="building", bar_format=strBarFormat) as pbar:
 		with ProcessPoolExecutor(max_workers=cJob) as pool:
 			lFuture = [pool.submit(DocrBuildDocaAsync, doca) for doca in lDoca]
-			for future in as_completed(lFuture):
-				if docr := future.result():
-					lDocr.append(docr)
+			for _ in as_completed(lFuture):
 				pbar.update(1)
+			lDocr = [docr for future in lFuture if (docr := future.result())]
 
 	return lDocr
 
