@@ -103,6 +103,11 @@ msgctxt "page.format.dates-and-location"
 msgid "{dates}, {location}"
 msgstr ""
 
+#. Inserted into the {label} of page.format.timezone.
+msgctxt "page.timezone.label"
+msgid "Time Zone"
+msgstr ""
+
 #. Timezone is build and inserted into {timezone} field. Text from
 #. page.timezone.label is inserted into {label} field. Farsi version includes
 #. an invisible RtL character so that parenthesis apprear correctly.
@@ -110,28 +115,29 @@ msgctxt "page.format.timezone"
 msgid "{label}: {timezone}"
 msgstr ""
 
-#. Layout of the poster title (centered, on top). Specifies order of year,
-#. competition title (from competition section), and poster label
-#. (fixtures/results)
-msgctxt "page.format.title"
-msgid "{year} {name} · {label}"
-msgstr ""
-
-#. Inserted into the {label} of page.format.timezone.
-msgctxt "page.timezone.label"
-msgid "Time Zone"
-msgstr ""
-
 #. Inserted into page.format.title when poster shows upcoming matches with no
 #. scores.
-msgctxt "page.title.fixtures"
+msgctxt "page.type.fixtures"
 msgid "Fixtures"
 msgstr ""
 
 #. Inserted into page.format.title when poster shows completed matches with
 #. scores.
-msgctxt "page.title.results"
+msgctxt "page.type.results"
 msgid "Results"
+msgstr ""
+
+#. Layout of the competition edition. Specifies order of year and
+#. competition name (from competition section).
+msgctxt "page.format.edition"
+msgid "{year} {competition}"
+msgstr ""
+
+#. Layout of the poster title (centered, on top). Specifies order
+#. of the edition (year + competition, from page.format.edition),
+#. and poster type (the word for fixtures or results).xs
+msgctxt "page.format.title"
+msgid "{edition} · {type}"
 msgstr ""
 
 #. Names of the stages of a soccer tournament.

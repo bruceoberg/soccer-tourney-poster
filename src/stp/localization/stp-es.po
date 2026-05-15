@@ -2,8 +2,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: stp 0.3.0\n"
-"POT-Creation-Date: 2026-05-11 18:49-0700\n"
-"PO-Revision-Date: 2026-05-11 18:53-0700\n"
+"POT-Creation-Date: 2026-05-15 13:35-0700\n"
+"PO-Revision-Date: 2026-05-15 13:57-0700\n"
 "Last-Translator: Bruce Oberg <bruce@oberg.org>\n"
 "Language-Team: Bruce Oberg <bruce@oberg.org>\n"
 "Language: es\n"
@@ -103,6 +103,11 @@ msgctxt "page.format.dates-and-location"
 msgid "{dates}, {location}"
 msgstr "{dates}, {location}"
 
+#. Inserted into the {label} of page.format.timezone.
+msgctxt "page.timezone.label"
+msgid "Time Zone"
+msgstr "Zona horaria"
+
 #. Timezone is build and inserted into {timezone} field. Text from
 #. page.timezone.label is inserted into {label} field. Farsi version includes
 #. an invisible RtL character so that parenthesis apprear correctly.
@@ -110,29 +115,30 @@ msgctxt "page.format.timezone"
 msgid "{label}: {timezone}"
 msgstr "{label}: {timezone}"
 
-#. Layout of the poster title (centered, on top). Specifies order of year,
-#. competition title (from competition section), and poster label
-#. (fixtures/results)
-msgctxt "page.format.title"
-msgid "{year} {name} · {label}"
-msgstr "{label} · {name} {year}"
-
-#. Inserted into the {label} of page.format.timezone.
-msgctxt "page.timezone.label"
-msgid "Time Zone"
-msgstr "Zona horaria"
-
 #. Inserted into page.format.title when poster shows upcoming matches with no
 #. scores.
-msgctxt "page.title.fixtures"
+msgctxt "page.type.fixtures"
 msgid "Fixtures"
 msgstr "Calendario"
 
 #. Inserted into page.format.title when poster shows completed matches with
 #. scores.
-msgctxt "page.title.results"
+msgctxt "page.type.results"
 msgid "Results"
 msgstr "Resultados"
+
+#. Layout of the competition edition. Specifies order of year and
+#. competition name (from competition section).
+msgctxt "page.format.edition"
+msgid "{year} {competition}"
+msgstr "{competition} {year}"
+
+#. Layout of the poster title (centered, on top). Specifies order
+#. of the edition (year + competition, from page.format.edition),
+#. and poster type (the word for fixtures or results).xs
+msgctxt "page.format.title"
+msgid "{edition} · {type}"
+msgstr "{type} · {edition}"
 
 #. Names of the stages of a soccer tournament.
 msgid "### section: stage - see notes ###"

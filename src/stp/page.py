@@ -168,13 +168,18 @@ class CPage:
 
 	def StrTeam(self, strKey: str) -> str:
 		return self.StrTranslation(self.tourn.StrKeyTeam(strKey))
+	
+	def	StrEdition(self) -> str:
+		strYear = self.tMin.strftime('%Y')
+		strCompetition = self.StrTranslation(self.tourn.StrKeyCompetition())
+		strFormatEdition = self.StrTranslation('page.format.edition')
+		return strFormatEdition.format(year= strYear, competition=strCompetition)
 
 	def StrTitle(self):
-		strYear = self.tMin.strftime('%Y')
-		strName = self.StrTranslation(self.tourn.StrKeyCompetition())
-		strLabel = self.StrTranslation('page.title.results' if self.FAllMatchesHaveResults() else 'page.title.fixtures')
+		strEdition = self.StrEdition()
+		strType = self.StrTranslation('page.type.results' if self.FAllMatchesHaveResults() else 'page.type.fixtures')
 		strFormatTitle = self.StrTranslation('page.format.title')
-		return strFormatTitle.format(year=strYear, name=strName, label=strLabel)
+		return strFormatTitle.format(edition=strEdition, type=strType)
 
 	def Fontkey(self, strStyle: str) -> SFontKey:
 		strTtf = StrTtfLookup(strStyle, self.strScript)
