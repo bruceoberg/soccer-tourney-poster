@@ -20,6 +20,7 @@
 - move to NotoSansMono fonts.
 - use condensed Noto fonts to approximate look of trade gothic?
 - turn fUnwindPages/fFillGrid into an enum. unwinding in CCollector doesn't need all of grid filling infra.
+- remove state abbreviations from most US venue names.
 
 ## never
 

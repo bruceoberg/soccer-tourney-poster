@@ -1107,7 +1107,7 @@ msgid "Santa Clara, CA"
 msgstr ""
 
 msgctxt "venue.us-seattle-wa"
-msgid "Seattle, WA"
+msgid "Seattle"
 msgstr ""
 
 msgctxt "venue.us-washington-dc"
