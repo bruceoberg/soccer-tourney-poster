@@ -47,7 +47,8 @@ class SManifestKey(NamedTuple): # tag = mank
 
 class SPageZoneResult(NamedTuple): # tag - pagezr
 	fmt: TFmt
-	strUtcOnly: str
+	strTzFriendly: str
+	strTzUtc: str
 	region: REGION
 
 class SPageLangResult(NamedTuple): # tag = pagelr
@@ -73,6 +74,7 @@ def PagerFromPage(page: CPage) ->SPageResult:
 			page.locale,
 			SPageZoneResult(
 				page.fmt,
+				page.zonename.StrFriendly(),
 				page.zonename.StrUtcOnly(),
 				page.pagea.region),
 			SPageLangResult(
@@ -111,12 +113,17 @@ class MAND(IntEnum): # tag = mand
 	Published = auto()
 	Language = auto()
 
-type SCityObj = dict[str, str] # tag = cityo
+type SLinkObj = dict[str, str] # tag = linko
+
+class SCityObj(BaseModel): # tag = cityo
+	strTzFriendly:	str         			= Field(default='',		alias='timezone')
+	linko:			SLinkObj				= Field(default={},		alias='links')
+
 type SRegionObj = dict[str, SCityObj] # tag = rego
 
 class SSectionObj(BaseModel): # tag = secto
-	strEdition:     str         			= Field(default='',				alias='edition')
-	mpStrRego:		dict[str, SRegionObj]	= Field(default={},				alias='regions')
+	strEdition:     str         			= Field(default='',		alias='edition')
+	mpStrRego:		dict[str, SRegionObj]	= Field(default={},		alias='regions')
 
 class SManifestObj(BaseModel): # tag = mano
 	sectoPublished:	SSectionObj				= Field(alias='published')
@@ -208,8 +215,9 @@ class CManifest: # tag = manif
 
 			for strCity in sorted(lStrCity, key=sorter.getSortKey):
 				strTz = citymap.mpStrCityStrTz[strCity]
+				pagezr = self.collector.mpStrTzPagezr[strTz]
 
-				cityo: SCityObj = {}
+				linko: SLinkObj = {}
 
 				match mand:
 					case MAND.Published:
@@ -218,7 +226,7 @@ class CManifest: # tag = manif
 						# - all their supported languages.
 						# - only their preferred paper format
 
-						fmtDefault = self.collector.mpStrTzPagezr[strTz].fmt
+						fmtDefault = pagezr.fmt
 						zscope = CZoneScope(strTz, self.collector.setLocaleLang)
 
 						mpStrLangLocaleLang = {StrDisplayFromLocale(localeLang): localeLang for localeLang in zscope.setLocaleLang}
@@ -232,7 +240,7 @@ class CManifest: # tag = manif
 							mank = SManifestKey(strTz, localeLang, fmtDefault)
 							manp = self.collector.mpMankManp[mank]
 
-							cityo[strLang] = StrLangShortFromLocale(localeLang) + g_chPathSeparator + manp.pathOutput.name
+							linko[strLang] = StrLangShortFromLocale(localeLang) + g_chPathSeparator + manp.pathOutput.name
 
 					case MAND.Language:
 						# language manifest manifest has:
@@ -244,8 +252,9 @@ class CManifest: # tag = manif
 							mank = SManifestKey(strTz, locale, namefmt.fmt)
 							manp = self.collector.mpMankManp[mank]
 
-							cityo[namefmt.strName] = StrLangShortFromLocale(locale) + g_chPathSeparator + manp.pathOutput.name
+							linko[namefmt.strName] = StrLangShortFromLocale(locale) + g_chPathSeparator + manp.pathOutput.name
 
+				cityo = SCityObj(timezone=pagezr.strTzFriendly, links=linko)
 				rego[strCity] = cityo
 
 			strRegion = g_loc.StrTranslation("region." + str(region), locale)
@@ -410,9 +419,9 @@ class CCollector: # tag = collector
 				# by 60% to 70%. instead of oodles of similar PDFs for obscure city/language combos, we
 				# can have just tz/language combos and point multiple cities to each tz.
 
-				strUtcOnly = self.mpStrTzPagezr[mankMissing.strTz].strUtcOnly
+				strTzUtc = self.mpStrTzPagezr[mankMissing.strTz].strTzUtc
 
-				mankUtcOnly = SManifestKey(strUtcOnly, mankMissing.localeLang, mankMissing.fmt)
+				mankUtcOnly = SManifestKey(strTzUtc, mankMissing.localeLang, mankMissing.fmt)
 				setMankMissing = mpMankUtcOnlySetMankMissing.setdefault(mankUtcOnly, set())
 				setMankMissing.add(mankMissing)
 

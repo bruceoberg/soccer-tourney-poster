@@ -136,6 +136,7 @@ class CPage:
 		self.strTitle = self.StrTitle(self.strEdition)
 		self.strDateRange = StrDateRange(self.tMin, self.tMax, self.locale)
 		self.strLocation = self.StrTranslation(self.tourn.StrKeyHost())
+		self.strZonename = self.zonename.StrUtcOnly() if self.pagea.fUtcOnly else self.zonename.StrFriendly()
 
 		# if self.pagea.fmt is None:
 		# 	print(f"{self.tourn.strName} ({str(self.locale).lower()}/{self.zoneinfo.key}): choosing {self.fmt}")
@@ -418,8 +419,7 @@ class CHeaderBlot(CBlot): # tag = headerb
 
 		strLabelTimeZone = self.page.StrTranslation('page.timezone.label')
 		strFormatTimeZone = self.page.StrTranslation('page.format.timezone')
-		strZonename = self.page.zonename.StrUtcOnly() if self.page.pagea.fUtcOnly else self.page.zonename.StrFriendly()
-		strTimeZone = strFormatTimeZone.format(label=strLabelTimeZone, timezone=strZonename)
+		strTimeZone = strFormatTimeZone.format(label=strLabelTimeZone, timezone=self.page.strZonename)
 
 		# notes left and right
 
@@ -479,8 +479,8 @@ class CFooterBlot(CBlot): # tag = headerb
 		lStrCreditCenter: list[str] = []
 
 		if not self.page.FAllMatchesHaveResults():
-			strZonename = self.page.zonename.StrUtcOnly() if self.page.pagea.fUtcOnly else self.page.pagea.strTz
-			lStrCreditCenter.append(strZonename)
+			strTzFooter = self.page.zonename.StrUtcOnly() if self.page.pagea.fUtcOnly else self.page.pagea.strTz
+			lStrCreditCenter.append(strTzFooter)
 
 		lStrCreditCenter += [
 			StrLangTerritoryFromLocale(self.page.locale),
