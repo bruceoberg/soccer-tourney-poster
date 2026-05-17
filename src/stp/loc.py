@@ -352,6 +352,7 @@ class CZoneScope: # tag = zscope
 
 s_mpStrTzStrKeyCityOverride: dict[str, str] ={
 	'America/Montreal':			'venue.ca-montreal',
+	'America/Los_Angeles':		'venue.us-seattle-wa',		# MADE IN SEATTLE BABY
 }
 
 def StrCityFromTzLocale(strTz: str, locale: Locale) -> str:
