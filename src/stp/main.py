@@ -47,7 +47,7 @@ class SManifestKey(NamedTuple): # tag = mank
 
 class SPageZoneResult(NamedTuple): # tag - pagezr
 	fmt: TFmt
-	strTzFriendly: str
+	strTzAbbrev: str
 	strTzUtc: str
 	region: REGION
 
@@ -74,8 +74,8 @@ def PagerFromPage(page: CPage) ->SPageResult:
 			page.locale,
 			SPageZoneResult(
 				page.fmt,
-				page.zonename.StrFriendly(),
-				page.zonename.StrUtcOnly(),
+				page.zonename.strAbbrev,
+				page.zonename.StrUtcFriendly(),
 				page.pagea.region),
 			SPageLangResult(
 				page.strEdition),
@@ -116,7 +116,8 @@ class MAND(IntEnum): # tag = mand
 type SLinkObj = dict[str, str] # tag = linko
 
 class SCityObj(BaseModel): # tag = cityo
-	strTzFriendly:	str         			= Field(default='',		alias='timezone')
+	strTzAbbrev:	str         			= Field(default='',		alias='tz_abbrev')
+	strTzUtc:		str         			= Field(default='',		alias='tz_utc')
 	linko:			SLinkObj				= Field(default={},		alias='links')
 
 type SRegionObj = dict[str, SCityObj] # tag = rego
@@ -254,7 +255,11 @@ class CManifest: # tag = manif
 
 							linko[namefmt.strName] = StrLangShortFromLocale(locale) + g_chPathSeparator + manp.pathOutput.name
 
-				cityo = SCityObj(timezone=pagezr.strTzFriendly, links=linko)
+				cityo = SCityObj(
+							tz_abbrev=pagezr.strTzAbbrev,
+							tz_utc=pagezr.strTzUtc,
+							links=linko)
+				
 				rego[strCity] = cityo
 
 			strRegion = g_loc.StrTranslation("region." + str(region), locale)

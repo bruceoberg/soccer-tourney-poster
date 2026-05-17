@@ -136,7 +136,7 @@ class CPage:
 		self.strTitle = self.StrTitle(self.strEdition)
 		self.strDateRange = StrDateRange(self.tMin, self.tMax, self.locale)
 		self.strLocation = self.StrTranslation(self.tourn.StrKeyHost())
-		self.strZonename = self.zonename.StrUtcOnly() if self.pagea.fUtcOnly else self.zonename.StrFriendly()
+		self.strZonename = self.zonename.StrUtcFriendly() if self.pagea.fUtcOnly else self.zonename.StrFriendly()
 
 		# if self.pagea.fmt is None:
 		# 	print(f"{self.tourn.strName} ({str(self.locale).lower()}/{self.zoneinfo.key}): choosing {self.fmt}")
@@ -479,7 +479,7 @@ class CFooterBlot(CBlot): # tag = headerb
 		lStrCreditCenter: list[str] = []
 
 		if not self.page.FAllMatchesHaveResults():
-			strTzFooter = self.page.zonename.StrUtcOnly() if self.page.pagea.fUtcOnly else self.page.pagea.strTz
+			strTzFooter = self.page.zonename.StrUtcRaw() if self.page.pagea.fUtcOnly else self.page.pagea.strTz
 			lStrCreditCenter.append(strTzFooter)
 
 		lStrCreditCenter += [

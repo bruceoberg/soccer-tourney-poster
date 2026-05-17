@@ -208,8 +208,11 @@ class CZoneName: # tag = zonename
 
 		assert not any([ch.isdecimal() for ch in self.strAbbrev])
 
-	def StrUtcOnly(self) -> str:
+	def StrUtcRaw(self) -> str:
 		return f'UTC{self.StrRawOffset()}'
+
+	def StrUtcFriendly(self) -> str:
+		return f'UTC{self.StrFriendlyOffset()}'
 
 	def StrRawOffset(self) -> str:
 		return f'{int(self.cHour):+03d}{int(self.cMin):02d}'

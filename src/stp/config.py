@@ -113,7 +113,7 @@ class SDocumentArgs(BaseModel): # tag = doca
 			for page in lPage:
 				lStrFile.append(StrLangShortFromLocale(page.locale))
 				if page.pagea.fUtcOnly:
-					lStrFile.append(page.zonename.StrUtcOnly())
+					lStrFile.append(page.zonename.StrUtcRaw())
 				else:
 					lStrFile.append(page.zoneinfo.key.split(g_chPathSeparator, 1)[1])
 				if self.fGridMember:
