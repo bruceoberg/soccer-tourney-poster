@@ -149,7 +149,7 @@ def ParseArgs() -> Tap:
 
 	class ArgumentParser(Tap):
 		"""Soccer Tournament Poster Generator"""
-		tournament: str = 'latest' # Tournament to generate for.
+		tournament: str = '' # Tournament to generate for.
 		document: str = strDocaDefault  # Document to output.
 		output_dir: str = 'playground'  # Destination directory.
 		jobs: int = 0  # Parallel worker count; 0 = os.cpu_count(), 1 = serial.
