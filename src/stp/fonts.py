@@ -18,6 +18,7 @@ class FONTK(IntEnum0): # tag = fontk
 	Regular = auto()
 	SemiBold = auto()
 	SemiCondensed = auto()
+	Handwritten = auto()
 
 g_mpStrStyleFontk = {
 	'calendar.day-of-week-broken':	FONTK.Bold,
@@ -47,6 +48,7 @@ g_mpStrStyleFontk = {
 	'page.footer':					FONTK.CondensedBoldLatn,
 	'page.header.title':			FONTK.CondensedBold,
 	'third.team.name':				FONTK.SemiCondensed,
+	'handwritten':					FONTK.Handwritten,
 }
 
 g_mpStrScriptFontkStrTtf: dict[str, dict[FONTK,str]] = {}
@@ -62,7 +64,9 @@ g_mpStrScriptFontkStrTtf['latn'] = {
 	FONTK.Light: 				'NotoSans-Light.otf',
 	FONTK.LightItalic: 			'NotoSans-LightItalic.otf',
 	FONTK.Regular: 				'NotoSans-Regular.otf',
+	FONTK.Handwritten: 			'Caveat-Regular.ttf',
 }
+assert len(g_mpStrScriptFontkStrTtf['latn']) is len(FONTK)
 
 g_mpStrScriptFontkStrTtf['latn-orig'] = {
 	FONTK.Console: 				'consola.ttf',
