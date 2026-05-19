@@ -36,6 +36,11 @@ class REGION(StrEnum):
 	WestAsiaPacific = 'asia_pacific'
 	Other = 'other'
 
+class SCORING(StrEnum): # tag = results
+	Fixtures = 'fixtures'
+	Archive = 'archive'
+	Instructions = 'instructions'
+
 TFmt: TypeAlias = Optional[str | tuple[float, float]]
 
 def StrFromFmt(fmt : TFmt) -> str:
@@ -60,24 +65,24 @@ class SPageArgs(BaseModel): # tag - pagea
 	
 	model_config = ConfigDict(frozen=True, populate_by_name=True)
 
-	pagek:                  PAGEK       = Field(default=PAGEK.CalElim,	alias='page_kind')
-	strNameTourn:           str         = Field(default='',				alias='tournament')
-	strOrientation:         str         = Field(default='landscape',	alias='orientation')
-	strTz:                  str         = Field(default='US/Pacific',	alias='tz')
-	strLocale:              str         = Field(default='en_US',		alias='loc')
-	strVariant:             str         = Field(default='',				alias='variant')
-	fmt:                    TFmt        = Field(default=None,			alias='format')
-	fmtCrop:                TFmt        = Field(default=None,			alias='crop_format')
-	region:					REGION		= Field(default=REGION.Other,	alias='region')
-	fMainBorders:           bool        = Field(default=True,			alias='main_borders')
-	fEliminationBorders:    bool        = Field(default=True,			alias='elimination_borders')
-	fMatchNumbers:          bool        = Field(default=False,			alias='match_numbers')
-	fGroupHints:            bool        = Field(default=False,			alias='group_hints')
-	fEliminationHints:      bool        = Field(default=True,			alias='elimination_hints')
-	fGroupDots:             bool        = Field(default=True,			alias='group_dots')
-	fFixturesOnly:          bool        = Field(default=False,			alias='fixtures_only')
-	fUtcOnly:          		bool        = Field(default=False,			alias='utc_only') # no friendly timezone name.
-	lStrTzAlias:			list[str]	= Field(default=[],				alias='tz_aliases')
+	pagek:                  PAGEK       = Field(default=PAGEK.CalElim,		alias='page_kind')
+	strNameTourn:           str         = Field(default='',					alias='tournament')
+	strOrientation:         str         = Field(default='landscape',		alias='orientation')
+	strTz:                  str         = Field(default='US/Pacific',		alias='tz')
+	strLocale:              str         = Field(default='en_US',			alias='loc')
+	strVariant:             str         = Field(default='',					alias='variant')
+	fmt:                    TFmt        = Field(default=None,				alias='format')
+	fmtCrop:                TFmt        = Field(default=None,				alias='crop_format')
+	region:					REGION		= Field(default=REGION.Other,		alias='region')
+	fMainBorders:           bool        = Field(default=True,				alias='main_borders')
+	fEliminationBorders:    bool        = Field(default=True,				alias='elimination_borders')
+	fMatchNumbers:          bool        = Field(default=False,				alias='match_numbers')
+	fGroupHints:            bool        = Field(default=False,				alias='group_hints')
+	fEliminationHints:      bool        = Field(default=True,				alias='elimination_hints')
+	fGroupDots:             bool        = Field(default=True,				alias='group_dots')
+	results:				SCORING     = Field(default=SCORING.Fixtures,	alias='scoring')
+	fUtcOnly:          		bool        = Field(default=False,				alias='utc_only') # no friendly timezone name.
+	lStrTzAlias:			list[str]	= Field(default=[],					alias='tz_aliases')
 
 TTuPagea = tuple[SPageArgs, ...]
 

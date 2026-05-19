@@ -11,6 +11,7 @@ from bolay import colorBlack, colorWhite, colorDarkSlateGrey, colorLightGrey
 from bolay import EnumTuple
 
 from .database import CGroup, MATCHSTAT
+from .config import SCORING
 
 if TYPE_CHECKING:
 	from .page import CPage
@@ -184,24 +185,36 @@ class CGroupBlot(CBlot): # tag = groupb
 
 			for iTeam, strTeam in enumerate(self.group.mpStrSeedStrTeam.values()):
 				yTeam = rectHeading.yMax + iTeam * dYTeam
-				results = None if self.page.pagea.fFixturesOnly else self.tourn.mpStrTeamResults.get(strTeam)
+				results = None if self.page.pagea.results == SCORING.Fixtures else self.tourn.mpStrTeamResults.get(strTeam)
 
 				# group rank
 
 				if results and results.strPlace:
+					if self.page.pagea.results == SCORING.Archive:
+						strFontkey = 'group.team.place'
+					else:
+						strFontkey = 'handwritten'
 					rectPlace = rectRank.Copy(y = yTeam, dY=dYTeam)
-					oltbPlace = self.Oltb(rectPlace, self.page.Fontkey('group.team.place'), dYTeam)
+					oltbPlace = self.Oltb(rectPlace, self.page.Fontkey(strFontkey), dYTeam)
 					oltbPlace.DrawText(results.strPlace, colorBlack, JH.Center)
 
 				# total points
 
-				if results and results.cPoint:
+				if results and len(results.lResult) >= 3 and results.cPoint:
+					if self.page.pagea.results == SCORING.Archive:
+						strFontkey = 'group.team.point-total'
+						colorPointTotal = colorLightGrey
+						dYPointTotal = dYTeam
+					else:
+						strFontkey = 'handwritten'
+						colorPointTotal = colorBlack
+						dYPointTotal = dYTeam * 0.8
 					dXDotsPoints = ((cDotPtsAcross * 2) + 1) * dSDot
 					xPointsTotal = rectPoints.xMin + dXDotsPoints if self.page.FIsLeftToRight() else rectPoints.xMin
 					dXPointsTotal =  rectPoints.dX - dXDotsPoints
 					rectPointTotal = SRect(xPointsTotal, yTeam, dXPointsTotal, dYTeam)
-					oltbPointTotal = self.Oltb(rectPointTotal, self.page.Fontkey('group.team.point-total'), dYTeam)
-					oltbPointTotal.DrawText(f"{results.cPoint:1}", colorLightGrey, JH.Center)
+					oltbPointTotal = self.Oltb(rectPointTotal, self.page.Fontkey(strFontkey), dYPointTotal)
+					oltbPointTotal.DrawText(f"{results.cPoint:1}", colorPointTotal, JH.Center)
 
 				# dots
 

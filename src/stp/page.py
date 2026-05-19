@@ -14,7 +14,7 @@ from bolay import JH, JV, SPoint, SRect
 from bolay import ColorFromStr, SColor
 from bolay import colorBlack, colorWhite, colorGrey
 
-from .config import SPageArgs
+from .config import SPageArgs, SCORING
 from .fonts import StrTtfLookup
 from .loc import g_loc, CZoneName, StrFmtBestFit, StrLangTerritoryFromLocale, StrScriptFromLocale, StrDateRange
 from .versioning import g_repover
@@ -323,13 +323,19 @@ class CPage:
 		self.pdf.line(self.rectInside.xMax,		self.rectCropMarks.yMax,	self.rectInside.xMax,		self.rect.yMax)
 
 	def FMatchHasResults(self, match: CMatch) -> bool:
-		if self.pagea.fFixturesOnly:
+		if self.pagea.results == SCORING.Fixtures:
 			return False
 
 		return match.FHasResults()
 
+	def ScoringFromMatch(self, match: CMatch) -> SCORING:
+		if not match.FHasResults():
+			return SCORING.Fixtures
+		
+		return self.pagea.results
+
 	def FAllMatchesHaveResults(self) -> bool:
-		if self.pagea.fFixturesOnly:
+		if self.pagea.results == SCORING.Fixtures or self.pagea.results == SCORING.Instructions:
 			return False
 
 		return self.tourn.fHasAllResults

@@ -2,12 +2,13 @@ from __future__ import annotations  # Forward refs without quotes (eg foo: CFoo,
 
 import arrow
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, assert_never
 
 from bolay import CBlot
 from bolay import JH, JV, SPoint, SRect, RectBoundingBox, SHaloArgs
 from bolay import colorBlack, colorWhite, colorLightGrey
 
+from .config import SCORING
 from .database import CMatch, STAGE
 from .group import CGroupBlot
 from .calendar import CDayBlot, CElimBlot
@@ -68,10 +69,14 @@ class CFinalBlot(CBlot): # tag = finalb
 
 		# time
 
-		if self.page.FMatchHasResults(self.match):
-			strTime = self.page.StrTranslation(self.tourn.StrKeyVenue(self.match.venue))
-		else:
-			strTime = self.page.StrTimeDisplay(self.match)
+		match self.page.ScoringFromMatch(self.match):
+			case SCORING.Archive:
+				strTime = self.page.StrTranslation(self.tourn.StrKeyVenue(self.match.venue))
+			case SCORING.Fixtures | SCORING.Instructions:
+				strTime = self.page.StrTimeDisplay(self.match)
+			case _ as unreachable:
+				assert_never(unreachable)
+		
 		rectTime = rectDate.Copy(dY=self.s_dYFontTime).Shift(dY = rectDate.dY + self.s_dYTextGap)
 		oltbTime = self.Oltb(rectTime, self.page.Fontkey('final.time'), rectTime.dY)
 		oltbTime.DrawText(strTime, colorBlack, JH.Center)
@@ -94,22 +99,10 @@ class CFinalBlot(CBlot): # tag = finalb
 		xHomeBox = rectScore.x + (rectScore.dX / 2.0) - ((dXLineGap / 2.0 ) + self.s_dSScore)
 		rectHomeBox = SRect(xHomeBox, rectScore.y, self.s_dSScore, self.s_dSScore)
 
-		haloaScore = SHaloArgs(colorBlack, 0.1)
-
-		if self.page.FMatchHasResults(self.match):
-			oltbHomeScore = self.Oltb(rectHomeBox, self.page.Fontkey('match.score'), self.s_dSScore)
-			oltbHomeScore.DrawText(str(self.match.scoreHome), colorWhite, JH.Center, haloa = haloaScore)
-		else:
-			self.DrawBox(rectHomeBox, self.s_dSLineScore, colorBlack, colorWhite)
-
 		xAwayBox = rectScore.x + (rectScore.dX / 2.0) + (dXLineGap / 2.0 )
 		rectAwayBox = SRect(xAwayBox, rectScore.y, self.s_dSScore, self.s_dSScore)
 
-		if self.page.FMatchHasResults(self.match):
-			oltbAwayScore = self.Oltb(rectAwayBox, self.page.Fontkey('match.score'), self.s_dSScore)
-			oltbAwayScore.DrawText(str(self.match.scoreAway), colorWhite, JH.Center, haloa = haloaScore)
-		else:
-			self.DrawBox(rectAwayBox, self.s_dSLineScore, colorBlack, colorWhite)
+		haloaScore = SHaloArgs(colorBlack, 0.1)
 
 		# PK boxes
 
@@ -121,7 +114,31 @@ class CFinalBlot(CBlot): # tag = finalb
 		rectAwayPens.Outset(self.s_dSPens / 2)
 		rectAwayPens.Shift(dX=self.s_dSPensNudge, dY=-self.s_dSPensNudge)
 
-		if self.page.FMatchHasResults(self.match):
+		match self.page.ScoringFromMatch(self.match):
+			case SCORING.Fixtures:
+				self.DrawBox(rectHomeBox, self.s_dSLineScore, colorBlack, colorWhite)
+				self.DrawBox(rectAwayBox, self.s_dSLineScore, colorBlack, colorWhite)
+			case SCORING.Archive:
+				oltbHomeScore = self.Oltb(rectHomeBox, self.page.Fontkey('match.score'), self.s_dSScore)
+				oltbHomeScore.DrawText(str(self.match.scoreHome), colorWhite, JH.Center, haloa = haloaScore)
+				oltbAwayScore = self.Oltb(rectAwayBox, self.page.Fontkey('match.score'), self.s_dSScore)
+				oltbAwayScore.DrawText(str(self.match.scoreAway), colorWhite, JH.Center, haloa = haloaScore)
+			case SCORING.Instructions:
+				self.DrawBox(rectHomeBox, self.s_dSLineScore, colorBlack, colorWhite)
+				self.DrawBox(rectAwayBox, self.s_dSLineScore, colorBlack, colorWhite)
+				# draw handwritten scores in area avoiding PK boxes
+				rectHomeScore = rectHomeBox
+				rectAwayScore = rectAwayBox
+				rectHomeScore.yMax = (rectHomeScore.yMax + rectHomePens.yMin) / 2.0
+				rectAwayScore.yMax = (rectAwayScore.yMax + rectAwayPens.yMin) / 2.0
+				oltbHomeScore = self.Oltb(rectHomeScore, self.page.Fontkey('handwritten'), rectHomeScore.dY)
+				oltbHomeScore.DrawText(str(self.match.scoreHome), colorBlack, JH.Center)
+				oltbAwayScore = self.Oltb(rectAwayScore, self.page.Fontkey('handwritten'), rectAwayScore.dY)
+				oltbAwayScore.DrawText(str(self.match.scoreAway), colorBlack, JH.Center)
+			case _ as unreachable:
+				assert_never(unreachable)
+
+		if self.page.ScoringFromMatch(self.match) is SCORING.Archive:
 			if self.match.scoreHomeTiebreaker != -1 or self.match.fAfterExtraTime:
 
 				dYBelowBox = rectAll.yMax - rectHomeBox.yMax
@@ -165,7 +182,6 @@ class CFinalBlot(CBlot): # tag = finalb
 				oltbExtraTime = self.Oltb(rectExtraTime, self.page.Fontkey('match.score'), dYFontExtraTime)
 				oltbExtraTime.DrawText(strExtraTime, colorWhite, JH.Center, JV.Bottom, haloa = haloaScore)
 
-
 			# (full) team names
 
 			strHome = self.page.StrTeam(self.match.strTeamHome)
@@ -183,6 +199,19 @@ class CFinalBlot(CBlot): # tag = finalb
 			self.DrawBox(rectHomePens, self.s_dSLineScore, colorBlack, colorWhite)
 			self.DrawBox(rectAwayPens, self.s_dSLineScore, colorBlack, colorWhite)
 
+			if self.page.ScoringFromMatch(self.match) is SCORING.Instructions and self.match.scoreHomeTiebreaker != -1:
+				assert self.match.scoreAwayTiebreaker != -1
+
+				# penalties in their boxes
+
+				strHomeTiebreaker = str(self.match.scoreHomeTiebreaker)
+				oltbHomeTiebreaker = self.Oltb(rectHomePens, self.page.Fontkey('handwritten'), rectHomePens.dY)
+				oltbHomeTiebreaker.DrawText(strHomeTiebreaker, colorBlack, JH.Center)
+
+				strAwayTiebreaker = str(self.match.scoreAwayTiebreaker)
+				oltbAwayTiebreaker = self.Oltb(rectAwayPens, self.page.Fontkey('handwritten'), rectAwayPens.dY)
+				oltbAwayTiebreaker.DrawText(strAwayTiebreaker, colorBlack, JH.Center)
+
 			# form lines
 
 			yLineForm = (rectHomeBox.yMax + rectHomePens.yMax) / 2.0
@@ -196,6 +225,24 @@ class CFinalBlot(CBlot): # tag = finalb
 				self.pdf.set_line_width(self.s_dSLineScore)
 				self.pdf.set_draw_color(0) # black
 				self.pdf.line(xLineFormMin, yLineForm, xLineFormMax, yLineForm)
+
+			# instructions names
+
+			if self.page.ScoringFromMatch(self.match) is SCORING.Instructions:
+
+				# (full) team names
+
+				uFont = 0.8
+
+				strHome = self.page.StrTeam(self.match.strTeamHome)
+				rectHomeTeam = SRect(xLineFormLeftMin, rectHomeBox.y, self.s_dXLineForm, rectHomeBox.dY)
+				oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('handwritten'), rectHomeBox.dY * uFont)
+				oltbHomeTeam.DrawText(strHome, colorBlack, JH.Center)
+
+				strAway = self.page.StrTeam(self.match.strTeamAway)
+				rectAwayTeam = SRect(xLineFormRightMin, rectAwayBox.y, self.s_dXLineForm, rectAwayBox.dY)
+				oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('handwritten'), rectAwayBox.dY * uFont)
+				oltbAwayTeam.DrawText(strAway, colorBlack, JH.Center)
 
 			# form labels
 

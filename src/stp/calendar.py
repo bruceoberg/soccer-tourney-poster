@@ -11,6 +11,7 @@ from bolay import JH, JV, SPoint, SRect, SHaloArgs
 from bolay import SColor
 from bolay import colorBlack, colorWhite, colorLightGrey
 
+from .config import SCORING
 from .database import CMatch, STAGE
 from .group import CGroupBlot
 
@@ -95,10 +96,14 @@ class CMatchBlot(CBlot): # tag = dayb
 			yTime = self.rect.y + self.dYOuterGap
 			yScore = yTime + self.dYTimeAndGap
 
-			if self.page.FMatchHasResults(self.match):
-				strTime = self.page.StrTranslation(self.tourn.StrKeyVenue(self.match.venue))
-			else:
-				strTime = self.page.StrTimeDisplay(self.match)
+			match self.page.ScoringFromMatch(self.match):
+				case SCORING.Archive:
+					strTime = self.page.StrTranslation(self.tourn.StrKeyVenue(self.match.venue))
+				case SCORING.Fixtures | SCORING.Instructions:
+					strTime = self.page.StrTimeDisplay(self.match)
+				case _ as unreachable:
+					assert_never(unreachable)
+			
 			rectTime = SRect(self.rect.x, yTime, self.rect.dX, self.dayb.dYTime)
 			oltbTime = self.Oltb(rectTime, self.page.Fontkey('match.time'), self.dayb.s_dYFontTime)
 			oltbTime.DrawText(strTime, colorBlack, JH.Center)
@@ -113,7 +118,13 @@ class CMatchBlot(CBlot): # tag = dayb
 		xLineMax = xLineMin + dXLine
 		yLine = yScore + (self.dayb.s_dSScore / 2.0)
 
-		if self.page.pagea.fGroupHints and not self.fElimination and not self.page.FMatchHasResults(self.match):
+		fShowGroupHint = all([
+			self.page.pagea.fGroupHints,	# asked for
+			not self.fElimination,			# only in calendar
+			self.page.ScoringFromMatch(self.match) is not SCORING.Archive # score boxes are being shown
+		])
+
+		if fShowGroupHint:
 			strGroup = self.match.lStrGroup[0]
 			colorGroup = self.tourn.mpStrGroupGroup[strGroup].colors.colorDarker
 			rectGroup = SRect(xLineMin, yScore, dXLine, self.dayb.s_dSScore)
@@ -129,22 +140,12 @@ class CMatchBlot(CBlot): # tag = dayb
 		xHomeBox = self.rect.x + (self.rect.dX / 2.0) - ((dXLineGap / 2.0 ) + self.dayb.s_dSScore)
 		rectHomeBox = SRect(xHomeBox, yScore, self.dayb.s_dSScore, self.dayb.s_dSScore)
 
-		haloaScore = SHaloArgs(colorBlack, 0.1)
-
-		if self.page.FMatchHasResults(self.match):
-			oltbHomeScore = self.Oltb(rectHomeBox, self.page.Fontkey('match.score'), self.dayb.s_dSScore)
-			oltbHomeScore.DrawText(str(self.match.scoreHome), colorWhite, JH.Center, haloa = haloaScore)
-		else:
-			self.DrawBox(rectHomeBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
-
 		xAwayBox = self.rect.x + (self.rect.dX / 2.0) + (dXLineGap / 2.0 )
 		rectAwayBox = SRect(xAwayBox, yScore, self.dayb.s_dSScore, self.dayb.s_dSScore)
 
-		if self.page.FMatchHasResults(self.match):
-			oltbAwayScore = self.Oltb(rectAwayBox, self.page.Fontkey('match.score'), self.dayb.s_dSScore)
-			oltbAwayScore.DrawText(str(self.match.scoreAway), colorWhite, JH.Center, haloa = haloaScore)
-		else:
-			self.DrawBox(rectAwayBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
+		haloaScore = SHaloArgs(colorBlack, 0.1)
+
+		# PK boxes
 
 		rectHomePens = SRect(rectHomeBox.xMax, rectHomeBox.yMax)
 		rectHomePens.Outset(self.dayb.s_dSPens / 2)
@@ -154,7 +155,32 @@ class CMatchBlot(CBlot): # tag = dayb
 		rectAwayPens.Outset(self.dayb.s_dSPens / 2)
 		rectAwayPens.Shift(dX=self.dayb.s_dSPensNudge, dY=-self.dayb.s_dSPensNudge)
 
-		if self.page.FMatchHasResults(self.match):
+		match self.page.ScoringFromMatch(self.match):
+			case SCORING.Fixtures:
+				self.DrawBox(rectHomeBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
+				self.DrawBox(rectAwayBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
+			case SCORING.Archive:
+				oltbHomeScore = self.Oltb(rectHomeBox, self.page.Fontkey('match.score'), self.dayb.s_dSScore)
+				oltbHomeScore.DrawText(str(self.match.scoreHome), colorWhite, JH.Center, haloa = haloaScore)
+				oltbAwayScore = self.Oltb(rectAwayBox, self.page.Fontkey('match.score'), self.dayb.s_dSScore)
+				oltbAwayScore.DrawText(str(self.match.scoreAway), colorWhite, JH.Center, haloa = haloaScore)
+			case SCORING.Instructions:
+				self.DrawBox(rectHomeBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
+				self.DrawBox(rectAwayBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
+				# draw handwritten scores in area avoiding PK boxes
+				rectHomeScore = rectHomeBox
+				rectAwayScore = rectAwayBox
+				if self.fElimination and self.page.ScoringFromMatch(self.match) != SCORING.Archive:
+					rectHomeScore.yMax = (rectHomeScore.yMax + rectHomePens.yMin) / 2.0
+					rectAwayScore.yMax = (rectAwayScore.yMax + rectAwayPens.yMin) / 2.0
+				oltbHomeScore = self.Oltb(rectHomeScore, self.page.Fontkey('handwritten'), rectHomeScore.dY)
+				oltbHomeScore.DrawText(str(self.match.scoreHome), colorBlack, JH.Center)
+				oltbAwayScore = self.Oltb(rectAwayScore, self.page.Fontkey('handwritten'), rectAwayScore.dY)
+				oltbAwayScore.DrawText(str(self.match.scoreAway), colorBlack, JH.Center)
+			case _ as unreachable:
+				assert_never(unreachable)
+
+		if self.page.ScoringFromMatch(self.match) == SCORING.Archive:
 			if self.match.scoreHomeTiebreaker != -1 or self.match.fAfterExtraTime:
 
 				dYBelowBox = self.rect.yMax - rectHomeBox.yMax
@@ -190,12 +216,25 @@ class CMatchBlot(CBlot): # tag = dayb
 					oltbExtraTime = self.Oltb(rectExtraTime, self.page.Fontkey('match.score'), dYFontExtraTime)
 					oltbExtraTime.DrawText(strExtraTime, colorWhite, JH.Center, JV.Bottom, haloa = haloaScore)
 
-		if self.fElimination and not self.page.FMatchHasResults(self.match):
+		if self.fElimination and self.page.ScoringFromMatch(self.match) != SCORING.Archive:
 
 			# PK boxes
 
 			self.DrawBox(rectHomePens, self.dayb.s_dSLineScore, colorBlack, colorWhite)
 			self.DrawBox(rectAwayPens, self.dayb.s_dSLineScore, colorBlack, colorWhite)
+
+			if self.page.ScoringFromMatch(self.match) is SCORING.Instructions and self.match.scoreHomeTiebreaker != -1:
+				assert self.match.scoreAwayTiebreaker != -1
+
+				# penalties in their boxes
+
+				strHomeTiebreaker = str(self.match.scoreHomeTiebreaker)
+				oltbHomeTiebreaker = self.Oltb(rectHomePens, self.page.Fontkey('handwritten'), rectHomePens.dY)
+				oltbHomeTiebreaker.DrawText(strHomeTiebreaker, colorBlack, JH.Center)
+
+				strAwayTiebreaker = str(self.match.scoreAwayTiebreaker)
+				oltbAwayTiebreaker = self.Oltb(rectAwayPens, self.page.Fontkey('handwritten'), rectAwayPens.dY)
+				oltbAwayTiebreaker.DrawText(strAwayTiebreaker, colorBlack, JH.Center)
 
 			# form lines
 
@@ -210,6 +249,22 @@ class CMatchBlot(CBlot): # tag = dayb
 				self.pdf.set_line_width(self.dayb.s_dSLineScore)
 				self.pdf.set_draw_color(0) # black
 				self.pdf.line(xLineFormMin, yLineForm, xLineFormMax, yLineForm)
+
+			# instructions names
+
+			if self.page.ScoringFromMatch(self.match) is SCORING.Instructions:
+
+				# team names
+
+				uFont = 0.8
+
+				rectHomeTeam = SRect(xLineFormLeftMin, rectHomeBox.y, self.dayb.s_dXLineForm, rectHomeBox.dY)
+				oltbHomeTeam = self.Oltb(rectHomeTeam, self.page.Fontkey('handwritten'), rectHomeBox.dY * uFont)
+				oltbHomeTeam.DrawText(self.match.strTeamHome, colorBlack, JH.Center)
+
+				rectAwayTeam = SRect(xLineFormRightMin, rectAwayBox.y, self.dayb.s_dXLineForm, rectAwayBox.dY)
+				oltbAwayTeam = self.Oltb(rectAwayTeam, self.page.Fontkey('handwritten'), rectAwayBox.dY * uFont)
+				oltbAwayTeam.DrawText(self.match.strTeamAway, colorBlack, JH.Center)
 
 			# form labels
 

@@ -3,9 +3,23 @@
 # countries: https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
 
 simple:
-  tournament: latest
   pages:
-    - { tz: US/Pacific }
+    - { tz: US/Pacific}
+
+showoff:
+  tournament: latest
+  file_suffix: showoff
+  pages:
+    - { tz: America/Los_Angeles,    loc: en_US, format: 24x36, region: north_america }
+    - { tz: America/Mexico_City,    loc: es_MX, format: 24x36, region: north_america }
+    - { tz: Europe/Athens,          loc: el_GR, format: 24x36, region: europe }
+    - { tz: Asia/Tehran,            loc: fa_IR, format: 24x36, region: mideast_asia }
+
+instructions:
+  tournament: 2018-mens-world-cup
+  file_suffix: instructions
+  pages:
+    - { tz: US/Pacific, scoring: instructions }
 
 navid:
   tournament: latest
@@ -68,12 +82,12 @@ designs:
 
 results:
   pages:
-    - { tournament: 2018-mens-world-cup  }
-    - { tournament: 2022-mens-world-cup  }
-    - { tournament: 2023-womens-world-cup  }
-    - { tournament: 2024-mens-copa-america  }
-    - { tournament: 2024-mens-euro  }
-    - { tournament: 2025-mens-club-world-cup  }
+    - { scoring: archive, tournament: 2018-mens-world-cup  }
+    - { scoring: archive, tournament: 2022-mens-world-cup  }
+    - { scoring: archive, tournament: 2023-womens-world-cup  }
+    - { scoring: archive, tournament: 2024-mens-copa-america  }
+    - { scoring: archive, tournament: 2024-mens-euro  }
+    - { scoring: archive, tournament: 2025-mens-club-world-cup  }
 
 tourneys:
   all_tournaments: true
