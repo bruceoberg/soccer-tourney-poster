@@ -64,7 +64,7 @@ g_mpStrScriptFontkStrTtf['latn'] = {
 	FONTK.Light: 				'NotoSans-Light.otf',
 	FONTK.LightItalic: 			'NotoSans-LightItalic.otf',
 	FONTK.Regular: 				'NotoSans-Regular.otf',
-	FONTK.Handwritten: 			'Caveat-Regular.ttf',
+	FONTK.Handwritten: 			'ArchitectsDaughter-Regular.ttf',
 }
 assert len(g_mpStrScriptFontkStrTtf['latn']) is len(FONTK)
 
