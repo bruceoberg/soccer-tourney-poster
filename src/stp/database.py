@@ -413,9 +413,27 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 
 		mpStrTeamSetMatch: dict[str, set[CMatch]] = {}
 
-		for match in self.mpIdMatch.values():
+		for id, match in self.mpIdMatch.items():
 			if not match.FHasResults():
 				continue
+
+			# hacks for generating instructions pages...
+			# selectively wipe some match's results
+
+			# #if id > 4:
+			# if match.stage > STAGE(self.stageElimFirst+1):
+			# 	match.scoreHome = -1
+			# 	match.scoreHomeTiebreaker = -1
+			# 	match.strTeamHome = ''
+			# 	match.scoreAway = -1
+			# 	match.scoreAwayTiebreaker = -1
+			# 	match.strTeamAway = ''
+			# 	continue
+			# elif match.stage >= STAGE(self.stageElimFirst+1):
+			# 	match.scoreHome = -1
+			# 	match.scoreHomeTiebreaker = -1
+			# 	match.scoreAway = -1
+			# 	match.scoreAwayTiebreaker = -1
 
 			mpStrTeamSetMatch.setdefault(match.strTeamHome, set()).add(match)
 			mpStrTeamSetMatch.setdefault(match.strTeamAway, set()).add(match)
