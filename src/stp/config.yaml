@@ -10,10 +10,10 @@ showoff:
   tournament: latest
   file_suffix: showoff
   pages:
-    - { tz: America/Los_Angeles,    loc: en_US, format: 24x36, region: north_america }
-    - { tz: America/Mexico_City,    loc: es_MX, format: 24x36, region: north_america }
-    - { tz: Europe/Athens,          loc: el_GR, format: 24x36, region: europe }
-    - { tz: Asia/Tehran,            loc: fa_IR, format: 24x36, region: mideast_asia }
+    - { tz: America/Los_Angeles,    loc: en_US, format: 24x36 }
+    - { tz: Europe/Athens,          loc: el_GR, format: 24x36 }
+    - { tz: Asia/Tehran,            loc: fa_IR, format: 24x36 }
+    - { tz: Asia/Tokyo,             loc: ja_JP, format: 24x36 }
 
 instructions:
   tournament: 2018-mens-world-cup
