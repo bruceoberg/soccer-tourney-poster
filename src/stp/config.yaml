@@ -6,6 +6,13 @@ simple:
   pages:
     - { tz: US/Pacific}
 
+tess:
+  tournament: latest
+  file_suffix: tess
+  pages:
+    - { tz: US/Pacific, loc: en_US }
+    - { tz: US/Pacific, loc: ar_SA }
+
 showoff:
   tournament: latest
   file_suffix: showoff
