@@ -250,9 +250,9 @@ class CMatchBlot(CBlot): # tag = dayb
 				self.pdf.set_draw_color(0) # black
 				self.pdf.line(xLineFormMin, yLineForm, xLineFormMax, yLineForm)
 
-			# instructions names
+			# instructions team names
 
-			if self.page.ScoringFromMatch(self.match) is SCORING.Instructions:
+			if self.page.pagea.scoring is SCORING.Instructions:
 
 				# team names
 

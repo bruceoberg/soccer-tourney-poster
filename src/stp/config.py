@@ -80,7 +80,7 @@ class SPageArgs(BaseModel): # tag - pagea
 	fGroupHints:            bool        = Field(default=False,				alias='group_hints')
 	fEliminationHints:      bool        = Field(default=True,				alias='elimination_hints')
 	fGroupDots:             bool        = Field(default=True,				alias='group_dots')
-	results:				SCORING     = Field(default=SCORING.Fixtures,	alias='scoring')
+	scoring:				SCORING     = Field(default=SCORING.Fixtures,	alias='scoring')
 	fUtcOnly:          		bool        = Field(default=False,				alias='utc_only') # no friendly timezone name.
 	lStrTzAlias:			list[str]	= Field(default=[],					alias='tz_aliases')
 

@@ -185,12 +185,12 @@ class CGroupBlot(CBlot): # tag = groupb
 
 			for iTeam, strTeam in enumerate(self.group.mpStrSeedStrTeam.values()):
 				yTeam = rectHeading.yMax + iTeam * dYTeam
-				results = None if self.page.pagea.results == SCORING.Fixtures else self.tourn.mpStrTeamResults.get(strTeam)
+				results = None if self.page.pagea.scoring == SCORING.Fixtures else self.tourn.mpStrTeamResults.get(strTeam)
 
 				# group rank
 
 				if results and results.strPlace:
-					if self.page.pagea.results == SCORING.Archive:
+					if self.page.pagea.scoring == SCORING.Archive:
 						strFontkey = 'group.team.place'
 					else:
 						strFontkey = 'handwritten'
@@ -201,7 +201,7 @@ class CGroupBlot(CBlot): # tag = groupb
 				# total points
 
 				if results and len(results.lResult) >= 3 and results.cPoint:
-					if self.page.pagea.results == SCORING.Archive:
+					if self.page.pagea.scoring == SCORING.Archive:
 						strFontkey = 'group.team.point-total'
 						colorPointTotal = colorLightGrey
 						dYPointTotal = dYTeam

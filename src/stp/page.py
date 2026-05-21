@@ -323,7 +323,7 @@ class CPage:
 		self.pdf.line(self.rectInside.xMax,		self.rectCropMarks.yMax,	self.rectInside.xMax,		self.rect.yMax)
 
 	def FMatchHasResults(self, match: CMatch) -> bool:
-		if self.pagea.results == SCORING.Fixtures:
+		if self.pagea.scoring == SCORING.Fixtures:
 			return False
 
 		return match.FHasResults()
@@ -332,10 +332,10 @@ class CPage:
 		if not match.FHasResults():
 			return SCORING.Fixtures
 		
-		return self.pagea.results
+		return self.pagea.scoring
 
 	def FAllMatchesHaveResults(self) -> bool:
-		if self.pagea.results == SCORING.Fixtures or self.pagea.results == SCORING.Instructions:
+		if self.pagea.scoring == SCORING.Fixtures or self.pagea.scoring == SCORING.Instructions:
 			return False
 
 		return self.tourn.fHasAllResults
