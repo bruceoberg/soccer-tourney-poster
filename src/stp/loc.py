@@ -156,6 +156,7 @@ class CZoneName: # tag = zonename
 		"Asia/Riyadh":			STZs("ARST"),
 		"Asia/Tehran":			STZs("IRST"),
 		"Asia/Tashkent":		STZs("UZT"),
+		"Asia/Ho_Chi_Minh":		STZs("ICT"),
 		"Asia/Shanghai":		STZs("CNST"),
 		"Asia/Taipei":			STZs("TST"),
 	}
