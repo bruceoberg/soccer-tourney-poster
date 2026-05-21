@@ -237,6 +237,8 @@ published:
     - { tz: Asia/Seoul,             loc: ko_KR, region: asia_pacific }
     - { tz: Asia/Shanghai,          loc: zh_CN, region: asia_pacific }
     - { tz: Asia/Taipei,            loc: zh_TW, region: asia_pacific }
+    - { tz: Asia/Jakarta,           loc: id_ID, region: asia_pacific }
+    - { tz: Asia/Ho_Chi_Minh,       loc: vi_VN, region: asia_pacific }
 
     - { tz: Australia/Perth,        loc: en_AU, region: asia_pacific }
     - { tz: Australia/Adelaide,     loc: en_AU, region: asia_pacific }
@@ -266,6 +268,8 @@ testgrid:
     - { tz: Asia/Tokyo,             loc: ja_JP, region: asia_pacific }
     - { tz: Asia/Shanghai,          loc: zh_CN, region: asia_pacific }
     - { tz: Asia/Taipei,            loc: zh_TW, region: asia_pacific }
+    - { tz: Asia/Jakarta,           loc: id_ID, region: asia_pacific }
+    - { tz: Asia/Ho_Chi_Minh,       loc: vi_VN, region: asia_pacific }
 
 grid:
   tournament: latest

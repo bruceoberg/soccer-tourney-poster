@@ -171,10 +171,12 @@ class CManifest: # tag = manif
 		'fa',
 		'ar',
 		'uz',
-		'ja',
-		'ko',
+		'id',
+		'vi',
 		'zh_Hans',
 		'zh_Hant',
+		'ko',
+		'ja',
 	]
 
 	s_lLocaleLangOrder: list[Locale] = [Locale.parse(strLocaleLang) for strLocaleLang in s_lStrLocaleLangOrder]
