@@ -3,6 +3,8 @@
 # countries: https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
 
 simple:
+  default: true
+  tournament: latest
   pages:
     - { tz: US/Pacific}
 
@@ -102,7 +104,6 @@ tourneys:
     - { tz: US/Pacific  }
 
 langs:
-  default: true
   tournament: latest
   file_suffix: langs
   pages:
