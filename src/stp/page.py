@@ -3,9 +3,12 @@ from __future__ import annotations  # Forward refs without quotes (eg foo: CFoo,
 import arrow
 import babel.dates
 import datetime
+import io
+import qrcode
 import sys
 
 from babel import Locale
+from qrcode.constants import ERROR_CORRECT_L
 from typing import Optional, cast, TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
@@ -390,7 +393,7 @@ class CDaysTestPage(CPage): # gtp
 
 class CHeaderBlot(CBlot): # tag = headerb
 
-	s_dY = CDayBlot.s_dYMin * 0.6
+	s_dY = 1.25
 
 	s_dYFontTitle = s_dY / 2
 	s_dYFontSides = s_dYFontTitle / 2
@@ -449,11 +452,29 @@ class CHeaderBlot(CBlot): # tag = headerb
 		oltbNoteRight = self.Oltb(rectNoteRight, self.page.Fontkey('page.header.title'), self.s_dYFontSides, dSMargin = dSMarginSides)
 		oltbNoteRight.DrawText(strNoteRight, colorWhite, JH.Right, JV.Bottom)
 
+def IobufQRCode(strUrl: str) -> io.BytesIO:
+	qr = qrcode.QRCode(error_correction=ERROR_CORRECT_L, box_size=10, border=0)
+	qr.add_data(strUrl)
+	qr.make(fit=True)
+	img = qr.make_image(fill_color="white", back_color="black")
+
+	iobuf = io.BytesIO()
+	img.save(iobuf, format="PNG")
+
+	return iobuf
+
+s_strBuildTime = arrow.Arrow.now().strftime('%Y%m%d%H%M')
+
 class CFooterBlot(CBlot): # tag = headerb
 
-	s_dY = CDayBlot.s_dYMin * 0.2
+	s_dY = 0.75
+	s_dSQRCode = 0.5
+	s_dYQRCodeMargin = (s_dY - s_dSQRCode) / 2.0
 
-	s_dYFont = s_dY / 4
+	s_dYFont = s_dY / 3
+
+	s_strServer = "soccer-tournament-poster.com"
+	s_iobufQRCode = IobufQRCode(f"https://{s_strServer}")
 
 	def __init__(self, page: CPage) -> None:
 		super().__init__(page.pdf)
@@ -472,40 +493,51 @@ class CFooterBlot(CBlot): # tag = headerb
 
 		# credits
 
-		rectCredits = rectAll.Copy().Stretch(dXLeft = CHeaderBlot.s_dY, dXRight = -CHeaderBlot.s_dY) # yes, using height as left space
+		rectCredits = rectAll.Copy().Stretch(dXLeft = CHeaderBlot.s_dY, dXRight = -CHeaderBlot.s_dY) # yes, using height as horizontal spacing
+
+		# NOTE bruceo: a little weirdness here. this iobuf will read by multiple clients, and
+		# thus needs to be reset back to its start every use. perhaps bake this into a class?
+
+		self.s_iobufQRCode.seek(0)
+
+		self.pdf.image(
+					self.s_iobufQRCode,
+					x=rectCredits.x - (self.s_dSQRCode + self.s_dYQRCodeMargin),
+					y=rectCredits.y + self.s_dYQRCodeMargin,
+					w=self.s_dSQRCode,
+					h=self.s_dSQRCode)
 
 		lStrCreditLeft: list[str] = [
-			'DESIGN/CODE BY BRUCE OBERG',
-			'BRUCE@OBERG.ORG',
-			'MADE IN PYTHON WITH FPDF2',
-			'GITHUB.COM/BRUCEOBERG/SOCCER-TOURNEY-POSTER',
-			g_repover.StrVersionShort(),
+			self.s_strServer,
+			'Design/Code: Bruce Oberg',
+			'bruce@oberg.org',
 		]
 
 		lStrCreditCenter: list[str] = []
 
 		if not self.page.FAllMatchesHaveResults():
-			strTzFooter = self.page.zonename.StrUtcRaw() if self.page.pagea.fUtcOnly else self.page.pagea.strTz
+			strTzFooter = self.page.pagea.strTz
 			lStrCreditCenter.append(strTzFooter)
 
 		lStrCreditCenter += [
 			StrLangTerritoryFromLocale(self.page.locale),
 			str(self.page.fmt),
+			f"{s_strBuildTime}.{g_repover.StrVersionShort()}",
 		]
 
 		if self.page.pagea.strVariant:
 			lStrCreditCenter.append(self.page.pagea.strVariant)
 
 		lStrCreditRight: list[str] = [
-			'ORIGINAL DESIGN BY BENJY TOCZYNSKI',
-			'BTOCZYNSKI@GMAIL.COM',
+			'Original Design: Benjy Toczynski',
+			'btoczynski@gmail.com',
 		]
 
-		strSpaceDotSpace = ' • '
+		strSpaceDotSpace = ' · '
 
 		for lStrCredit, jh in ((lStrCreditLeft, JH.Left), (lStrCreditCenter, JH.Center), (lStrCreditRight, JH.Right)):
 			strCredit = strSpaceDotSpace.join(lStrCredit)
-			oltbCredit = self.Oltb(rectCredits, self.page.Fontkey('page.footer'), self.s_dYFont)
+			oltbCredit = self.Oltb(rectCredits, self.page.Fontkey('page.footer'), self.s_dYFont, dSMargin=0.0)
 			oltbCredit.DrawText(strCredit, colorWhite, jh, JV.Middle)
 
 class CCalOnlyPage(CPage): # tag = calonlyp
