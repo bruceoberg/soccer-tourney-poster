@@ -66,8 +66,8 @@ class CRepositoryVersion:  # tag = repover
         if not self:
             return "unknown"
         
-        strDirty = "-dirty" if self.fDirty else ""
-        return f"commit {self.strHashGitShort}{strDirty}"
+        strDirty = "+" if self.fDirty else ""
+        return f"{self.strHashGitShort}{strDirty}"
     
     def ObjFullInfo(self) -> dict:
         """Full version info for document metadata."""
