@@ -54,16 +54,16 @@ g_mpStrStyleFontk = {
 g_mpStrScriptFontkStrTtf: dict[str, dict[FONTK,str]] = {}
 
 g_mpStrScriptFontkStrTtf['latn'] = {
-	FONTK.Console: 				'consola.ttf',
-	FONTK.ConsoleItalic: 		'consolai.ttf',
-	FONTK.Bold: 				'NotoSans-Bold.otf',
-	FONTK.CondensedBoldLatn:	'NotoSans-CondensedBold.otf',
-	FONTK.CondensedBold: 		'NotoSans-CondensedBold.otf',
-	FONTK.SemiBold: 			'NotoSans-SemiBold.otf',
-	FONTK.SemiCondensed: 		'NotoSans-SemiCondensed.otf',
-	FONTK.Light: 				'NotoSans-Light.otf',
-	FONTK.LightItalic: 			'NotoSans-LightItalic.otf',
-	FONTK.Regular: 				'NotoSans-Regular.otf',
+	FONTK.Console: 				'NotoSansMono-Regular.ttf',
+	FONTK.ConsoleItalic: 		'NotoSansMono-Thin.ttf',
+	FONTK.Bold: 				'NotoSans-Bold.ttf',
+	FONTK.CondensedBoldLatn:	'NotoSans-CondensedBold.ttf',
+	FONTK.CondensedBold: 		'NotoSans-CondensedBold.ttf',
+	FONTK.SemiBold: 			'NotoSans-SemiBold.ttf',
+	FONTK.SemiCondensed: 		'NotoSans-SemiCondensed.ttf',
+	FONTK.Light: 				'NotoSans-Light.ttf',
+	FONTK.LightItalic: 			'NotoSans-LightItalic.ttf',
+	FONTK.Regular: 				'NotoSans-Regular.ttf',
 	FONTK.Handwritten: 			'ArchitectsDaughter-Regular.ttf',
 }
 assert len(g_mpStrScriptFontkStrTtf['latn']) is len(FONTK)
@@ -88,13 +88,15 @@ g_mpStrScriptFontkStrTtf['cyrl'] = MpStrScriptFontkStrTtfOverrideLatn({})
 g_mpStrScriptFontkStrTtf['grek'] = MpStrScriptFontkStrTtfOverrideLatn({})
 
 g_mpStrScriptFontkStrTtf['jpan'] = MpStrScriptFontkStrTtfOverrideLatn({
-	FONTK.Bold:				'NotoSansCJKjp-Black.otf',
-	FONTK.CondensedBold:	'NotoSansCJKjp-Bold.otf',
-	FONTK.SemiBold:			'NotoSansCJKjp-Bold.otf',
-	FONTK.SemiCondensed:	'NotoSansCJKjp-Regular.otf',
-	FONTK.Light:			'NotoSansCJKjp-Light.otf',
-	FONTK.LightItalic:		'NotoSansCJKjp-Light.otf',
-	FONTK.Regular:			'NotoSansCJKjp-Regular.otf',
+	FONTK.Console: 				'consola.ttf',
+	FONTK.ConsoleItalic: 		'consolai.ttf',
+	FONTK.Bold:				'NotoSansCJKjp-Black.ttf',
+	FONTK.CondensedBold:	'NotoSansCJKjp-Bold.ttf',
+	FONTK.SemiBold:			'NotoSansCJKjp-Bold.ttf',
+	FONTK.SemiCondensed:	'NotoSansCJKjp-Regular.ttf',
+	FONTK.Light:			'NotoSansCJKjp-Light.ttf',
+	FONTK.LightItalic:		'NotoSansCJKjp-Light.ttf',
+	FONTK.Regular:			'NotoSansCJKjp-Regular.ttf',
 })
 
 g_mpStrScriptFontkStrTtf['jpan-orig'] = MpStrScriptFontkStrTtfOverrideLatn({
@@ -108,43 +110,43 @@ g_mpStrScriptFontkStrTtf['jpan-orig'] = MpStrScriptFontkStrTtfOverrideLatn({
 })
 
 g_mpStrScriptFontkStrTtf['kore'] = MpStrScriptFontkStrTtfOverrideLatn({
-	FONTK.Bold:				'NotoSansCJKkr-Black.otf',
-	FONTK.CondensedBold:	'NotoSansCJKkr-Bold.otf',
-	FONTK.SemiBold:			'NotoSansCJKkr-Bold.otf',
-	FONTK.SemiCondensed:	'NotoSansCJKkr-Regular.otf',
-	FONTK.Light:			'NotoSansCJKkr-Light.otf',
-	FONTK.LightItalic:		'NotoSansCJKkr-Light.otf',
-	FONTK.Regular:			'NotoSansCJKkr-Regular.otf',
+	FONTK.Bold:				'NotoSansCJKkr-Black.ttf',
+	FONTK.CondensedBold:	'NotoSansCJKkr-Bold.ttf',
+	FONTK.SemiBold:			'NotoSansCJKkr-Bold.ttf',
+	FONTK.SemiCondensed:	'NotoSansCJKkr-Regular.ttf',
+	FONTK.Light:			'NotoSansCJKkr-Light.ttf',
+	FONTK.LightItalic:		'NotoSansCJKkr-Light.ttf',
+	FONTK.Regular:			'NotoSansCJKkr-Regular.ttf',
 })
 
 g_mpStrScriptFontkStrTtf['hans'] = MpStrScriptFontkStrTtfOverrideLatn({
-	FONTK.Bold:				'NotoSansCJKsc-Black.otf',
-	FONTK.CondensedBold:	'NotoSansCJKsc-Bold.otf',
-	FONTK.SemiBold:			'NotoSansCJKsc-Bold.otf',
-	FONTK.SemiCondensed:	'NotoSansCJKsc-Regular.otf',
-	FONTK.Light:			'NotoSansCJKsc-Light.otf',
-	FONTK.LightItalic:		'NotoSansCJKsc-Light.otf',
-	FONTK.Regular:			'NotoSansCJKsc-Regular.otf',
+	FONTK.Bold:				'NotoSansCJKsc-Black.ttf',
+	FONTK.CondensedBold:	'NotoSansCJKsc-Bold.ttf',
+	FONTK.SemiBold:			'NotoSansCJKsc-Bold.ttf',
+	FONTK.SemiCondensed:	'NotoSansCJKsc-Regular.ttf',
+	FONTK.Light:			'NotoSansCJKsc-Light.ttf',
+	FONTK.LightItalic:		'NotoSansCJKsc-Light.ttf',
+	FONTK.Regular:			'NotoSansCJKsc-Regular.ttf',
 })
 
 g_mpStrScriptFontkStrTtf['hant'] = MpStrScriptFontkStrTtfOverrideLatn({
-	FONTK.Bold:				'NotoSansCJKtc-Black.otf',
-	FONTK.CondensedBold:	'NotoSansCJKtc-Bold.otf',
-	FONTK.SemiBold:			'NotoSansCJKtc-Bold.otf',
-	FONTK.SemiCondensed:	'NotoSansCJKtc-Regular.otf',
-	FONTK.Light:			'NotoSansCJKtc-Light.otf',
-	FONTK.LightItalic:		'NotoSansCJKtc-Light.otf',
-	FONTK.Regular:			'NotoSansCJKtc-Regular.otf',
+	FONTK.Bold:				'NotoSansCJKtc-Black.ttf',
+	FONTK.CondensedBold:	'NotoSansCJKtc-Bold.ttf',
+	FONTK.SemiBold:			'NotoSansCJKtc-Bold.ttf',
+	FONTK.SemiCondensed:	'NotoSansCJKtc-Regular.ttf',
+	FONTK.Light:			'NotoSansCJKtc-Light.ttf',
+	FONTK.LightItalic:		'NotoSansCJKtc-Light.ttf',
+	FONTK.Regular:			'NotoSansCJKtc-Regular.ttf',
 })
 
 g_mpStrScriptFontkStrTtf['arab'] = MpStrScriptFontkStrTtfOverrideLatn({
-	FONTK.Bold:				'NotoSansArabic-ExtraBold.otf',
-	FONTK.CondensedBold:	'NotoSansArabic-CondensedBold.otf',
-	FONTK.SemiBold:			'NotoSansArabic-Bold.otf',
-	FONTK.SemiCondensed:	'NotoSansArabic-SemiCondensed.otf',
-	FONTK.Light:			'NotoSansArabic-Light.otf',
-	FONTK.LightItalic:		'NotoSansArabic-Light.otf',
-	FONTK.Regular:			'NotoSansArabic-Regular.otf',
+	FONTK.Bold:				'NotoSansArabic-ExtraBold.ttf',
+	FONTK.CondensedBold:	'NotoSansArabic-CondensedBold.ttf',
+	FONTK.SemiBold:			'NotoSansArabic-Bold.ttf',
+	FONTK.SemiCondensed:	'NotoSansArabic-SemiCondensed.ttf',
+	FONTK.Light:			'NotoSansArabic-Light.ttf',
+	FONTK.LightItalic:		'NotoSansArabic-Light.ttf',
+	FONTK.Regular:			'NotoSansArabic-Regular.ttf',
 })
 
 def StrTtfLookup(strStyle: str, strScript: str) -> str:
