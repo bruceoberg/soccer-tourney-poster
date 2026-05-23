@@ -1,4 +1,4 @@
-![](readme.png)
+![](readme.jpg)
 
 # Bruce's Soccer Tourney Poster Generator
 
