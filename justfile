@@ -25,6 +25,7 @@ publish:
     rm -fr {{dirProjectRoot}}/playground/published/{{strTournLatest}}/
     stp -d published -t {{strTournLatest}}
     mv {{dirProjectRoot}}/playground/published/{{strTournLatest}}/ {{dirProjectRoot}}/published/
+    git add {{dirProjectRoot}}/published/{{strTournLatest}}/
 
 copy-manifest:
     cp {{dirGridSrc}}/manifest.yaml {{dirGridDst}}
