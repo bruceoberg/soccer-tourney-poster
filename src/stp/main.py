@@ -124,6 +124,7 @@ type SRegionObj = dict[str, SCityObj] # tag = rego
 
 class SSectionObj(BaseModel): # tag = secto
 	strEdition:     str         			= Field(default='',		alias='edition')
+	strDirection:	str         			= Field(default='',		alias='dir')
 	mpStrRego:		dict[str, SRegionObj]	= Field(default={},		alias='regions')
 
 class SManifestObj(BaseModel): # tag = mano
@@ -204,8 +205,9 @@ class CManifest: # tag = manif
 		sorter = icu.Collator.createInstance(icu.Locale(str(locale))) # type: ignore[attr-defined]
 		pagelr = self.collector.mpLocaleLangPagelr[locale]
 		citymap = self.mpLocaleCitymap[locale]
+		strDirection = 'rtl' if locale.character_order == 'right-to-left' else 'ltr'
 
-		secto = SSectionObj(edition=pagelr.strEdition)
+		secto = SSectionObj(edition=pagelr.strEdition, dir=strDirection)
 
 		for region in REGION:
 			setStrTz = self.mpRegionSetStrTz.get(region)
