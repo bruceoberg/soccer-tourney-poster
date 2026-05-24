@@ -21,9 +21,9 @@ po-accept +lPathInputs:
     python {{dirProjectRoot}}/scripts/potpo.py accept "$@"
 
 publish:
-    rm -fr {{dirProjectRoot}}/published/{{strTournLatest}}/
     rm -fr {{dirProjectRoot}}/playground/published/{{strTournLatest}}/
     stp -d published -t {{strTournLatest}}
+    rm -fr {{dirProjectRoot}}/published/{{strTournLatest}}/
     mv {{dirProjectRoot}}/playground/published/{{strTournLatest}}/ {{dirProjectRoot}}/published/
     git add {{dirProjectRoot}}/published/{{strTournLatest}}/
 
