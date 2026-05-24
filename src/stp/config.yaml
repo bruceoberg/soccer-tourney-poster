@@ -8,12 +8,13 @@ simple:
   pages:
     - { tz: US/Pacific}
 
-tess:
+mcgraw:
   tournament: latest
-  file_suffix: tess
+  file_suffix: mcgraw
   pages:
-    - { tz: US/Pacific, loc: en_US }
-    - { tz: US/Pacific, loc: ar_SA }
+    - { tz: US/Pacific, loc: en_US, format: 24x36 }
+    - { tz: US/Pacific, loc: ko_KO, format: 24x36 }
+    - { tz: US/Pacific, loc: sv_SE, format: 24x36 }
 
 showoff:
   tournament: latest
