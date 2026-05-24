@@ -47,6 +47,7 @@ g_mpStrStyleFontk = {
 	'match.time':					FONTK.Light,
 	'page.footer':					FONTK.CondensedBoldLatn,
 	'page.header.title':			FONTK.CondensedBold,
+	'page.info':					FONTK.Regular,
 	'third.team.name':				FONTK.SemiCondensed,
 	'handwritten':					FONTK.Handwritten,
 }

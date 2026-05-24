@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 from bolay import SFontKey, CBlot
 from bolay import JH, JV, SPoint, SRect
 from bolay import ColorFromStr, SColor
-from bolay import colorBlack, colorWhite, colorGrey
+from bolay import colorBlack, colorWhite, colorGrey, colorLightGrey
 
 from .config import SPageArgs, SCORING
 from .fonts import StrTtfLookup
@@ -471,7 +471,8 @@ class CFooterBlot(CBlot): # tag = headerb
 	s_dSQRCode = 0.5
 	s_dYQRCodeMargin = (s_dY - s_dSQRCode) / 2.0
 
-	s_dYFont = s_dY / 3
+	s_dYFontFooter = s_dY / 3
+	s_dYFontInfo = 2 * s_dYFontFooter / 3
 
 	s_strServer = "soccer-tournament-poster.com"
 	s_iobufQRCode = IobufQRCode(f"https://{s_strServer}")
@@ -513,21 +514,6 @@ class CFooterBlot(CBlot): # tag = headerb
 			'bruce@oberg.org',
 		]
 
-		lStrCreditCenter: list[str] = []
-
-		if not self.page.FAllMatchesHaveResults():
-			strTzFooter = self.page.pagea.strTz
-			lStrCreditCenter.append(strTzFooter)
-
-		lStrCreditCenter += [
-			StrLangTerritoryFromLocale(self.page.locale),
-			str(self.page.fmt),
-			f"{s_strBuildTime}.{g_repover.StrVersionShort()}",
-		]
-
-		if self.page.pagea.strVariant:
-			lStrCreditCenter.append(self.page.pagea.strVariant)
-
 		lStrCreditRight: list[str] = [
 			'Original Design: Benjy Toczynski',
 			'btoczynski@gmail.com',
@@ -535,10 +521,35 @@ class CFooterBlot(CBlot): # tag = headerb
 
 		strSpaceDotSpace = ' · '
 
-		for lStrCredit, jh in ((lStrCreditLeft, JH.Left), (lStrCreditCenter, JH.Center), (lStrCreditRight, JH.Right)):
+		for lStrCredit, jh in ((lStrCreditLeft, JH.Left), (lStrCreditRight, JH.Right)):
 			strCredit = strSpaceDotSpace.join(lStrCredit)
-			oltbCredit = self.Oltb(rectCredits, self.page.Fontkey('page.footer'), self.s_dYFont, dSMargin=0.0)
+			oltbCredit = self.Oltb(rectCredits, self.page.Fontkey('page.footer'), self.s_dYFontFooter, dSMargin=0.0)
 			oltbCredit.DrawText(strCredit, colorWhite, jh, JV.Middle)
+
+		lStrInfoLeft: list[str] = []
+
+		if not self.page.FAllMatchesHaveResults():
+			strTzFooter = self.page.pagea.strTz
+			lStrInfoLeft.append(strTzFooter)
+
+		lStrInfoLeft += [
+			StrLangTerritoryFromLocale(self.page.locale),
+		]
+
+		lStrInfoRight: list[str] = [
+			str(self.page.fmt),
+			f"{s_strBuildTime}.{g_repover.StrVersionShort()}",
+		]
+
+		if self.page.pagea.strVariant:
+			lStrInfoRight.append(self.page.pagea.strVariant)
+
+		rectInfo = rectCredits.Copy(dY=self.s_dYFontInfo).Shift(dY=-(1.5 * self.s_dYFontInfo))
+
+		for lStrInfo, jh in ((lStrInfoLeft, JH.Left), (lStrInfoRight, JH.Right)):
+			strInfo = strSpaceDotSpace.join(lStrInfo)
+			oltbInfo = self.Oltb(rectInfo, self.page.Fontkey('page.info'), self.s_dYFontInfo, dSMargin=0.0)
+			oltbInfo.DrawText(strInfo, colorLightGrey, jh, JV.Middle)
 
 class CCalOnlyPage(CPage): # tag = calonlyp
 	def __init__(self, doc: CDocument, pagea: SPageArgs):
