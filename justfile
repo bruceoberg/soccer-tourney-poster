@@ -10,7 +10,7 @@ dirGridSrc      := dirProjectRoot / "playground" / "grid" / strTournLatest
 
 dirObergOrg     := dirProjectRoot / ".." / "oberg-org"
 dirZolaContent  := dirObergOrg / "zola" / "content"
-dirPostsStp     := dirZolaContent / "posts" / "stp"
+dirPostsStp     := dirZolaContent / "poster"
 
 dirGridDst    := dirPostsStp / strTournLatest / "grid"
 
