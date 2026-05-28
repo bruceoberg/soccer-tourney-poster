@@ -236,45 +236,49 @@ class CPage:
 
 		# if all the matches are one day off their display dates, then reset the display dates
 
-		fAllGroupMatchesAhead = True
+		if self.pagea.fTomorrowTime:
 
-		for match in self.tourn.mpIdMatch.values():
-			if match.stage != STAGE.Group:
-				continue
-			tTimeTz = match.tStart.to(self.zoneinfo)
-			dateDisplay = mpIdDateTourney[match.id]
-			if dateDisplay.day == tTimeTz.day:
-				fAllGroupMatchesAhead = False
-				break
+			fAllGroupMatchesAhead = True
 
-		if fAllGroupMatchesAhead:
-			mpIdDateTourneyAdjusted: dict[int, datetime.date] = {id: dateTourney + datetime.timedelta(days=1) for id, dateTourney in mpIdDateTourney.items() }
-			mpIdDateTourney = mpIdDateTourneyAdjusted
+			for match in self.tourn.mpIdMatch.values():
+				if match.stage != STAGE.Group:
+					continue
+				tTimeTz = match.tStart.to(self.zoneinfo)
+				dateDisplay = mpIdDateTourney[match.id]
+				if dateDisplay.day == tTimeTz.day:
+					fAllGroupMatchesAhead = False
+					break
+
+			if fAllGroupMatchesAhead:
+				mpIdDateTourneyAdjusted: dict[int, datetime.date] = {id: dateTourney + datetime.timedelta(days=1) for id, dateTourney in mpIdDateTourney.items() }
+				mpIdDateTourney = mpIdDateTourneyAdjusted
 
 		# several language/territory combos have a 'short' format that negates the effect of our
 		# CTomorrowTime hack. if any group matches would use CTomorrowTime, force a 24h aware format.
 
-		fForceGroup24HourTime = False
+		strFmtTime = 'short'
 
-		for match in self.tourn.mpIdMatch.values():
-			if match.stage != STAGE.Group:
-				continue
-			tTimeTz = match.tStart.to(self.zoneinfo)
-			dateDisplay = mpIdDateTourney[match.id]
-			if dateDisplay.day != tTimeTz.day:
-				fForceGroup24HourTime = True
-				continue
+		if self.pagea.fTomorrowTime:
 
-		if fForceGroup24HourTime:
-			strFmtTime = 'HH:mm'
-		else:
-			strFmtTime = 'short'
+			fForceGroup24HourTime = False
+
+			for match in self.tourn.mpIdMatch.values():
+				if match.stage != STAGE.Group:
+					continue
+				tTimeTz = match.tStart.to(self.zoneinfo)
+				dateDisplay = mpIdDateTourney[match.id]
+				if dateDisplay.day != tTimeTz.day:
+					fForceGroup24HourTime = True
+					continue
+
+			if fForceGroup24HourTime:
+				strFmtTime = 'HH:mm'
 
 		for match in self.tourn.mpIdMatch.values():
 			tTimeTz = match.tStart.to(self.zoneinfo)
 			strTime = babel.dates.format_time(tTimeTz.time(), strFmtTime, locale=self.locale)
 
-			if match.stage == STAGE.Group:
+			if match.stage == STAGE.Group and self.pagea.fTomorrowTime:
 				dateDisplay = mpIdDateTourney[match.id]
 				if dateDisplay.day != tTimeTz.day:
 					ttTimeTz = CTomorrowTime(tTimeTz.hour, tTimeTz.minute, tTimeTz.second, tTimeTz.microsecond, tTimeTz.tzinfo)
