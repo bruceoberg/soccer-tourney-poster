@@ -315,7 +315,7 @@ class CPage:
 			return
 
 		self.pdf.set_line_width(self.s_dSLineCropMarks)
-		self.pdf.set_draw_color(self.s_colorCropMarks.r, self.s_colorCropMarks.g, self.s_colorCropMarks.b)
+		self.pdf.SetDrawColor(self.s_colorCropMarks)
 
 		self.pdf.line(self.rect.xMin, 			self.rectInside.yMin,		self.rectCropMarks.xMin,	self.rectInside.yMin) 		# top
 		self.pdf.line(self.rectCropMarks.xMax,	self.rectInside.yMin,		self.rect.xMax,				self.rectInside.yMin)

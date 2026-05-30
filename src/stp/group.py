@@ -141,7 +141,7 @@ class CGroupBlot(CBlot): # tag = groupb
 			rectRank = rectHeading.Copy(x=rectPoints.xMin - dXRank, dX=dXRank)
 
 		self.pdf.set_line_width(self.s_dSLineStats)
-		self.pdf.set_draw_color(0) # black
+		self.pdf.SetDrawColor(colorBlack)
 
 		if fLtR:
 			self.pdf.line(rectGoalsFor.xMin, rectHeading.yMax, rectGoalsFor.xMin, rectInside.yMax)
@@ -272,7 +272,7 @@ class CGroupBlot(CBlot): # tag = groupb
 							yDot = yTeam + dYTeamDotMin + dYTeamDotGrid * row
 
 							with self.pdf.local_context(fill_opacity=dotbox.mpColUOpacity[col]):
-								self.pdf.set_fill_color(0) # black
+								self.pdf.SetFillColor(colorBlack)
 								if matchstat == MATCHSTAT.Points:
 									dSCenter = dSDot / 2.0
 									dSRadius = dSDot * g_sRadiusArea1 # a circle with the same area as dSDot square

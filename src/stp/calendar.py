@@ -132,7 +132,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			oltbGroup.DrawText(strGroup, colorGroup, JH.Center, JV.Middle)
 		else:
 			self.pdf.set_line_width(self.dayb.s_dSLineScore)
-			self.pdf.set_draw_color(0) # black
+			self.pdf.SetDrawColor(colorBlack)
 			self.pdf.line(xLineMin, yLine, xLineMax, yLine)
 
 		# score boxes
@@ -195,7 +195,7 @@ class CMatchBlot(CBlot): # tag = dayb
 
 					yLine = yExtraTime + dYExtraTime / 2.0
 					self.pdf.set_line_width(self.dayb.s_dSLineScore)
-					self.pdf.set_draw_color(0) # black
+					self.pdf.SetDrawColor(colorBlack)
 					self.pdf.line(rectHomePens.xMax, yLine, rectAwayPens.xMin, yLine)
 
 					# penalties on either side
@@ -247,7 +247,7 @@ class CMatchBlot(CBlot): # tag = dayb
 			for xLineFormMin in (xLineFormLeftMin, xLineFormRightMin):
 				xLineFormMax = xLineFormMin + self.dayb.s_dXLineForm
 				self.pdf.set_line_width(self.dayb.s_dSLineScore)
-				self.pdf.set_draw_color(0) # black
+				self.pdf.SetDrawColor(colorBlack)
 				self.pdf.line(xLineFormMin, yLineForm, xLineFormMax, yLineForm)
 
 			# instructions team names
@@ -439,7 +439,7 @@ class CDayBlot(CBlot): # tag = dayb
 
 			if self.page.pagea.fMainBorders:
 				self.pdf.set_line_width(self.s_dSLineOuter)
-				self.pdf.set_draw_color(0) # black
+				self.pdf.SetDrawColor(colorBlack)
 				self.pdf.line(rectBorder.xMin, rectBorder.yMax, rectBorder.xMax, rectBorder.yMax)
 
 			return
@@ -719,7 +719,7 @@ class CCalendarBlot(CBlot): # tag = calb
 		xStageLineRightMax = rectStageText.xMax
 
 		self.pdf.set_line_width(CGroupBlot.s_dSLineStats)
-		self.pdf.set_draw_color(0) # black
+		self.pdf.SetDrawColor(colorBlack)
 
 		self.pdf.line(xStageLineLeftMin, yStageTextMiddle, xStageLineLeftMax, yStageTextMiddle)
 		self.pdf.line(xStageLineRightMin, yStageTextMiddle, xStageLineRightMax, yStageTextMiddle)
@@ -771,7 +771,7 @@ class CCalendarBlot(CBlot): # tag = calb
 				colorWeekdayBreak = colorLightGrey
 
 				self.pdf.set_line_width(CDayBlot.s_dSLineOuter)
-				self.pdf.set_draw_color(colorWeekdayBreak.r, colorWeekdayBreak.g, colorWeekdayBreak.b)
+				self.pdf.SetDrawColor(colorWeekdayBreak)
 
 				yWeekdayBreakMin = rectDayOfWeek.yMin
 				yWeekdayBreakMax = rectDays.yMax

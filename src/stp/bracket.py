@@ -91,7 +91,7 @@ class CFinalBlot(CBlot): # tag = finalb
 		xLineMax = xLineMin + dXLine
 		yLine = rectScore.y + (self.s_dSScore / 2.0)
 		self.pdf.set_line_width(self.s_dSLineScore)
-		self.pdf.set_draw_color(0) # black
+		self.pdf.SetDrawColor(colorBlack) # black
 		self.pdf.line(xLineMin, yLine, xLineMax, yLine)
 
 		# score boxes
@@ -161,7 +161,7 @@ class CFinalBlot(CBlot): # tag = finalb
 
 				yLine = yExtraTime + dYExtraTime / 2.0
 				self.pdf.set_line_width(self.s_dSLineScore)
-				self.pdf.set_draw_color(0) # black
+				self.pdf.SetDrawColor(colorBlack) # black
 				self.pdf.line(xLinePensMin, yLine, xLinePensMax, yLine)
 
 				# penalties on either side
@@ -223,7 +223,7 @@ class CFinalBlot(CBlot): # tag = finalb
 			for xLineFormMin in (xLineFormLeftMin, xLineFormRightMin):
 				xLineFormMax = xLineFormMin + self.s_dXLineForm
 				self.pdf.set_line_width(self.s_dSLineScore)
-				self.pdf.set_draw_color(0) # black
+				self.pdf.SetDrawColor(colorBlack)
 				self.pdf.line(xLineFormMin, yLineForm, xLineFormMax, yLineForm)
 
 			# instructions names
@@ -398,7 +398,7 @@ class CBracketBlot(CBlot): # tag = bracketb
 				xRightMax = rectStageText.xMax - (CElimBlot.s_dX / 2)
 
 				self.pdf.set_line_width(CGroupBlot.s_dSLineStats)
-				self.pdf.set_draw_color(colorBorder.r, colorBorder.g, colorBorder.b)
+				self.pdf.SetDrawColor(colorBorder)
 
 				self.pdf.line(xLeftMin, yStageTextMiddle, xLeftMax, yStageTextMiddle)
 				self.pdf.line(xRightMin, yStageTextMiddle, xRightMax, yStageTextMiddle)
