@@ -5,6 +5,7 @@
 simple:
   default: true
   tournament: latest
+  coloring: gracol
   pages:
     - { tz: US/Pacific }
 

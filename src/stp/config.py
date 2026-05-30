@@ -41,6 +41,12 @@ class SCORING(StrEnum): # tag = results
 	Archive = 'archive'
 	Instructions = 'instructions'
 
+class COLORING(StrEnum): # tag = results
+	Srgb = 'srgb'
+	Gracol = 'gracol'
+	Swop = 'swop'
+	Fogra = 'fogra'
+
 TFmt: TypeAlias = Optional[str | tuple[float, float]]
 
 def StrFromFmt(fmt : TFmt) -> str:
@@ -92,17 +98,18 @@ class SDocumentArgs(BaseModel): # tag = doca
 	
 	model_config = ConfigDict(frozen=True, populate_by_name=True)
 	
-	strName:			str			= Field(				alias='name')
-	tuPagea:			TTuPagea	= Field(				alias='pages')
-	strNameTourn:		str			= Field(default='',		alias='tournament')
-	strDirOutput:		str			= Field(default='',		alias='output_dir')
-	strFileSuffix:		str			= Field(default='',		alias='file_suffix')
-	fAutoFileSuffix:	bool		= Field(default=False,	alias='auto_file_suffix')
-	fUnwindPages:		bool		= Field(default=False,	alias='unwind_pages')
-	fFillGrid:			bool		= Field(default=False,	alias='fill_grid')
-	fGridMember:		bool		= Field(default=False,	alias='grid_member')
-	fAllTournaments:	bool		= Field(default=False,	alias='all_tournaments')
-	fDefault:			bool		= Field(default=False,	alias='default')
+	strName:			str			= Field(						alias='name')
+	tuPagea:			TTuPagea	= Field(						alias='pages')
+	strNameTourn:		str			= Field(default='',				alias='tournament')
+	strDirOutput:		str			= Field(default='',				alias='output_dir')
+	strFileSuffix:		str			= Field(default='',				alias='file_suffix')
+	fAutoFileSuffix:	bool		= Field(default=False,			alias='auto_file_suffix')
+	fUnwindPages:		bool		= Field(default=False,			alias='unwind_pages')
+	fFillGrid:			bool		= Field(default=False,			alias='fill_grid')
+	fGridMember:		bool		= Field(default=False,			alias='grid_member')
+	fAllTournaments:	bool		= Field(default=False,			alias='all_tournaments')
+	fDefault:			bool		= Field(default=False,			alias='default')
+	coloring:			COLORING    = Field(default=COLORING.Srgb,	alias='coloring')
 
 	def PathOutput(self, strName: str, lPage: list[CPage] = []) -> Path:
 		pathDirOutput = Path.cwd()

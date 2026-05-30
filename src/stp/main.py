@@ -22,10 +22,10 @@ from pypdf import PdfWriter
 from tqdm import tqdm
 from typing import Optional, Type, NamedTuple, Iterator, Any
 
-from bolay import CPdf
+from bolay import CPdf, ICC
 
 from . import g_pathCode
-from .config import PAGEK, TFmt, REGION, SPageArgs, SDocumentArgs, SWorklist, WlFromArgs, ParseArgs, DocaUnwind, StrFromFmt
+from .config import PAGEK, TFmt, REGION, COLORING, SPageArgs, SDocumentArgs, SWorklist, WlFromArgs, ParseArgs, DocaUnwind, StrFromFmt
 from .fonts import SetStrTtfFromSetStrScript
 from .loc import CZoneName, StrLangShortFromLocale, StrScriptFromLocale, StrLocaleFromTzLocaleLang, StrLocaleFromLocaleLang, CZoneScope, StrCityFromTzLocale, g_loc
 from .profiling import Profiling, DumpTopCumulative
@@ -506,9 +506,16 @@ class CDocument: # tag = doc
 		PAGEK.CalElim:		CCalElimPage,
 	}
 
+	s_mpColoringIcc: dict[COLORING, ICC] = {
+		COLORING.Srgb: ICC.Srgb,
+		COLORING.Gracol: ICC.Gracol,
+		COLORING.Swop: ICC.Swop,
+		COLORING.Fogra: ICC.Fogra,
+	}
+
 	def __init__(self, doca: SDocumentArgs) -> None:
 		self.doca = doca
-		self.pdf = CPdf()
+		self.pdf = CPdf(self.s_mpColoringIcc[doca.coloring])
 
 		if doca.strNameTourn:
 			strName = doca.strNameTourn
