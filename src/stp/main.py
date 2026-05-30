@@ -30,7 +30,7 @@ from .fonts import SetStrTtfFromSetStrScript
 from .loc import CZoneName, StrLangShortFromLocale, StrScriptFromLocale, StrLocaleFromTzLocaleLang, StrLocaleFromLocaleLang, CZoneScope, StrCityFromTzLocale, g_loc
 from .profiling import Profiling, DumpTopCumulative
 from .database import CTournamentDataBase
-from .page import CPage, CGroupsTestPage, CDaysTestPage, CCalOnlyPage, CCalElimPage
+from .page import CPage, CGroupsTestPage, CDaysTestPage, CColorsTestPage, CCalOnlyPage, CCalElimPage
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
@@ -502,6 +502,7 @@ class CDocument: # tag = doc
 	s_mpPagekClsPage: dict[PAGEK, Type[CPage]] = {
 		PAGEK.GroupsTest:	CGroupsTestPage,
 		PAGEK.DaysTest:		CDaysTestPage,
+		PAGEK.ColorsTest:	CColorsTestPage,
 		PAGEK.CalOnly:		CCalOnlyPage,
 		PAGEK.CalElim:		CCalElimPage,
 	}

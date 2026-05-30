@@ -8,6 +8,7 @@ import qrcode
 import sys
 
 from babel import Locale
+from dataclasses import dataclass
 from qrcode.constants import ERROR_CORRECT_L
 from typing import Optional, cast, TYPE_CHECKING
 from zoneinfo import ZoneInfo
@@ -394,6 +395,92 @@ class CDaysTestPage(CPage): # gtp
 						dSMargin + col * dXCell,
 						dSMargin + row * dYCell)
 				dayb.Draw(pos, daybl)
+
+class CColorsTestPage(CPage): # gtp
+
+	s_mpStrGroupStrColorOrig: dict[str, str] = {
+		"A":	"#c4e1b5",	# green
+		"B":	"#f79d8f",	# red
+		"C":	"#fee289",	# yellow
+		"D":	"#b0d0ee",	# blue
+		"E":	"#fab077",	# orange
+		"F":	"#60b4c7",	# teal
+		"G":	"#bbb1d6",	# lavender
+		"H":	"#94d9f5",	# cyan
+		"I":	"#eecbef",	# purple
+		"J":	"#efc9d8",	# pink
+		"K":	"#eb84af",	# rose
+		"L":	"#EF9A9A",	# brick	
+	}
+
+	s_mpStrGroupStrColorWashed: dict[str, str] = {
+		"A":	"#b9deb7",	# green
+		"B":	"#ffbcb9",	# red
+		"C":	"#e9e8b5",	# yellow
+		"D":	"#cdd9ff",	# blue
+		"E":	"#ffc79e",	# orange
+		"F":	"#bbdccf",	# teal
+		"G":	"#d6d2e5",	# mauve
+		"H":	"#b5dbe4",	# aqua
+		"I":	"#e0d3ff",	# purple
+		"J":	"#f0cdbd",	# salmon
+		"K":	"#f9c4f1",	# pink
+		"L":	"#e1aab6",	# burgundy
+	}
+
+	s_mpStrGroupStrColorFixed: dict[str, str] = {
+		"A":	"#b9deb7",	# green
+		"B":	"#ffbcb9",	# red
+		"C":	"#e9e8b5",	# yellow
+		"D":	"#b0d0ee",	# blue
+		"E":	"#ffc79e",	# orange
+		"F":	"#bbdccf",	# teal
+		"G":	"#d6d2e5",	# mauve
+		"H":	"#b5dbe4",	# aqua
+		"I":	"#bbb1d6",	# purple
+		"J":	"#f0cdbd",	# salmon
+		"K":	"#f9c4f1",	# pink
+		"L":	"#e1aab6",	# burgundy
+	}
+
+	s_lMpStrGroupStrColor: list[Optional[dict[str, str]]] = [s_mpStrGroupStrColorOrig, s_mpStrGroupStrColorWashed, s_mpStrGroupStrColorFixed]
+
+	def __init__(self, doc: CDocument, pagea: SPageArgs):
+		super().__init__(doc, pagea)
+
+		dSMargin = 0.25
+
+		assert doc.tourn
+		
+		if True:
+			lIdMatch = range(25,48)
+			setDate: set[datetime.date] = {doc.tourn.mpIdMatch[idMatch].tStart.date() for idMatch in lIdMatch}
+		else:
+			setDate: set[datetime.date] = set(self.mpDateSetMatch.keys())
+
+		daybl = CDayBlotList(
+					[
+						CDayBlot(
+							self,
+							arrow.get(date),
+							self.mpDateSetMatch.get(date, set()))
+						for date in sorted(setDate)
+					])
+
+		dXCell = daybl.dXDayb + dSMargin
+		dYCell = daybl.dYDayb + dSMargin
+
+		for palette, mpStrGroupStrColor in enumerate(self.s_lMpStrGroupStrColor):
+			if mpStrGroupStrColor:
+				doc.tourn.ChangeColors(mpStrGroupStrColor)
+			llDayb = [daybl.lDayb, reversed(daybl.lDayb)]
+			for order, lDayb in enumerate(llDayb):
+				row = (palette * len(llDayb)) + order
+				for col, dayb in enumerate(lDayb):
+					pos = SPoint(
+							dSMargin + col * dXCell,
+							dSMargin + row * dYCell)
+					dayb.Draw(pos, daybl)
 
 class CHeaderBlot(CBlot): # tag = headerb
 

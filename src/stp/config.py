@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 class PAGEK(StrEnum): # tag = pagek
 	GroupsTest = 'groups_test'
 	DaysTest = 'days_test'
+	ColorsTest = 'colors_test'
 	CalOnly = 'cal_only'
 	CalElim = 'cal_elim'
 
