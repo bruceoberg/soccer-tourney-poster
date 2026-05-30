@@ -6,7 +6,7 @@ simple:
   default: true
   tournament: latest
   pages:
-    - { tz: US/Pacific}
+    - { tz: US/Pacific }
 
 mcgraw:
   tournament: latest
