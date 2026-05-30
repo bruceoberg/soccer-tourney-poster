@@ -5,9 +5,22 @@
 simple:
   default: true
   tournament: latest
-  coloring: gracol
   pages:
     - { tz: US/Pacific }
+
+coloring:
+  tournament: latest
+  coloring: swop
+  file_suffix: coloring
+  pages:
+    - { tz: US/Pacific, page_kind: colors_test, format: 16x20, orientation: portrait }
+
+alphagraphics:
+  tournament: latest
+  coloring: gracol
+  file_suffix: alphagraphics
+  pages:
+    - { tz: America/Los_Angeles }
 
 mcgraw:
   tournament: latest
