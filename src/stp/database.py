@@ -104,6 +104,9 @@ class CGroup:
 		self.colors: SColors = SColors(tourn.StrColorGroup(strGroup))
 		self.mpStrSeedStrTeam: dict[str, str] = {strSeed:strTeam for strSeed, strTeam in mpStrSeedStrTeam.items() if strSeed[0] == strGroup}
 
+	def ChangeColor(self, strColor: str) -> None:
+		self.colors = SColors(strColor)
+
 class MATCHSTAT(IntEnum0):
 	GoalsFor = auto()
 	GoalsAgainst = auto()	# may not be used, depending on tourney size
@@ -511,3 +514,8 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 	
 	def StrKeyVenue(self, venue: int) -> str:
 		return 'venue.' + self.objProperties[f"venue.{venue:02}"]
+	
+	def ChangeColors(self, mpStrGroupStrColor: dict[str, str]) -> None:
+		for strGroup, strColor in mpStrGroupStrColor.items():
+			group = self.mpStrGroupGroup[strGroup]
+			group.ChangeColor(strColor)
