@@ -45,11 +45,13 @@ class SPlayer:  # tag = plyr
 class SSquad:  # tag = sqd
 	"""One national team's full tournament squad."""
 
+	strGroup: str    # group-stage group, e.g. "Group A"
 	strTeam:  str
 	strCoach: str
 	lPlyr:    list[SPlayer]
 
-	def __init__(self, strTeam: str, strCoach: str, lPlyr: list[SPlayer]) -> None:
+	def __init__(self, strGroup: str, strTeam: str, strCoach: str, lPlyr: list[SPlayer]) -> None:
+		self.strGroup = strGroup
 		self.strTeam  = strTeam
 		self.strCoach = strCoach
 		self.lPlyr    = lPlyr
@@ -151,11 +153,13 @@ def LSqdFromSoup(soup: BeautifulSoup) -> list[SSquad]:
 		<p>Coach: <a>Name</a></p>
 		<table class="wikitable">  — 26-player roster
 
-	Team names come from <h3> headings. A <h2> group heading clears the current
-	team so a stray table under a non-team section can't be misattributed.
+	Team names come from <h3> headings; the enclosing <h2> ("Group A") is the
+	current group. A <h2> heading clears the current team so a stray table under
+	a non-team section can't be misattributed, and resets the group context.
 	"""
 	lSqd: list[SSquad] = []
-	strTeamCur: str | None = None
+	strTeamCur:  str | None = None
+	strGroupCur: str | None = None
 
 	content = soup.find("div", {"class": "mw-parser-output"})
 	lNodes = list(content.children)
@@ -175,7 +179,9 @@ def LSqdFromSoup(soup: BeautifulSoup) -> list[SSquad]:
 			if heading.name == "h3":
 				strTeamCur = heading.get_text(strip=True)
 			else:
-				strTeamCur = None  # h2 group heading — clears team context
+				# h2 group heading ("Group A") — record it and clear team context
+				strGroupCur = heading.get_text(strip=True)
+				strTeamCur  = None
 
 		elif node.name == "p" and "Coach" in node.get_text():
 			strCoach = StrCoachFromP(node)
@@ -202,6 +208,7 @@ def LSqdFromSoup(soup: BeautifulSoup) -> list[SSquad]:
 				# "Coach" paragraph with a table.
 				if lPlyr:
 					lSqd.append(SSquad(
+						strGroup = strGroupCur or "",
 						strTeam  = strTeamCur,
 						strCoach = strCoach,
 						lPlyr    = lPlyr,
@@ -248,6 +255,23 @@ def ObjFromSqd(sqd: SSquad) -> dict:
 	}
 
 
+def LObjGroupFromLSqd(lSqd: list[SSquad]) -> list[dict]:
+	"""
+	Bucket squads into group objects, preserving first-seen group order.
+
+	Each output object is {"group": "Group A", "teams": [ ... ]}; the team's
+	group is implied by its parent so ObjFromSqd omits it.
+	"""
+	mpStrLObj: dict[str, list[dict]] = {}
+	for sqd in lSqd:
+		mpStrLObj.setdefault(sqd.strGroup, []).append(ObjFromSqd(sqd))
+
+	return [
+		{"group": strGroup, "teams": lObjTeam}
+		for strGroup, lObjTeam in mpStrLObj.items()
+	]
+
+
 def main() -> None:
 	soup   = FetchSquadsPage()
 	lSqd   = LSqdFromSoup(soup)
@@ -257,7 +281,7 @@ def main() -> None:
 	# Spot-check first team
 	if lSqd:
 		sqd = lSqd[0]
-		print(f"\n{sqd.strTeam} — Coach: {sqd.strCoach}")
+		print(f"\n{sqd.strGroup} — {sqd.strTeam} — Coach: {sqd.strCoach}")
 		for plyr in sqd.lPlyr[:3]:
 			print(f"  {plyr.strNo:>2}  {plyr.strPos}  {plyr.strName:<25}  {plyr.strClub}")
 
@@ -265,7 +289,7 @@ def main() -> None:
 	pathOut.parent.mkdir(parents=True, exist_ok=True)
 
 	pathOut.write_text(
-		json.dumps([ObjFromSqd(sqd) for sqd in lSqd], ensure_ascii=False, indent=2),
+		json.dumps(LObjGroupFromLSqd(lSqd), ensure_ascii=False, indent=2),
 		encoding="utf-8",
 	)
 	print(f"\nWrote {pathOut}")
