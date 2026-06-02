@@ -19,6 +19,14 @@ import urllib.parse
 g_strUrlWikipedia  = "https://en.wikipedia.org"
 g_strUrlSquads = g_strUrlWikipedia + "/wiki/2026_FIFA_World_Cup_squads"
 
+# Persistent data cache. The "load" step writes the parsed squads here and fills
+# database/flags with the club-country flag icons; a future PDF step reads from it.
+
+g_pathDatabase = Path("database")
+g_pathFlags    = g_pathDatabase / "flags"
+g_pathFlagsSvg = g_pathFlags / "svg"    # cached source SVGs, one per club-country
+g_pathFlagsPng = g_pathFlags / "png"    # PNGs rasterized from the SVGs at draw-time widths
+
 # Section anchor on a national-team article whose table lists the active roster;
 # we link each team URL straight to it.
 
@@ -39,28 +47,33 @@ g_session.headers.update({"User-Agent": g_strUserAgent})
 class SPlayer:  # tag = plyr
 	"""One player row from a squad wikitable."""
 
-	strNo:   str
-	strPos:  str
-	strName: str
-	strDob:  str    # compact ISO date "1995-03-12" (age parenthetical stripped)
-	strCaps: str
-	strClub: str
+	strNo:       str
+	strPos:      str
+	strName:     str
+	strDob:      str    # compact ISO date "1995-03-12" (age parenthetical stripped)
+	strCaps:     str
+	strClub:     str
+	strUrlFlag:  str    # source URL of the club-country flag thumbnail ("" if none)
+	strFlagFile: str    # cached flag filename in database/flags ("" until downloaded)
 
 	def __init__(
 		self,
-		strNo:   str,
-		strPos:  str,
-		strName: str,
-		strDob:  str,
-		strCaps: str,
-		strClub: str,
+		strNo:      str,
+		strPos:     str,
+		strName:    str,
+		strDob:     str,
+		strCaps:    str,
+		strClub:    str,
+		strUrlFlag: str,
 	) -> None:
-		self.strNo   = strNo
-		self.strPos  = strPos
-		self.strName = strName
-		self.strDob  = strDob
-		self.strCaps = strCaps
-		self.strClub = strClub
+		self.strNo       = strNo
+		self.strPos      = strPos
+		self.strName     = strName
+		self.strDob      = strDob
+		self.strCaps     = strCaps
+		self.strClub     = strClub
+		self.strUrlFlag  = strUrlFlag
+		self.strFlagFile = ""
 
 
 class SSquad:  # tag = sqd
@@ -116,6 +129,37 @@ def StrDobCompact(strRaw: str) -> str:
 	return t.date().isoformat()
 
 
+def StrUrlFlagFromCell(tag: Tag) -> str:
+	"""
+	Canonical SVG URL of the club-country flag in a club cell, or "".
+
+	The flagicon renders a PNG thumbnail of an SVG source — e.g.
+		//upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Flag_of_Croatia.svg/40px-Flag_of_Croatia.svg.png
+	We recover the original vector file behind it
+		https://upload.wikimedia.org/wikipedia/commons/1/1b/Flag_of_Croatia.svg
+	by dropping the "/thumb/" segment and the trailing "NNpx-….png" render. Caching
+	the vector lets the PDF step rasterize crisply at any size. Wikimedia emits
+	protocol-relative "//upload…" srcs, so we prepend https:.
+	"""
+	flag = tag.find("span", {"class": "flagicon"})
+	if flag is None:
+		return ""
+	img = flag.find("img")
+	if img is None:
+		return ""
+	strSrc = img.get("src", "")
+	if strSrc.startswith("//"):
+		strSrc = "https:" + strSrc
+
+	# A thumbnail src embeds the source-file path; strip the /thumb/ marker and the
+	# trailing render so we point at the original file. Non-thumbnail srcs (rare)
+	# already are the original and need no surgery.
+	if "/thumb/" in strSrc:
+		strSrc = strSrc.replace("/thumb/", "/", 1).rsplit("/", 1)[0]
+
+	return strSrc
+
+
 def PlyrFromRow(row: Tag) -> SPlayer | None:
 	"""
 	Parse one <tr> into an SPlayer.
@@ -137,7 +181,8 @@ def PlyrFromRow(row: Tag) -> SPlayer | None:
 		strDob  = StrDobCompact(StrCellText(lCols[3])),
 		strCaps = StrCellText(lCols[4]),
 		# lCols[5] is the Goals column — not captured in SPlayer
-		strClub = StrCellText(lCols[6]),
+		strClub    = StrCellText(lCols[6]),
+		strUrlFlag = StrUrlFlagFromCell(lCols[6]),
 	)
 
 
@@ -313,6 +358,29 @@ def ObjApiParse(mpStrParams: dict[str, str]) -> dict:
 	return {}
 
 
+def BytesGet(strUrl: str) -> bytes:
+	"""
+	GET a URL and return its raw body, retrying on HTTP 429 with exponential
+	backoff (honoring Retry-After). Used for flag downloads from upload.wikimedia.org,
+	which rate-limits bursts the same way the action API does.
+	"""
+	dTBackoff = 1.0
+	cTry = 5
+	for _ in range(cTry):
+		resp = g_session.get(strUrl, timeout=15)
+		if resp.status_code == 429:
+			dTWait = float(resp.headers.get("Retry-After", dTBackoff))
+			time.sleep(dTWait)
+			dTBackoff *= 2
+			continue
+		resp.raise_for_status()
+		return resp.content
+
+	# Exhausted retries — surface the last 429 as an error.
+	resp.raise_for_status()
+	return b""
+
+
 def FetchSquadsPage() -> BeautifulSoup:
 	objJson = ObjApiParse({
 		"action": "parse",
@@ -321,6 +389,69 @@ def FetchSquadsPage() -> BeautifulSoup:
 	})
 	strHtml = objJson["parse"]["text"]["*"]
 	return BeautifulSoup(strHtml, "html.parser")
+
+
+# Flag filenames already cached this run, so repeated clubs from the same country
+# don't re-stat (or re-fetch) the file. The on-disk file in database/flags is the
+# durable cross-run cache; this set just short-circuits within a single run.
+
+g_setStrFlagSeen:  set[str] = set()
+g_cFlagDownloaded: int      = 0    # flags actually fetched this run (vs. served from cache)
+
+
+def StrFlagFile(strUrlFlag: str) -> str:
+	"""
+	Cache filename for a flag — the canonical file name from its URL, e.g.
+	"Flag_of_Croatia.svg". Percent-encoding is decoded so the on-disk name is readable.
+	"""
+	return urllib.parse.unquote(strUrlFlag.rsplit("/", 1)[-1])
+
+
+def StrFlagFileCache(strUrlFlag: str) -> str:
+	"""
+	Ensure the flag SVG is cached in database/flags and return its filename.
+
+	Downloads once per distinct flag: an existing file (from a prior run) or a name
+	already seen this run is reused as-is. Returns "" when the player's club cell
+	carried no flag.
+	"""
+	if not strUrlFlag:
+		return ""
+
+	strFile  = StrFlagFile(strUrlFlag)
+	pathFlag = g_pathFlagsSvg / strFile
+
+	if strFile not in g_setStrFlagSeen and not pathFlag.exists():
+		global g_cFlagDownloaded
+		g_pathFlagsSvg.mkdir(parents=True, exist_ok=True)
+		pathFlag.write_bytes(BytesGet(strUrlFlag))
+		g_cFlagDownloaded += 1
+
+	g_setStrFlagSeen.add(strFile)
+	return strFile
+
+
+def PathFlagPng(strFlagFile: str, cPxWidth: int) -> Path:
+	"""
+	Rasterize a cached flag SVG to a PNG of the given width and return its path.
+
+	The PDF step calls this at draw time so flags render crisply at whatever size
+	they're placed — cairosvg (unlike fpdf2's own SVG parser) handles the gradients
+	and clips in coat-of-arms flags like Mexico's. Rendered PNGs are cached under
+	flags/png as "<stem>.<width>.png" (e.g. "Flag_of_Mexico.160.png"), so each size
+	is rasterized only once.
+
+	cairosvg is imported lazily: the load step only downloads SVGs and shouldn't need
+	the system Cairo library present just to refresh the database.
+	"""
+	import cairosvg
+
+	pathSvg = g_pathFlagsSvg / strFlagFile
+	pathPng = g_pathFlagsPng / f"{Path(strFlagFile).stem}.{cPxWidth}.png"
+	if not pathPng.exists():
+		g_pathFlagsPng.mkdir(parents=True, exist_ok=True)
+		cairosvg.svg2png(url=str(pathSvg), write_to=str(pathPng), output_width=cPxWidth)
+	return pathPng
 
 
 def FSquadAnchorExists(strUrlTeam: str) -> bool:
@@ -364,6 +495,7 @@ def ObjFromSqd(sqd: SSquad) -> dict:
 				"dob":  plyr.strDob,
 				"caps": plyr.strCaps,
 				"club": plyr.strClub,
+				"country_icon": plyr.strFlagFile,
 			}
 			for plyr in sqd.lPlyr
 		],
@@ -387,11 +519,30 @@ def LObjGroupFromLSqd(lSqd: list[SSquad]) -> list[dict]:
 	]
 
 
-def main() -> None:
+def CacheFlags(lSqd: list[SSquad]) -> None:
+	"""
+	Download each player's club-country flag into database/flags and record the
+	cached filename on the player. Distinct flags are fetched once (see StrFlagFileCache).
+	"""
+	for sqd in lSqd:
+		for plyr in sqd.lPlyr:
+			plyr.strFlagFile = StrFlagFileCache(plyr.strUrlFlag)
+
+
+def LoadDatabase() -> None:
+	"""
+	"Load" mode: fetch the latest squads page, cache club flags, and write the
+	parsed data to database/squads.json. The future "PDF" mode reads from there.
+	"""
 	soup   = FetchSquadsPage()
 	lSqd   = LSqdFromSoup(soup)
 	cTeams = len(lSqd)
 	print(f"Parsed {cTeams} teams")
+
+	print(f"Caching club flags into {g_pathFlagsSvg}...")
+	CacheFlags(lSqd)
+	cReused = len(g_setStrFlagSeen) - g_cFlagDownloaded
+	print(f"{len(g_setStrFlagSeen)} distinct flags ({g_cFlagDownloaded} downloaded, {cReused} from cache)")
 
 	if False:
 		print(f"Verifying current squad URLs...")
@@ -413,7 +564,7 @@ def main() -> None:
 		for plyr in sqd.lPlyr[:3]:
 			print(f"  {plyr.strNo:>2}  {plyr.strPos}  {plyr.strName:<25}  {plyr.strClub}")
 
-	pathOut = Path("playground/squads.json")
+	pathOut = g_pathDatabase / "squads.json"
 
 	print(f"Writing {pathOut}...")
 
@@ -422,6 +573,11 @@ def main() -> None:
 		json.dumps(LObjGroupFromLSqd(lSqd), ensure_ascii=False, indent=2),
 		encoding="utf-8",
 	)
-	
+
+
+def main() -> None:
+	LoadDatabase()
+
+
 if __name__ == '__main__':
 	main()
