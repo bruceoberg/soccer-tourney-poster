@@ -7,6 +7,7 @@ generates roster cheat sheets
 from __future__ import annotations  # Forward refs without quotes
 
 from bs4 import BeautifulSoup, Tag
+from dataclasses import dataclass, replace
 from dateutil import parser as dateutil_parser
 from pathlib import Path
 
@@ -44,6 +45,7 @@ g_session = requests.Session()
 g_session.headers.update({"User-Agent": g_strUserAgent})
 
 
+@dataclass(frozen=True)
 class SPlayer:  # tag = plyr
 	"""One player row from a squad wikitable."""
 
@@ -53,29 +55,11 @@ class SPlayer:  # tag = plyr
 	strDob:      str    # compact ISO date "1995-03-12" (age parenthetical stripped)
 	strCaps:     str
 	strClub:     str
-	strUrlFlag:  str    # source URL of the club-country flag thumbnail ("" if none)
-	strFlagFile: str    # cached flag filename in database/flags ("" until downloaded)
-
-	def __init__(
-		self,
-		strNo:      str,
-		strPos:     str,
-		strName:    str,
-		strDob:     str,
-		strCaps:    str,
-		strClub:    str,
-		strUrlFlag: str,
-	) -> None:
-		self.strNo       = strNo
-		self.strPos      = strPos
-		self.strName     = strName
-		self.strDob      = strDob
-		self.strCaps     = strCaps
-		self.strClub     = strClub
-		self.strUrlFlag  = strUrlFlag
-		self.strFlagFile = ""
+	strUrlFlag:  str         # source URL of the club-country flag thumbnail ("" if none)
+	strFlagFile: str = ""    # cached flag filename in database/flags ("" until downloaded)
 
 
+@dataclass(frozen=True)
 class SSquad:  # tag = sqd
 	"""One national team's full tournament squad."""
 
@@ -84,13 +68,6 @@ class SSquad:  # tag = sqd
 	strCoach: str
 	strUrl:   str    # team's own Wikipedia article URL ("" if none was found)
 	lPlyr:    list[SPlayer]
-
-	def __init__(self, strGroup: str, strTeam: str, strCoach: str, strUrl: str, lPlyr: list[SPlayer]) -> None:
-		self.strGroup = strGroup
-		self.strTeam  = strTeam
-		self.strCoach = strCoach
-		self.strUrl   = strUrl
-		self.lPlyr    = lPlyr
 
 
 def StrCellText(tag: Tag) -> str:
@@ -525,8 +502,8 @@ def CacheFlags(lSqd: list[SSquad]) -> None:
 	cached filename on the player. Distinct flags are fetched once (see StrFlagFileCache).
 	"""
 	for sqd in lSqd:
-		for plyr in sqd.lPlyr:
-			plyr.strFlagFile = StrFlagFileCache(plyr.strUrlFlag)
+		for iPlyr, plyr in enumerate(sqd.lPlyr):
+			sqd.lPlyr[iPlyr] = replace(plyr, strFlagFile=StrFlagFileCache(plyr.strUrlFlag))
 
 
 def LoadDatabase() -> None:
