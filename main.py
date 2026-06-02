@@ -11,8 +11,28 @@ from pathlib import Path
 
 import json
 import requests
+import sys
+import time
+import urllib.parse
 
-G_STR_SQUADS_URL = "https://en.wikipedia.org/wiki/2026_FIFA_World_Cup_squads"
+g_strUrlWikipedia  = "https://en.wikipedia.org"
+g_strUrlSquads = g_strUrlWikipedia + "/wiki/2026_FIFA_World_Cup_squads"
+
+# Section anchor on a national-team article whose table lists the active roster;
+# we link each team URL straight to it.
+
+g_strSquadAnchor = "Current_squad"
+
+# Wikimedia's API policy requires a descriptive User-Agent with contact info;
+# the generic "Mozilla/5.0" string gets throttled aggressively (HTTP 429).
+
+g_strUserAgent = "roster-cheat-sheet/0.1 (https://github.com/bruceoberg/roster-cheat-sheet; bruce@oberg.org)"
+
+# Shared connection pool so the burst of per-team section checks reuses one
+# keep-alive connection and the proper User-Agent.
+
+g_session = requests.Session()
+g_session.headers.update({"User-Agent": g_strUserAgent})
 
 
 class SPlayer:  # tag = plyr
@@ -48,12 +68,14 @@ class SSquad:  # tag = sqd
 	strGroup: str    # group-stage group, e.g. "Group A"
 	strTeam:  str
 	strCoach: str
+	strUrl:   str    # team's own Wikipedia article URL ("" if none was found)
 	lPlyr:    list[SPlayer]
 
-	def __init__(self, strGroup: str, strTeam: str, strCoach: str, lPlyr: list[SPlayer]) -> None:
+	def __init__(self, strGroup: str, strTeam: str, strCoach: str, strUrl: str, lPlyr: list[SPlayer]) -> None:
 		self.strGroup = strGroup
 		self.strTeam  = strTeam
 		self.strCoach = strCoach
+		self.strUrl   = strUrl
 		self.lPlyr    = lPlyr
 
 
@@ -124,6 +146,22 @@ def StrCoachFromP(p: Tag) -> str:
 	return p.get_text(strip=True).removeprefix("Coach:").strip()
 
 
+def StrUrlTeamFromP(p: Tag) -> str | None:
+	"""
+	Return the absolute URL of the team's own Wikipedia article, or None.
+
+	The descriptive paragraph following the Coach line opens with a link to the
+	national-team article — e.g. "The <a href="/wiki/Czech_Republic_national_football_team">Czech Republic</a> announced a 54-man preliminary squad …". We take the first
+	/wiki/ link; footnote markers are #cite_note fragments, not /wiki/ paths, so
+	the prefix test skips them.
+	"""
+	for link in p.find_all("a"):
+		strHref = link.get("href", "")
+		if strHref.startswith("/wiki/"):
+			return g_strUrlWikipedia + strHref
+	return None
+
+
 def TagHeadingFromNode(node: Tag) -> Tag | None:
 	"""
 	Return the <h2>/<h3> heading element if node is a heading, else None.
@@ -188,7 +226,10 @@ def LSqdFromSoup(soup: BeautifulSoup) -> list[SSquad]:
 
 			# Scan ahead for the roster table, stopping at the next heading so a
 			# Coach paragraph without its own table can't grab a later team's.
+			# The descriptive <p> between the Coach line and the table carries
+			# the team's article link, so capture the first one we pass.
 			tableSquad: Tag | None = None
+			strUrlTeam: str | None = None
 			iLook = iNode + 1
 			while iLook < cNodes:
 				candidate = lNodes[iLook]
@@ -198,6 +239,8 @@ def LSqdFromSoup(soup: BeautifulSoup) -> list[SSquad]:
 						break
 					if TagHeadingFromNode(candidate) is not None:
 						break
+					if candidate.name == "p" and strUrlTeam is None:
+						strUrlTeam = StrUrlTeamFromP(candidate)
 				iLook += 1
 
 			if tableSquad is not None and strTeamCur is not None:
@@ -211,6 +254,7 @@ def LSqdFromSoup(soup: BeautifulSoup) -> list[SSquad]:
 						strGroup = strGroupCur or "",
 						strTeam  = strTeamCur,
 						strCoach = strCoach,
+						strUrl   = strUrlTeam or "",
 						lPlyr    = lPlyr,
 					))
 
@@ -219,21 +263,70 @@ def LSqdFromSoup(soup: BeautifulSoup) -> list[SSquad]:
 	return lSqd
 
 
+def ObjApiParse(mpStrParams: dict[str, str]) -> dict:
+	"""
+	GET the MediaWiki action=parse API and return the decoded JSON.
+
+	Retries on HTTP 429 (rate limit) with exponential backoff, honoring a
+	Retry-After header when present, so a burst of section checks doesn't fail
+	the run.
+	"""
+	dTBackoff = 1.0
+	cTry = 5
+	for _ in range(cTry):
+		resp = g_session.get(
+			"https://en.wikipedia.org/w/api.php",
+			params={**mpStrParams, "format": "json"},
+			timeout=15,
+		)
+		if resp.status_code == 429:
+			dTWait = float(resp.headers.get("Retry-After", dTBackoff))
+			time.sleep(dTWait)
+			dTBackoff *= 2
+			continue
+		resp.raise_for_status()
+		return resp.json()
+
+	# Exhausted retries — surface the last 429 as an error.
+	resp.raise_for_status()
+	return {}
+
+
 def FetchSquadsPage() -> BeautifulSoup:
-    resp = requests.get(
-        "https://en.wikipedia.org/w/api.php",
-        params={
-            "action": "parse",
-            "page":   "2026_FIFA_World_Cup_squads",
-            "prop":   "text",
-            "format": "json",
-        },
-        headers={"User-Agent": "Mozilla/5.0"},
-        timeout=15,
-    )
-    resp.raise_for_status()
-    strHtml = resp.json()["parse"]["text"]["*"]
-    return BeautifulSoup(strHtml, "html.parser")
+	objJson = ObjApiParse({
+		"action": "parse",
+		"page":   "2026_FIFA_World_Cup_squads",
+		"prop":   "text",
+	})
+	strHtml = objJson["parse"]["text"]["*"]
+	return BeautifulSoup(strHtml, "html.parser")
+
+
+def FSquadAnchorExists(strUrlTeam: str) -> bool:
+	"""
+	True if the team article has a section anchored G_STR_SQUAD_ANCHOR, so that
+	<url>#Current_squad actually resolves to the current-squad table.
+
+	Uses the lightweight parse&prop=sections API (anchors only) instead of
+	fetching and scanning the whole article HTML. The title is percent-decoded
+	first — hrefs arrive encoded (e.g. "Canada_men%27s_national_soccer_team"),
+	and the API rejects the raw form as an invalidtitle.
+	"""
+	strTitle = urllib.parse.unquote(strUrlTeam.removeprefix(g_strUrlWikipedia + "/wiki/"))
+	objJson = ObjApiParse({
+		"action": "parse",
+		"page":   strTitle,
+		"prop":   "sections",
+	})
+	lObjSec = objJson.get("parse", {}).get("sections", [])
+	return any(objSec.get("anchor") == g_strSquadAnchor for objSec in lObjSec)
+
+
+def StrUrlSquad(sqd: SSquad) -> str:
+	"""Team article URL with the current-squad anchor, or "" if no URL was found."""
+	if not sqd.strUrl:
+		return ""
+	return f"{sqd.strUrl}#{g_strSquadAnchor}"
 
 
 def ObjFromSqd(sqd: SSquad) -> dict:
@@ -241,6 +334,7 @@ def ObjFromSqd(sqd: SSquad) -> dict:
 	return {
 		"team":   sqd.strTeam,
 		"coach":  sqd.strCoach,
+		"url":    StrUrlSquad(sqd),
 		"players": [
 			{
 				"no":   plyr.strNo,
@@ -278,6 +372,19 @@ def main() -> None:
 	cTeams = len(lSqd)
 	print(f"Parsed {cTeams} teams")
 
+	if False:
+		print(f"Verifying current squad URLs...")
+		# Verify each team URL resolves with the #Current_squad anchor; warn (but
+		# don't fail) so a renamed/missing section is visible without stopping the run.
+		for sqd in lSqd:
+			if not sqd.strUrl:
+				print(f"WARNING: no Wikipedia URL found for {sqd.strTeam}", file=sys.stderr)
+			elif not FSquadAnchorExists(sqd.strUrl):
+				print(
+					f"WARNING: {sqd.strUrl} has no #{g_strSquadAnchor} section",
+					file=sys.stderr,
+				)
+
 	# Spot-check first team
 	if lSqd:
 		sqd = lSqd[0]
@@ -286,13 +393,14 @@ def main() -> None:
 			print(f"  {plyr.strNo:>2}  {plyr.strPos}  {plyr.strName:<25}  {plyr.strClub}")
 
 	pathOut = Path("playground/squads.json")
-	pathOut.parent.mkdir(parents=True, exist_ok=True)
 
+	print(f"Writing {pathOut}...")
+
+	pathOut.parent.mkdir(parents=True, exist_ok=True)
 	pathOut.write_text(
 		json.dumps(LObjGroupFromLSqd(lSqd), ensure_ascii=False, indent=2),
 		encoding="utf-8",
 	)
-	print(f"\nWrote {pathOut}")
 	
 if __name__ == '__main__':
 	main()
