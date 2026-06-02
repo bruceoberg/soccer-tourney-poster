@@ -7,6 +7,7 @@ generates roster cheat sheets
 from __future__ import annotations  # Forward refs without quotes
 
 from bs4 import BeautifulSoup, Tag
+from dateutil import parser as dateutil_parser
 from pathlib import Path
 
 import json
@@ -41,7 +42,7 @@ class SPlayer:  # tag = plyr
 	strNo:   str
 	strPos:  str
 	strName: str
-	strDob:  str    # raw "12 March 1995 (age 31)" — caller strips if needed
+	strDob:  str    # compact ISO date "1995-03-12" (age parenthetical stripped)
 	strCaps: str
 	strClub: str
 
@@ -95,6 +96,26 @@ def StrCellText(tag: Tag) -> str:
 	return tag.get_text(separator=" ", strip=True)
 
 
+def StrDobCompact(strRaw: str) -> str:
+	"""
+	Convert a wikitable birthdate cell to a compact ISO date "YYYY-MM-DD".
+
+	The raw cell reads "March 12, 1995 (age 31)"; we drop the parenthetical age,
+	then let dateutil parse the remaining date string flexibly — it handles both
+	"March 12, 1995" and "12 March 1995" without us tracking Wikipedia's format.
+
+	On a parse failure we warn and return the raw string, so an unexpected format
+	is visible in both the output and stderr rather than silently dropped.
+	"""
+	strDate = strRaw.split(" (")[0]
+	try:
+		t = dateutil_parser.parse(strDate)
+	except (ValueError, OverflowError):
+		print(f"WARNING: could not parse date of birth {strRaw!r}", file=sys.stderr)
+		return strRaw
+	return t.date().isoformat()
+
+
 def PlyrFromRow(row: Tag) -> SPlayer | None:
 	"""
 	Parse one <tr> into an SPlayer.
@@ -113,7 +134,7 @@ def PlyrFromRow(row: Tag) -> SPlayer | None:
 		strNo   = StrCellText(lCols[0]),
 		strPos  = StrCellText(lCols[1]),
 		strName = StrCellText(lCols[2]),
-		strDob  = StrCellText(lCols[3]),
+		strDob  = StrDobCompact(StrCellText(lCols[3])),
 		strCaps = StrCellText(lCols[4]),
 		# lCols[5] is the Goals column — not captured in SPlayer
 		strClub = StrCellText(lCols[6]),
