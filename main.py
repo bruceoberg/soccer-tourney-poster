@@ -60,12 +60,22 @@ class SPlayer:  # tag = plyr
 
 
 @dataclass(frozen=True)
+class SCoach:  # tag = coch
+	"""One team's head coach, with nationality inferred from the squad page."""
+
+	strName:     str
+	strCountry:  str         # nationality; the team's own country when no flag icon was shown
+	strUrlFlag:  str = ""    # source URL of the country flag ("" until the team-flag lookup in CacheFlags)
+	strFlagFile: str = ""    # cached flag filename in database/flags ("" until downloaded)
+
+
+@dataclass(frozen=True)
 class SSquad:  # tag = sqd
 	"""One national team's full tournament squad."""
 
 	strGroup: str    # group-stage group, e.g. "Group A"
 	strTeam:  str
-	strCoach: str
+	coach:    SCoach
 	strUrl:   str    # team's own Wikipedia article URL ("" if none was found)
 	lPlyr:    list[SPlayer]
 
@@ -173,20 +183,57 @@ def LPlyrFromTable(table: Tag) -> list[SPlayer]:
 	return lPlyr
 
 
-def StrCoachFromP(p: Tag) -> str:
+def CoachFromP(p: Tag, strTeam: str) -> SCoach:
 	"""
-	Extract coach name from a <p>Coach: [flag] <a>Name</a></p> paragraph.
+	Parse a <p>Coach: [flag] <a>Name</a></p> paragraph into an SCoach.
 
-	A leading flagicon (present when the coach's nationality differs from the
-	team's) is dropped first — otherwise its country link is the first <a> and
-	we'd pick up e.g. "Belgium" instead of the coach's name.
+	A leading flagicon appears only when the coach's nationality differs from the
+	team's; it carries both the country name (the image's alt text) and the flag
+	image. We read those before dropping the span — otherwise its country link is
+	the first <a> and we'd pick up e.g. "Belgium" instead of the coach's name.
+
+	With no flagicon the coach shares the team's country, so strCountry falls back
+	to strTeam and strUrlFlag is left "" for the later team-flag lookup in CacheFlags.
 	"""
+	strCountry = strTeam
+	strUrlFlag = ""
+
+	flag = p.find("span", {"class": "flagicon"})
+	if flag is not None:
+		strUrlFlag = StrUrlFlagFromCell(p)
+		img = flag.find("img")
+		if img is not None and img.get("alt"):
+			strCountry = img.get("alt")
+
 	for flag in p.find_all("span", {"class": "flagicon"}):
 		flag.decompose()
+
 	link = p.find("a")
 	if link:
-		return link.get_text(strip=True)
-	return p.get_text(strip=True).removeprefix("Coach:").strip()
+		strName = link.get_text(strip=True)
+	else:
+		strName = p.get_text(strip=True).removeprefix("Coach:").strip()
+
+	return SCoach(strName=strName, strCountry=strCountry, strUrlFlag=strUrlFlag)
+
+
+def StrUrlFlagFromTeam(strTeam: str) -> str:
+	"""
+	Canonical SVG URL of a national team's own flag, or "".
+
+	Used for coaches shown without a flag icon — they share the team's country, but
+	the squads page carries no flag image for the team heading itself. We render the
+	{{flagicon|<team>}} template through the parse API and pull the SVG URL out of the
+	resulting markup with the same StrUrlFlagFromCell logic the club cells use.
+	"""
+	objJson = ObjApiParse({
+		"action":       "parse",
+		"text":         "{{flagicon|" + strTeam + "}}",
+		"contentmodel": "wikitext",
+		"prop":         "text",
+	})
+	strHtml = objJson.get("parse", {}).get("text", {}).get("*", "")
+	return StrUrlFlagFromCell(BeautifulSoup(strHtml, "html.parser"))
 
 
 def StrUrlTeamFromP(p: Tag) -> str | None:
@@ -265,7 +312,7 @@ def LSqdFromSoup(soup: BeautifulSoup) -> list[SSquad]:
 				strTeamCur  = None
 
 		elif node.name == "p" and "Coach" in node.get_text():
-			strCoach = StrCoachFromP(node)
+			coch = CoachFromP(node, strTeamCur or "")
 
 			# Scan ahead for the roster table, stopping at the next heading so a
 			# Coach paragraph without its own table can't grab a later team's.
@@ -296,7 +343,7 @@ def LSqdFromSoup(soup: BeautifulSoup) -> list[SSquad]:
 					lSqd.append(SSquad(
 						strGroup = strGroupCur or "",
 						strTeam  = strTeamCur,
-						strCoach = strCoach,
+						coach    = coch,
 						strUrl   = strUrlTeam or "",
 						lPlyr    = lPlyr,
 					))
@@ -462,7 +509,11 @@ def ObjFromSqd(sqd: SSquad) -> dict:
 	"""Serialize an SSquad to a plain dict suitable for JSON output."""
 	return {
 		"team":   sqd.strTeam,
-		"coach":  sqd.strCoach,
+		"coach":  {
+			"name":         sqd.coach.strName,
+			"country":      sqd.coach.strCountry,
+			"country_icon": sqd.coach.strFlagFile,
+		},
 		"url":    StrUrlSquad(sqd),
 		"players": [
 			{
@@ -501,9 +552,20 @@ def CacheFlags(lSqd: list[SSquad]) -> None:
 	Download each player's club-country flag into database/flags and record the
 	cached filename on the player. Distinct flags are fetched once (see StrFlagFileCache).
 	"""
-	for sqd in lSqd:
+	for iSqd, sqd in enumerate(lSqd):
 		for iPlyr, plyr in enumerate(sqd.lPlyr):
 			sqd.lPlyr[iPlyr] = replace(plyr, strFlagFile=StrFlagFileCache(plyr.strUrlFlag))
+
+		# A coach with no flag icon shares the team's country; the squads page carries
+		# no flag for the team heading, so resolve that national flag here. Either URL
+		# then caches through the same per-flag dedupe the club flags use.
+		coch       = sqd.coach
+		strUrlFlag = coch.strUrlFlag or StrUrlFlagFromTeam(coch.strCountry)
+		lSqd[iSqd] = replace(sqd, coach=replace(
+			coch,
+			strUrlFlag  = strUrlFlag,
+			strFlagFile = StrFlagFileCache(strUrlFlag),
+		))
 
 
 def LoadDatabase() -> None:
@@ -537,7 +599,7 @@ def LoadDatabase() -> None:
 	# Spot-check first team
 	if lSqd:
 		sqd = lSqd[0]
-		print(f"\n{sqd.strGroup} — {sqd.strTeam} — Coach: {sqd.strCoach}")
+		print(f"\n{sqd.strGroup} — {sqd.strTeam} — Coach: {sqd.coach.strName} ({sqd.coach.strCountry})")
 		for plyr in sqd.lPlyr[:3]:
 			print(f"  {plyr.strNo:>2}  {plyr.strPos}  {plyr.strName:<25}  {plyr.strClub}")
 
