@@ -12,6 +12,7 @@ from dateutil import parser as dateutil_parser
 from pathlib import Path
 
 import json
+import re
 import requests
 import sys
 import time
@@ -52,6 +53,7 @@ class SPlayer:  # tag = plyr
 	strNo:       str
 	strPos:      str
 	strName:     str
+	fCaptain:    bool   # team captain (parsed from a "(captain)" suffix on the name)
 	strDob:      str    # compact ISO date "1995-03-12" (age parenthetical stripped)
 	strCaps:     str
 	strClub:     str
@@ -94,6 +96,23 @@ def StrCellText(tag: Tag) -> str:
 	for span in tag.find_all("span", style=lambda s: bool(s) and "display:none" in s.replace(" ", "")):
 		span.decompose()
 	return tag.get_text(separator=" ", strip=True)
+
+
+# Trailing "(captain)" marker on a player name, with arbitrary internal/surrounding
+# whitespace and any case — e.g. "Messi ( captain )" or "Messi (Captain)".
+
+g_reCaptain = re.compile(r"\(\s*captain\s*\)\s*$", re.IGNORECASE)
+
+
+def StrNameCaptain(strRaw: str) -> tuple[str, bool]:
+	"""
+	Split a player-name cell into (clean name, is-captain).
+
+	Captaincy is encoded as a trailing "(captain)" suffix on the name; strip it
+	and report it as a flag. The returned name is whitespace-stripped either way.
+	"""
+	strClean, cSub = g_reCaptain.subn("", strRaw)
+	return strClean.strip(), cSub > 0
 
 
 def StrDobCompact(strRaw: str) -> str:
@@ -161,11 +180,14 @@ def PlyrFromRow(row: Tag) -> SPlayer | None:
 	if lCols[0].get("colspan"):
 		return None
 
+	strName, fCaptain = StrNameCaptain(StrCellText(lCols[2]))
+
 	return SPlayer(
-		strNo   = StrCellText(lCols[0]),
-		strPos  = StrCellText(lCols[1]),
-		strName = StrCellText(lCols[2]),
-		strDob  = StrDobCompact(StrCellText(lCols[3])),
+		strNo    = StrCellText(lCols[0]),
+		strPos   = StrCellText(lCols[1]),
+		strName  = strName,
+		fCaptain = fCaptain,
+		strDob   = StrDobCompact(StrCellText(lCols[3])),
 		strCaps = StrCellText(lCols[4]),
 		# lCols[5] is the Goals column — not captured in SPlayer
 		strClub    = StrCellText(lCols[6]),
@@ -517,12 +539,13 @@ def ObjFromSqd(sqd: SSquad) -> dict:
 		"url":    StrUrlSquad(sqd),
 		"players": [
 			{
-				"no":   plyr.strNo,
-				"pos":  plyr.strPos,
-				"name": plyr.strName,
-				"dob":  plyr.strDob,
-				"caps": plyr.strCaps,
-				"club": plyr.strClub,
+				"no":      plyr.strNo,
+				"pos":     plyr.strPos,
+				"name":    plyr.strName,
+				"captain": plyr.fCaptain,
+				"dob":     plyr.strDob,
+				"caps":    plyr.strCaps,
+				"club":    plyr.strClub,
 				"country_icon": plyr.strFlagFile,
 			}
 			for plyr in sqd.lPlyr
