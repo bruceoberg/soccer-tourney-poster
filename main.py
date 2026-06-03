@@ -255,7 +255,7 @@ def LPlyrFromTable(table: Tag) -> list[SPlayer]:
 	return lPlyr
 
 
-def CoachFromP(p: Tag, strTeam: str) -> SCoach:
+def CoachFromTagP(tagP: Tag, strTeam: str) -> SCoach:
 	"""
 	Parse a <p>Coach: [flag] <a>Name</a></p> paragraph into an SCoach.
 
@@ -267,21 +267,21 @@ def CoachFromP(p: Tag, strTeam: str) -> SCoach:
 	"""
 	strCountry = strTeam
 
-	flag = p.find("span", {"class": "flagicon"})
+	flag = tagP.find("span", {"class": "flagicon"})
 	if flag is not None:
 		img = flag.find("img")
 		strCountryFlag = StrCountryFromUrl(StrUrlFlagFromImg(img)) if img is not None else ""
 		if strCountryFlag:
 			strCountry = strCountryFlag
 
-	for flag in p.find_all("span", {"class": "flagicon"}):
+	for flag in tagP.find_all("span", {"class": "flagicon"}):
 		flag.decompose()
 
-	link = p.find("a")
+	link = tagP.find("a")
 	if link:
 		strName = link.get_text(strip=True)
 	else:
-		strName = p.get_text(strip=True).removeprefix("Coach:").strip()
+		strName = tagP.get_text(strip=True).removeprefix("Coach:").strip()
 
 	return SCoach(strName=strName, strCountry=strCountry)
 
@@ -322,7 +322,7 @@ def StrUrlTeamFromP(p: Tag) -> str | None:
 	return None
 
 
-def TagHeadingFromNode(node: Tag) -> Tag | None:
+def TagHeadingFromTag(node: Tag) -> Tag | None:
 	"""
 	Return the <h2>/<h3> heading element if node is a heading, else None.
 
@@ -359,30 +359,26 @@ def LSqdFromSoup(soup: BeautifulSoup) -> list[SSquad]:
 	strTeamCur:  str | None = None
 	strGroupCur: str | None = None
 
-	content = soup.find("div", {"class": "mw-parser-output"})
-	lNodes = list(content.children)
-	cNodes = len(lNodes)
+	tagContent = soup.find("div", {"class": "mw-parser-output"})
+	lTag = list(tagContent.children)
 
-	iNode = 0
-	while iNode < cNodes:
-		node = lNodes[iNode]
+	for iTag, tag in enumerate(lTag):
 
-		if not isinstance(node, Tag):
-			iNode += 1
+		if not isinstance(tag, Tag):
 			continue
 
-		heading = TagHeadingFromNode(node)
+		tagHeading = TagHeadingFromTag(tag)
 
-		if heading is not None:
-			if heading.name == "h3":
-				strTeamCur = heading.get_text(strip=True)
+		if tagHeading is not None:
+			if tagHeading.name == "h3":
+				strTeamCur = tagHeading.get_text(strip=True)
 			else:
 				# h2 group heading ("Group A") — record it and clear team context
-				strGroupCur = heading.get_text(strip=True)
+				strGroupCur = tagHeading.get_text(strip=True)
 				strTeamCur  = None
 
-		elif node.name == "p" and "Coach" in node.get_text():
-			coch = CoachFromP(node, strTeamCur or "")
+		elif tag.name == "p" and "Coach" in tag.get_text():
+			coch = CoachFromTagP(tag, strTeamCur or "")
 
 			# Scan ahead for the roster table, stopping at the next heading so a
 			# Coach paragraph without its own table can't grab a later team's.
@@ -390,18 +386,15 @@ def LSqdFromSoup(soup: BeautifulSoup) -> list[SSquad]:
 			# the team's article link, so capture the first one we pass.
 			tableSquad: Tag | None = None
 			strUrlTeam: str | None = None
-			iLook = iNode + 1
-			while iLook < cNodes:
-				candidate = lNodes[iLook]
-				if isinstance(candidate, Tag):
-					if candidate.name == "table":
-						tableSquad = candidate
+			for elemLook in lTag[iTag + 1:]:
+				if isinstance(elemLook, Tag):
+					if elemLook.name == "table":
+						tableSquad = elemLook
 						break
-					if TagHeadingFromNode(candidate) is not None:
+					if TagHeadingFromTag(elemLook) is not None:
 						break
-					if candidate.name == "p" and strUrlTeam is None:
-						strUrlTeam = StrUrlTeamFromP(candidate)
-				iLook += 1
+					if elemLook.name == "p" and strUrlTeam is None:
+						strUrlTeam = StrUrlTeamFromP(elemLook)
 
 			if tableSquad is not None and strTeamCur is not None:
 				lPlyr = LPlyrFromTable(tableSquad)
@@ -417,8 +410,6 @@ def LSqdFromSoup(soup: BeautifulSoup) -> list[SSquad]:
 						strUrl   = strUrlTeam or "",
 						lPlyr    = lPlyr,
 					))
-
-		iNode += 1
 
 	return lSqd
 
@@ -472,7 +463,7 @@ def ObjApiParse(mpStrParams: dict[str, str]) -> dict:
 	return {}
 
 
-def FetchSquadsPage() -> BeautifulSoup:
+def SoupFetchSquads() -> BeautifulSoup:
 	objJson = ObjApiParse({
 		"action": "parse",
 		"page":   "2026_FIFA_World_Cup_squads",
@@ -675,7 +666,7 @@ def LoadDatabase(fReloadAll: bool) -> None:
 	pathCountries = g_pathDatabase / "countries.yaml"
 	pathCoaches   = g_pathDatabase / "coaches.yaml"
 
-	soup = FetchSquadsPage()
+	soup = SoupFetchSquads()
 	lSqd = LSqdFromSoup(soup)
 	print(f"Parsed {len(lSqd)} teams")
 
