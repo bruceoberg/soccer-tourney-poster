@@ -11,12 +11,12 @@ from dataclasses import dataclass, replace
 from dateutil import parser as dateutil_parser
 from pathlib import Path
 
-import json
 import re
 import requests
 import sys
 import time
 import urllib.parse
+import yaml
 
 g_strUrlWikipedia  = "https://en.wikipedia.org"
 g_strUrlSquads = g_strUrlWikipedia + "/wiki/2026_FIFA_World_Cup_squads"
@@ -528,7 +528,7 @@ def StrUrlSquad(sqd: SSquad) -> str:
 
 
 def ObjFromSqd(sqd: SSquad) -> dict:
-	"""Serialize an SSquad to a plain dict suitable for JSON output."""
+	"""Serialize an SSquad to a plain dict suitable for YAML output."""
 	return {
 		"team":   sqd.strTeam,
 		"coach":  {
@@ -594,7 +594,7 @@ def CacheFlags(lSqd: list[SSquad]) -> None:
 def LoadDatabase() -> None:
 	"""
 	"Load" mode: fetch the latest squads page, cache club flags, and write the
-	parsed data to database/squads.json. The future "PDF" mode reads from there.
+	parsed data to database/squads.yaml. The future "PDF" mode reads from there.
 	"""
 	soup   = FetchSquadsPage()
 	lSqd   = LSqdFromSoup(soup)
@@ -626,13 +626,18 @@ def LoadDatabase() -> None:
 		for plyr in sqd.lPlyr[:3]:
 			print(f"  {plyr.strNo:>2}  {plyr.strPos}  {plyr.strName:<25}  {plyr.strClub}")
 
-	pathOut = g_pathDatabase / "squads.json"
+	pathOut = g_pathDatabase / "squads.yaml"
 
 	print(f"Writing {pathOut}...")
 
 	pathOut.parent.mkdir(parents=True, exist_ok=True)
 	pathOut.write_text(
-		json.dumps(LObjGroupFromLSqd(lSqd), ensure_ascii=False, indent=2),
+		yaml.dump(
+			LObjGroupFromLSqd(lSqd),
+			allow_unicode=True,    # keep accented names as-is, not \uXXXX escapes
+			sort_keys=False,       # preserve our field order (team, coach, url, players)
+			default_flow_style=False,
+		),
 		encoding="utf-8",
 	)
 
