@@ -11,6 +11,7 @@ from dataclasses import dataclass, replace
 from dateutil import parser as dateutil_parser
 from pathlib import Path
 
+import argparse
 import re
 import requests
 import sys
@@ -18,16 +19,18 @@ import time
 import urllib.parse
 import yaml
 
-g_strUrlWikipedia  = "https://en.wikipedia.org"
-g_strUrlSquads = g_strUrlWikipedia + "/wiki/2026_FIFA_World_Cup_squads"
+g_strUrlWikipedia = "https://en.wikipedia.org"
 
-# Persistent data cache. The "load" step writes the parsed squads here and fills
-# database/flags with the club-country flag icons; a future PDF step reads from it.
+# Persistent data store. The "load" step rewrites squads.yaml every run (rosters change
+# often) and maintains two sidecar caches for data that needs an HTTP lookup:
+#
+#   countries.yaml — country name -> flag URL (and, later, FIFA code)
+#   coaches.yaml   — coach name -> coach record (home of the coming per-coach data)
+#
+# A normal run makes a single network call (the squads page); the sidecars supply
+# everything else. See LoadDatabase for the populate-vs-normal caching policy.
 
 g_pathDatabase = Path("database")
-g_pathFlags    = g_pathDatabase / "flags"
-g_pathFlagsSvg = g_pathFlags / "svg"    # cached source SVGs, one per club-country
-g_pathFlagsPng = g_pathFlags / "png"    # PNGs rasterized from the SVGs at draw-time widths
 
 # Section anchor on a national-team article whose table lists the active roster;
 # we link each team URL straight to it.
@@ -39,7 +42,7 @@ g_strSquadAnchor = "Current_squad"
 
 g_strUserAgent = "roster-cheat-sheet/0.1 (https://github.com/bruceoberg/roster-cheat-sheet; bruce@oberg.org)"
 
-# Shared connection pool so the burst of per-team section checks reuses one
+# Shared connection pool so the burst of per-team flag lookups reuses one
 # keep-alive connection and the proper User-Agent.
 
 g_session = requests.Session()
@@ -50,25 +53,31 @@ g_session.headers.update({"User-Agent": g_strUserAgent})
 class SPlayer:  # tag = plyr
 	"""One player row from a squad wikitable."""
 
-	strNo:       str
-	strPos:      str
-	strName:     str
-	fCaptain:    bool   # team captain (parsed from a "(captain)" suffix on the name)
-	strDob:      str    # compact ISO date "1995-03-12" (age parenthetical stripped)
-	strCaps:     str
-	strClub:     str
-	strUrlFlag:  str         # source URL of the club-country flag thumbnail ("" if none)
-	strFlagFile: str = ""    # cached flag filename in database/flags ("" until downloaded)
+	strNo:    str
+	strPos:   str
+	strName:  str
+	fCaptain: bool   # team captain (parsed from a "(captain)" suffix on the name)
+	strDob:   str    # compact ISO date "1995-03-12" (age parenthetical stripped)
+	strCaps:  str
+	strClub:  str
+	strCountry: str  # the club's country name ("" if the club cell carried no flag); flag URL lives in countries.yaml
 
 
 @dataclass(frozen=True)
 class SCoach:  # tag = coch
 	"""One team's head coach, with nationality inferred from the squad page."""
 
-	strName:     str
-	strCountry:  str         # nationality; the team's own country when no flag icon was shown
-	strUrlFlag:  str = ""    # source URL of the country flag ("" until the team-flag lookup in CacheFlags)
-	strFlagFile: str = ""    # cached flag filename in database/flags ("" until downloaded)
+	strName:    str
+	strCountry: str  # nationality; the team's own country when no flag icon was shown
+
+
+@dataclass(frozen=True)
+class SCountry:  # tag = cty
+	"""A country's flag, cached in countries.yaml so a normal run needs no flag lookup."""
+
+	strCountry: str  # country name (the registry key)
+	strUrlFlag: str  # source URL of the country's flag SVG
+	# strFifaCode: str = ""   # FUTURE — 3-letter FIFA code; HTTP lookup, --reload-all only
 
 
 @dataclass(frozen=True)
@@ -135,25 +144,21 @@ def StrDobCompact(strRaw: str) -> str:
 	return t.date().isoformat()
 
 
-def StrUrlFlagFromCell(tag: Tag) -> str:
+def StrUrlFlagFromImg(img: Tag) -> str:
 	"""
-	Canonical SVG URL of the club-country flag in a club cell, or "".
+	Canonical SVG URL behind a flagicon's <img> thumbnail, or "".
 
 	The flagicon renders a PNG thumbnail of an SVG source — e.g.
 		//upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Flag_of_Croatia.svg/40px-Flag_of_Croatia.svg.png
 	We recover the original vector file behind it
 		https://upload.wikimedia.org/wikipedia/commons/1/1b/Flag_of_Croatia.svg
-	by dropping the "/thumb/" segment and the trailing "NNpx-….png" render. Caching
-	the vector lets the PDF step rasterize crisply at any size. Wikimedia emits
-	protocol-relative "//upload…" srcs, so we prepend https:.
+	by dropping the "/thumb/" segment and the trailing "NNpx-….png" render, so the
+	future PDF step can rasterize crisply at any size. Wikimedia emits protocol-relative
+	"//upload…" srcs, so we prepend https:.
 	"""
-	flag = tag.find("span", {"class": "flagicon"})
-	if flag is None:
-		return ""
-	img = flag.find("img")
-	if img is None:
-		return ""
 	strSrc = img.get("src", "")
+	if not strSrc:
+		return ""
 	if strSrc.startswith("//"):
 		strSrc = "https:" + strSrc
 
@@ -164,6 +169,51 @@ def StrUrlFlagFromCell(tag: Tag) -> str:
 		strSrc = strSrc.replace("/thumb/", "/", 1).rsplit("/", 1)[0]
 
 	return strSrc
+
+
+def ImgFlagFromCell(tag: Tag) -> Tag | None:
+	"""The <img> of the flag icon inside a cell, or None when the cell has no flag."""
+	flag = tag.find("span", {"class": "flagicon"})
+	if flag is None:
+		return None
+	return flag.find("img")
+
+
+def StrUrlFlagFromCell(tag: Tag) -> str:
+	"""Canonical SVG URL of the flag icon in a cell, or ""."""
+	img = ImgFlagFromCell(tag)
+	return StrUrlFlagFromImg(img) if img is not None else ""
+
+
+def StrCountryFromUrl(strUrl: str) -> str:
+	"""
+	Canonical country name from a flag SVG URL — the only stable country key.
+
+	A flag icon's alt text is NOT reliable: club cells render the football-federation
+	name ("Argentine Football Association", "Royal Dutch Football Association"), and one
+	country appears under several alt strings. The flag *file* is stable, so we key
+	countries by it: the last URL segment, percent-decoded, with the "Flag_of_"/".svg"
+	wrapper and any "_(qualifier)" dropped, e.g.
+		.../Flag_of_the_Netherlands.svg       -> "Netherlands"
+		.../Flag_of_Belgium_%28civil%29.svg   -> "Belgium"
+		.../Flag_of_C%C3%B4te_d%27Ivoire.svg  -> "Côte d'Ivoire"
+	"""
+	if not strUrl:
+		return ""
+	strFile = urllib.parse.unquote(strUrl.rsplit("/", 1)[-1])
+	strName = strFile.removeprefix("Flag_of_").removesuffix(".svg").split("_(")[0]
+	return strName.replace("_", " ").strip().removeprefix("the ")
+
+
+def StrCountryFromCell(tag: Tag) -> str:
+	"""
+	Canonical country name behind a cell's flag icon (from its flag file), or "".
+
+	The club cell's flag identifies the club's country; we store that canonical name on
+	the player and resolve its flag later through countries.yaml.
+	"""
+	img = ImgFlagFromCell(tag)
+	return StrCountryFromUrl(StrUrlFlagFromImg(img)) if img is not None else ""
 
 
 def PlyrFromRow(row: Tag) -> SPlayer | None:
@@ -188,10 +238,10 @@ def PlyrFromRow(row: Tag) -> SPlayer | None:
 		strName  = strName,
 		fCaptain = fCaptain,
 		strDob   = StrDobCompact(StrCellText(lCols[3])),
-		strCaps = StrCellText(lCols[4]),
+		strCaps  = StrCellText(lCols[4]),
 		# lCols[5] is the Goals column — not captured in SPlayer
 		strClub    = StrCellText(lCols[6]),
-		strUrlFlag = StrUrlFlagFromCell(lCols[6]),
+		strCountry = StrCountryFromCell(lCols[6]),
 	)
 
 
@@ -210,22 +260,19 @@ def CoachFromP(p: Tag, strTeam: str) -> SCoach:
 	Parse a <p>Coach: [flag] <a>Name</a></p> paragraph into an SCoach.
 
 	A leading flagicon appears only when the coach's nationality differs from the
-	team's; it carries both the country name (the image's alt text) and the flag
-	image. We read those before dropping the span — otherwise its country link is
-	the first <a> and we'd pick up e.g. "Belgium" instead of the coach's name.
-
-	With no flagicon the coach shares the team's country, so strCountry falls back
-	to strTeam and strUrlFlag is left "" for the later team-flag lookup in CacheFlags.
+	team's; we canonicalize its country from the flag file (its alt text is unreliable,
+	see StrCountryFromUrl). With no flagicon the coach shares the team's country, so
+	strCountry falls back to the team heading — a raw name that MpCochResolve later maps
+	to a canonical countries.yaml key (free when it already is one, else an API lookup).
 	"""
 	strCountry = strTeam
-	strUrlFlag = ""
 
 	flag = p.find("span", {"class": "flagicon"})
 	if flag is not None:
-		strUrlFlag = StrUrlFlagFromCell(p)
 		img = flag.find("img")
-		if img is not None and img.get("alt"):
-			strCountry = img.get("alt")
+		strCountryFlag = StrCountryFromUrl(StrUrlFlagFromImg(img)) if img is not None else ""
+		if strCountryFlag:
+			strCountry = strCountryFlag
 
 	for flag in p.find_all("span", {"class": "flagicon"}):
 		flag.decompose()
@@ -236,17 +283,18 @@ def CoachFromP(p: Tag, strTeam: str) -> SCoach:
 	else:
 		strName = p.get_text(strip=True).removeprefix("Coach:").strip()
 
-	return SCoach(strName=strName, strCountry=strCountry, strUrlFlag=strUrlFlag)
+	return SCoach(strName=strName, strCountry=strCountry)
 
 
 def StrUrlFlagFromTeam(strTeam: str) -> str:
 	"""
 	Canonical SVG URL of a national team's own flag, or "".
 
-	Used for coaches shown without a flag icon — they share the team's country, but
-	the squads page carries no flag image for the team heading itself. We render the
-	{{flagicon|<team>}} template through the parse API and pull the SVG URL out of the
-	resulting markup with the same StrUrlFlagFromCell logic the club cells use.
+	Used at populate time for a country that never appears as a flag icon on the
+	squads page — a coach shown without a flag (nationality == team) whose country
+	also isn't some player's club country. We render the {{flagicon|<team>}} template
+	through the parse API and pull the SVG URL out with the same StrUrlFlagFromCell
+	logic the page cells use.
 	"""
 	objJson = ObjApiParse({
 		"action":       "parse",
@@ -375,13 +423,33 @@ def LSqdFromSoup(soup: BeautifulSoup) -> list[SSquad]:
 	return lSqd
 
 
+def MpStrCountryUrlFromSoup(soup: BeautifulSoup) -> dict[str, str]:
+	"""
+	Harvest every flag icon on the squads page into country name -> flag SVG URL.
+
+	This is the free tier: it costs no extra HTTP (the page is already fetched) and
+	covers every player's club country plus every coach whose nationality differs
+	from their team. countries.yaml fills its remaining entries (coaches whose
+	nationality matches their team) from the API at populate time.
+	"""
+	mpStrCountryUrl: dict[str, str] = {}
+	for flag in soup.find_all("span", {"class": "flagicon"}):
+		img = flag.find("img")
+		if img is None:
+			continue
+		strUrl     = StrUrlFlagFromImg(img)
+		strCountry = StrCountryFromUrl(strUrl)
+		if strCountry and strUrl:
+			mpStrCountryUrl.setdefault(strCountry, strUrl)
+	return mpStrCountryUrl
+
+
 def ObjApiParse(mpStrParams: dict[str, str]) -> dict:
 	"""
 	GET the MediaWiki action=parse API and return the decoded JSON.
 
 	Retries on HTTP 429 (rate limit) with exponential backoff, honoring a
-	Retry-After header when present, so a burst of section checks doesn't fail
-	the run.
+	Retry-After header when present, so a burst of flag lookups doesn't fail the run.
 	"""
 	dTBackoff = 1.0
 	cTry = 5
@@ -404,29 +472,6 @@ def ObjApiParse(mpStrParams: dict[str, str]) -> dict:
 	return {}
 
 
-def BytesGet(strUrl: str) -> bytes:
-	"""
-	GET a URL and return its raw body, retrying on HTTP 429 with exponential
-	backoff (honoring Retry-After). Used for flag downloads from upload.wikimedia.org,
-	which rate-limits bursts the same way the action API does.
-	"""
-	dTBackoff = 1.0
-	cTry = 5
-	for _ in range(cTry):
-		resp = g_session.get(strUrl, timeout=15)
-		if resp.status_code == 429:
-			dTWait = float(resp.headers.get("Retry-After", dTBackoff))
-			time.sleep(dTWait)
-			dTBackoff *= 2
-			continue
-		resp.raise_for_status()
-		return resp.content
-
-	# Exhausted retries — surface the last 429 as an error.
-	resp.raise_for_status()
-	return b""
-
-
 def FetchSquadsPage() -> BeautifulSoup:
 	objJson = ObjApiParse({
 		"action": "parse",
@@ -437,89 +482,6 @@ def FetchSquadsPage() -> BeautifulSoup:
 	return BeautifulSoup(strHtml, "html.parser")
 
 
-# Flag filenames already cached this run, so repeated clubs from the same country
-# don't re-stat (or re-fetch) the file. The on-disk file in database/flags is the
-# durable cross-run cache; this set just short-circuits within a single run.
-
-g_setStrFlagSeen:  set[str] = set()
-g_cFlagDownloaded: int      = 0    # flags actually fetched this run (vs. served from cache)
-
-
-def StrFlagFile(strUrlFlag: str) -> str:
-	"""
-	Cache filename for a flag — the canonical file name from its URL, e.g.
-	"Flag_of_Croatia.svg". Percent-encoding is decoded so the on-disk name is readable.
-	"""
-	return urllib.parse.unquote(strUrlFlag.rsplit("/", 1)[-1])
-
-
-def StrFlagFileCache(strUrlFlag: str) -> str:
-	"""
-	Ensure the flag SVG is cached in database/flags and return its filename.
-
-	Downloads once per distinct flag: an existing file (from a prior run) or a name
-	already seen this run is reused as-is. Returns "" when the player's club cell
-	carried no flag.
-	"""
-	if not strUrlFlag:
-		return ""
-
-	strFile  = StrFlagFile(strUrlFlag)
-	pathFlag = g_pathFlagsSvg / strFile
-
-	if strFile not in g_setStrFlagSeen and not pathFlag.exists():
-		global g_cFlagDownloaded
-		g_pathFlagsSvg.mkdir(parents=True, exist_ok=True)
-		pathFlag.write_bytes(BytesGet(strUrlFlag))
-		g_cFlagDownloaded += 1
-
-	g_setStrFlagSeen.add(strFile)
-	return strFile
-
-
-def PathFlagPng(strFlagFile: str, cPxWidth: int) -> Path:
-	"""
-	Rasterize a cached flag SVG to a PNG of the given width and return its path.
-
-	The PDF step calls this at draw time so flags render crisply at whatever size
-	they're placed — cairosvg (unlike fpdf2's own SVG parser) handles the gradients
-	and clips in coat-of-arms flags like Mexico's. Rendered PNGs are cached under
-	flags/png as "<stem>.<width>.png" (e.g. "Flag_of_Mexico.160.png"), so each size
-	is rasterized only once.
-
-	cairosvg is imported lazily: the load step only downloads SVGs and shouldn't need
-	the system Cairo library present just to refresh the database.
-	"""
-	import cairosvg
-
-	pathSvg = g_pathFlagsSvg / strFlagFile
-	pathPng = g_pathFlagsPng / f"{Path(strFlagFile).stem}.{cPxWidth}.png"
-	if not pathPng.exists():
-		g_pathFlagsPng.mkdir(parents=True, exist_ok=True)
-		cairosvg.svg2png(url=str(pathSvg), write_to=str(pathPng), output_width=cPxWidth)
-	return pathPng
-
-
-def FSquadAnchorExists(strUrlTeam: str) -> bool:
-	"""
-	True if the team article has a section anchored G_STR_SQUAD_ANCHOR, so that
-	<url>#Current_squad actually resolves to the current-squad table.
-
-	Uses the lightweight parse&prop=sections API (anchors only) instead of
-	fetching and scanning the whole article HTML. The title is percent-decoded
-	first — hrefs arrive encoded (e.g. "Canada_men%27s_national_soccer_team"),
-	and the API rejects the raw form as an invalidtitle.
-	"""
-	strTitle = urllib.parse.unquote(strUrlTeam.removeprefix(g_strUrlWikipedia + "/wiki/"))
-	objJson = ObjApiParse({
-		"action": "parse",
-		"page":   strTitle,
-		"prop":   "sections",
-	})
-	lObjSec = objJson.get("parse", {}).get("sections", [])
-	return any(objSec.get("anchor") == g_strSquadAnchor for objSec in lObjSec)
-
-
 def StrUrlSquad(sqd: SSquad) -> str:
 	"""Team article URL with the current-squad anchor, or "" if no URL was found."""
 	if not sqd.strUrl:
@@ -528,13 +490,12 @@ def StrUrlSquad(sqd: SSquad) -> str:
 
 
 def ObjFromSqd(sqd: SSquad) -> dict:
-	"""Serialize an SSquad to a plain dict suitable for YAML output."""
+	"""Serialize an SSquad to a plain dict for squads.yaml (countries by name)."""
 	return {
-		"team":   sqd.strTeam,
-		"coach":  {
-			"name":         sqd.coach.strName,
-			"country":      sqd.coach.strCountry,
-			"country_icon": sqd.coach.strFlagFile,
+		"team":  sqd.strTeam,
+		"coach": {
+			"name":    sqd.coach.strName,
+			"country": sqd.coach.strCountry,
 		},
 		"url":    StrUrlSquad(sqd),
 		"players": [
@@ -546,7 +507,7 @@ def ObjFromSqd(sqd: SSquad) -> dict:
 				"dob":     plyr.strDob,
 				"caps":    plyr.strCaps,
 				"club":    plyr.strClub,
-				"country_icon": plyr.strFlagFile,
+				"country": plyr.strCountry,
 			}
 			for plyr in sqd.lPlyr
 		],
@@ -570,80 +531,196 @@ def LObjGroupFromLSqd(lSqd: list[SSquad]) -> list[dict]:
 	]
 
 
-def CacheFlags(lSqd: list[SSquad]) -> None:
-	"""
-	Download each player's club-country flag into database/flags and record the
-	cached filename on the player. Distinct flags are fetched once (see StrFlagFileCache).
-	"""
-	for iSqd, sqd in enumerate(lSqd):
-		for iPlyr, plyr in enumerate(sqd.lPlyr):
-			sqd.lPlyr[iPlyr] = replace(plyr, strFlagFile=StrFlagFileCache(plyr.strUrlFlag))
-
-		# A coach with no flag icon shares the team's country; the squads page carries
-		# no flag for the team heading, so resolve that national flag here. Either URL
-		# then caches through the same per-flag dedupe the club flags use.
-		coch       = sqd.coach
-		strUrlFlag = coch.strUrlFlag or StrUrlFlagFromTeam(coch.strCountry)
-		lSqd[iSqd] = replace(sqd, coach=replace(
-			coch,
-			strUrlFlag  = strUrlFlag,
-			strFlagFile = StrFlagFileCache(strUrlFlag),
-		))
+def ObjFromCountry(cty: SCountry) -> dict:
+	"""Serialize an SCountry for countries.yaml."""
+	return {"country": cty.strCountry, "flag_url": cty.strUrlFlag}
 
 
-def LoadDatabase() -> None:
-	"""
-	"Load" mode: fetch the latest squads page, cache club flags, and write the
-	parsed data to database/squads.yaml. The future "PDF" mode reads from there.
-	"""
-	soup   = FetchSquadsPage()
-	lSqd   = LSqdFromSoup(soup)
-	cTeams = len(lSqd)
-	print(f"Parsed {cTeams} teams")
+def LObjFromMpCty(mpStrCty: dict[str, SCountry]) -> list[dict]:
+	"""countries.yaml body, sorted by country name for stable diffs."""
+	return [ObjFromCountry(mpStrCty[strCountry]) for strCountry in sorted(mpStrCty)]
 
-	print(f"Caching club flags into {g_pathFlagsSvg}...")
-	CacheFlags(lSqd)
-	cReused = len(g_setStrFlagSeen) - g_cFlagDownloaded
-	print(f"{len(g_setStrFlagSeen)} distinct flags ({g_cFlagDownloaded} downloaded, {cReused} from cache)")
 
-	if False:
-		print(f"Verifying current squad URLs...")
-		# Verify each team URL resolves with the #Current_squad anchor; warn (but
-		# don't fail) so a renamed/missing section is visible without stopping the run.
-		for sqd in lSqd:
-			if not sqd.strUrl:
-				print(f"WARNING: no Wikipedia URL found for {sqd.strTeam}", file=sys.stderr)
-			elif not FSquadAnchorExists(sqd.strUrl):
-				print(
-					f"WARNING: {sqd.strUrl} has no #{g_strSquadAnchor} section",
-					file=sys.stderr,
-				)
+def MpCtyFromObj(objYaml: object) -> dict[str, SCountry]:
+	"""Parse countries.yaml's raw object into country name -> SCountry."""
+	mpStrCty: dict[str, SCountry] = {}
+	for obj in objYaml or []:
+		cty = SCountry(strCountry=obj["country"], strUrlFlag=obj.get("flag_url", ""))
+		mpStrCty[cty.strCountry] = cty
+	return mpStrCty
 
-	# Spot-check first team
-	if lSqd:
-		sqd = lSqd[0]
-		print(f"\n{sqd.strGroup} — {sqd.strTeam} — Coach: {sqd.coach.strName} ({sqd.coach.strCountry})")
-		for plyr in sqd.lPlyr[:3]:
-			print(f"  {plyr.strNo:>2}  {plyr.strPos}  {plyr.strName:<25}  {plyr.strClub}")
 
-	pathOut = g_pathDatabase / "squads.yaml"
+def ObjFromCoach(coch: SCoach) -> dict:
+	"""Serialize an SCoach for coaches.yaml."""
+	return {"name": coch.strName, "country": coch.strCountry}
 
-	print(f"Writing {pathOut}...")
 
-	pathOut.parent.mkdir(parents=True, exist_ok=True)
-	pathOut.write_text(
-		yaml.dump(
-			LObjGroupFromLSqd(lSqd),
-			allow_unicode=True,    # keep accented names as-is, not \uXXXX escapes
-			sort_keys=False,       # preserve our field order (team, coach, url, players)
-			default_flow_style=False,
-		),
+def LObjFromMpCoch(mpStrCoch: dict[str, SCoach]) -> list[dict]:
+	"""coaches.yaml body, sorted by coach name for stable diffs."""
+	return [ObjFromCoach(mpStrCoch[strName]) for strName in sorted(mpStrCoch)]
+
+
+def MpCochFromObj(objYaml: object) -> dict[str, SCoach]:
+	"""Parse coaches.yaml's raw object into coach name -> SCoach."""
+	mpStrCoch: dict[str, SCoach] = {}
+	for obj in objYaml or []:
+		coch = SCoach(strName=obj["name"], strCountry=obj.get("country", ""))
+		mpStrCoch[coch.strName] = coch
+	return mpStrCoch
+
+
+def WriteYaml(path: Path, obj: object) -> None:
+	"""Write obj to path as readable YAML (accents intact, our field order kept)."""
+	path.parent.mkdir(parents=True, exist_ok=True)
+	path.write_text(
+		yaml.dump(obj, allow_unicode=True, sort_keys=False, default_flow_style=False),
 		encoding="utf-8",
 	)
 
 
+def ObjLoadYaml(path: Path) -> object:
+	"""
+	Parse a sidecar YAML to its raw object, or None when the file is absent.
+
+	A present-but-unparseable file is a hand-editing mistake, not a cache miss, so we
+	stop rather than silently overwrite it.
+	"""
+	if not path.exists():
+		return None
+	try:
+		return yaml.safe_load(path.read_text(encoding="utf-8"))
+	except yaml.YAMLError as err:
+		sys.exit(f"ERROR: {path} is unreadable ({err}); fix it or run: rcs --reload-all")
+
+
+def SetStrCountryRef(lSqd: list[SSquad]) -> set[str]:
+	"""Every country name the output references (player club countries + coaches)."""
+	setStrCountry: set[str] = set()
+	for sqd in lSqd:
+		if sqd.coach.strCountry:
+			setStrCountry.add(sqd.coach.strCountry)
+		for plyr in sqd.lPlyr:
+			if plyr.strCountry:
+				setStrCountry.add(plyr.strCountry)
+	return setStrCountry
+
+
+def MpCtyBuild(
+	lSqd:            list[SSquad],
+	mpStrCountryUrl: dict[str, str],
+	mpCtyCached:     dict[str, SCountry],
+	fPopulate:       bool,
+) -> dict[str, SCountry]:
+	"""
+	Resolve every referenced country to an SCountry for countries.yaml.
+
+	flag_url comes free from this run's page harvest (mpStrCountryUrl). A country
+	absent from the page is a coach whose nationality matches their team: when
+	populating we resolve it via the API; on a normal run we reuse the cached URL,
+	or error toward --reload-all when it isn't cached either. (FIFA codes will plug
+	in here the same way — populate-only, gated otherwise.)
+	"""
+	mpStrCty: dict[str, SCountry] = {}
+	for strCountry in SetStrCountryRef(lSqd):
+		strUrl = mpStrCountryUrl.get(strCountry, "")
+		if not strUrl:
+			ctyCached = mpCtyCached.get(strCountry)
+			if ctyCached is not None:
+				strUrl = ctyCached.strUrlFlag
+		if not strUrl:
+			if fPopulate:
+				strUrl = StrUrlFlagFromTeam(strCountry)   # API — populate path only
+			else:
+				sys.exit(f"ERROR: no cached flag for country {strCountry!r}; run: rcs --reload-all")
+		mpStrCty[strCountry] = SCountry(strCountry=strCountry, strUrlFlag=strUrl)
+	return mpStrCty
+
+
+def MpCochResolve(
+	lSqd:            list[SSquad],
+	mpStrCountryUrl: dict[str, str],
+	mpCochCached:    dict[str, SCoach],
+	fPopulate:       bool,
+) -> dict[str, SCoach]:
+	"""
+	Resolve each coach's country to a canonical countries.yaml key, keyed by coach name.
+
+	A coach with a flag on the page is already canonical (CoachFromP read it from the
+	flag file). A coach without one shares the team's country: if the team heading is
+	already a known country name it's kept as-is (free); otherwise it's a genuine HTTP
+	fact — resolved via the team-flag API when populating (and its URL folded into
+	mpStrCountryUrl so countries.yaml gets it), served from coaches.yaml otherwise, or an
+	error toward --reload-all when uncached. This is where the coming per-coach article
+	fetch slots in: another populate-only lookup, gated the same way.
+	"""
+	mpStrCoch: dict[str, SCoach] = {}
+	for sqd in lSqd:
+		coch       = sqd.coach
+		strCountry = coch.strCountry
+		if strCountry not in mpStrCountryUrl:
+			cochCached = mpCochCached.get(coch.strName)
+			if cochCached is not None:
+				strCountry = cochCached.strCountry
+			elif fPopulate:
+				strUrl     = StrUrlFlagFromTeam(strCountry)      # API — populate path only
+				strCountry = StrCountryFromUrl(strUrl) or strCountry
+				if strUrl:
+					mpStrCountryUrl.setdefault(strCountry, strUrl)
+			else:
+				sys.exit(f"ERROR: no cached country for coach {coch.strName!r}; run: rcs --reload-all")
+		mpStrCoch[coch.strName] = replace(coch, strCountry=strCountry)
+	return mpStrCoch
+
+
+def LoadDatabase(fReloadAll: bool) -> None:
+	"""
+	"Load" mode: fetch the latest squads page, refresh the sidecar caches, and write
+	database/squads.yaml. A future "PDF" mode reads squads.yaml + countries.yaml.
+	"""
+	pathSquads    = g_pathDatabase / "squads.yaml"
+	pathCountries = g_pathDatabase / "countries.yaml"
+	pathCoaches   = g_pathDatabase / "coaches.yaml"
+
+	soup = FetchSquadsPage()
+	lSqd = LSqdFromSoup(soup)
+	print(f"Parsed {len(lSqd)} teams")
+
+	mpStrCountryUrl = MpStrCountryUrlFromSoup(soup)
+
+	# coaches.yaml — resolve each coach's country to a canonical key. Populate (allow the
+	# team-flag API for a non-canonical team heading) on --reload-all or when the file is
+	# absent; otherwise serve cached coaches and error on an uncached HTTP-needing one.
+	fPopulateCoaches = fReloadAll or not pathCoaches.exists()
+	mpCochCached = {} if fPopulateCoaches else MpCochFromObj(ObjLoadYaml(pathCoaches))
+	mpStrCoch = MpCochResolve(lSqd, mpStrCountryUrl, mpCochCached, fPopulateCoaches)
+	WriteYaml(pathCoaches, LObjFromMpCoch(mpStrCoch))
+	print(f"Wrote {pathCoaches} ({len(mpStrCoch)} coaches)")
+
+	# Fold the resolved coach countries back onto the squads for squads.yaml.
+	lSqd = [replace(sqd, coach=mpStrCoch[sqd.coach.strName]) for sqd in lSqd]
+
+	# countries.yaml — assemble every referenced country's flag URL. Free URLs come from
+	# this run's harvest; a country missing from it is resolved via the API at populate
+	# time, served from the cache otherwise, or an error toward --reload-all.
+	fPopulateCountries = fReloadAll or not pathCountries.exists()
+	mpCtyCached = {} if fPopulateCountries else MpCtyFromObj(ObjLoadYaml(pathCountries))
+	mpStrCty = MpCtyBuild(lSqd, mpStrCountryUrl, mpCtyCached, fPopulateCountries)
+	WriteYaml(pathCountries, LObjFromMpCty(mpStrCty))
+	print(f"Wrote {pathCountries} ({len(mpStrCty)} countries)")
+
+	WriteYaml(pathSquads, LObjGroupFromLSqd(lSqd))
+	print(f"Wrote {pathSquads}")
+
+
 def main() -> None:
-	LoadDatabase()
+	parser = argparse.ArgumentParser(prog="rcs", description="generate roster cheat sheets")
+	parser.add_argument(
+		"--reload-all",
+		action="store_true",
+		help="re-resolve the cached sidecars (countries.yaml, coaches.yaml) via HTTP",
+	)
+	args = parser.parse_args()
+	LoadDatabase(fReloadAll=args.reload_all)
 
 
 if __name__ == '__main__':
