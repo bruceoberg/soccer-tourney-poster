@@ -490,19 +490,19 @@ def StrUrlSquad(sqd: SSquad) -> str:
 
 
 def ObjFromSqd(sqd: SSquad) -> dict:
-	"""Serialize an SSquad to a plain dict for squads.yaml (countries by name)."""
+	"""
+	Serialize an SSquad's value for squads.yaml (the team name is the key).
+
+	Players become a dict keyed by player name; the coach is just a name, with
+	the rest of the coach's data read from coaches.yaml by that name.
+	"""
 	return {
-		"team":  sqd.strTeam,
-		"coach": {
-			"name":    sqd.coach.strName,
-			"country": sqd.coach.strCountry,
-		},
+		"coach":  sqd.coach.strName,
 		"url":    StrUrlSquad(sqd),
-		"players": [
-			{
+		"players": {
+			plyr.strName: {
 				"no":      plyr.strNo,
 				"pos":     plyr.strPos,
-				"name":    plyr.strName,
 				"captain": plyr.fCaptain,
 				"dob":     plyr.strDob,
 				"caps":    plyr.strCaps,
@@ -510,62 +510,56 @@ def ObjFromSqd(sqd: SSquad) -> dict:
 				"country": plyr.strCountry,
 			}
 			for plyr in sqd.lPlyr
-		],
+		},
 	}
 
 
-def LObjGroupFromLSqd(lSqd: list[SSquad]) -> list[dict]:
+def MpObjGroupFromLSqd(lSqd: list[SSquad]) -> dict[str, dict]:
 	"""
-	Bucket squads into group objects, preserving first-seen group order.
+	Bucket squads into group name -> team name -> team object, first-seen order.
 
-	Each output object is {"group": "Group A", "teams": [ ... ]}; the team's
-	group is implied by its parent so ObjFromSqd omits it.
+	The team's group is implied by its parent key and the team name is its own
+	key, so ObjFromSqd omits both.
 	"""
-	mpStrLObj: dict[str, list[dict]] = {}
+	mpStrMpObj: dict[str, dict] = {}
 	for sqd in lSqd:
-		mpStrLObj.setdefault(sqd.strGroup, []).append(ObjFromSqd(sqd))
-
-	return [
-		{"group": strGroup, "teams": lObjTeam}
-		for strGroup, lObjTeam in mpStrLObj.items()
-	]
+		mpStrMpObj.setdefault(sqd.strGroup, {})[sqd.strTeam] = ObjFromSqd(sqd)
+	return mpStrMpObj
 
 
 def ObjFromCountry(cty: SCountry) -> dict:
-	"""Serialize an SCountry for countries.yaml."""
-	return {"country": cty.strCountry, "flag_url": cty.strUrlFlag}
+	"""Serialize an SCountry's value for countries.yaml (the name is the key)."""
+	return {"flag_url": cty.strUrlFlag}
 
 
-def LObjFromMpCty(mpStrCty: dict[str, SCountry]) -> list[dict]:
-	"""countries.yaml body, sorted by country name for stable diffs."""
-	return [ObjFromCountry(mpStrCty[strCountry]) for strCountry in sorted(mpStrCty)]
+def MpObjFromMpCty(mpStrCty: dict[str, SCountry]) -> dict[str, dict]:
+	"""countries.yaml body: country name -> {flag_url}, sorted for stable diffs."""
+	return {strCountry: ObjFromCountry(mpStrCty[strCountry]) for strCountry in sorted(mpStrCty)}
 
 
 def MpCtyFromObj(objYaml: object) -> dict[str, SCountry]:
-	"""Parse countries.yaml's raw object into country name -> SCountry."""
+	"""Parse countries.yaml's raw object (country name -> {flag_url}) into SCountry."""
 	mpStrCty: dict[str, SCountry] = {}
-	for obj in objYaml or []:
-		cty = SCountry(strCountry=obj["country"], strUrlFlag=obj.get("flag_url", ""))
-		mpStrCty[cty.strCountry] = cty
+	for strCountry, obj in (objYaml or {}).items():
+		mpStrCty[strCountry] = SCountry(strCountry=strCountry, strUrlFlag=obj.get("flag_url", ""))
 	return mpStrCty
 
 
 def ObjFromCoach(coch: SCoach) -> dict:
-	"""Serialize an SCoach for coaches.yaml."""
-	return {"name": coch.strName, "country": coch.strCountry}
+	"""Serialize an SCoach's value for coaches.yaml (the name is the key)."""
+	return {"country": coch.strCountry}
 
 
-def LObjFromMpCoch(mpStrCoch: dict[str, SCoach]) -> list[dict]:
-	"""coaches.yaml body, sorted by coach name for stable diffs."""
-	return [ObjFromCoach(mpStrCoch[strName]) for strName in sorted(mpStrCoch)]
+def MpObjFromMpCoch(mpStrCoch: dict[str, SCoach]) -> dict[str, dict]:
+	"""coaches.yaml body: coach name -> {country}, sorted for stable diffs."""
+	return {strName: ObjFromCoach(mpStrCoch[strName]) for strName in sorted(mpStrCoch)}
 
 
 def MpCochFromObj(objYaml: object) -> dict[str, SCoach]:
-	"""Parse coaches.yaml's raw object into coach name -> SCoach."""
+	"""Parse coaches.yaml's raw object (coach name -> {country}) into SCoach."""
 	mpStrCoch: dict[str, SCoach] = {}
-	for obj in objYaml or []:
-		coch = SCoach(strName=obj["name"], strCountry=obj.get("country", ""))
-		mpStrCoch[coch.strName] = coch
+	for strName, obj in (objYaml or {}).items():
+		mpStrCoch[strName] = SCoach(strName=strName, strCountry=obj.get("country", ""))
 	return mpStrCoch
 
 
@@ -693,7 +687,7 @@ def LoadDatabase(fReloadAll: bool) -> None:
 	fPopulateCoaches = fReloadAll or not pathCoaches.exists()
 	mpCochCached = {} if fPopulateCoaches else MpCochFromObj(ObjLoadYaml(pathCoaches))
 	mpStrCoch = MpCochResolve(lSqd, mpStrCountryUrl, mpCochCached, fPopulateCoaches)
-	WriteYaml(pathCoaches, LObjFromMpCoch(mpStrCoch))
+	WriteYaml(pathCoaches, MpObjFromMpCoch(mpStrCoch))
 	print(f"Wrote {pathCoaches} ({len(mpStrCoch)} coaches)")
 
 	# Fold the resolved coach countries back onto the squads for squads.yaml.
@@ -705,10 +699,10 @@ def LoadDatabase(fReloadAll: bool) -> None:
 	fPopulateCountries = fReloadAll or not pathCountries.exists()
 	mpCtyCached = {} if fPopulateCountries else MpCtyFromObj(ObjLoadYaml(pathCountries))
 	mpStrCty = MpCtyBuild(lSqd, mpStrCountryUrl, mpCtyCached, fPopulateCountries)
-	WriteYaml(pathCountries, LObjFromMpCty(mpStrCty))
+	WriteYaml(pathCountries, MpObjFromMpCty(mpStrCty))
 	print(f"Wrote {pathCountries} ({len(mpStrCty)} countries)")
 
-	WriteYaml(pathSquads, LObjGroupFromLSqd(lSqd))
+	WriteYaml(pathSquads, MpObjGroupFromLSqd(lSqd))
 	print(f"Wrote {pathSquads}")
 
 
