@@ -24,7 +24,7 @@ g_strUrlWikipedia = "https://en.wikipedia.org"
 # Persistent data store. The "load" step rewrites squads.yaml every run (rosters change
 # often) and maintains two sidecar caches for data that needs an HTTP lookup:
 #
-#   countries.yaml — country name -> flag URL (and, later, FIFA code)
+#   countries.yaml — country name -> flag URL + 3-letter FIFA code
 #   coaches.yaml   — coach name -> coach record (home of the coming per-coach data)
 #
 # A normal run makes a single network call (the squads page); the sidecars supply
@@ -73,11 +73,11 @@ class SCoach:  # tag = coch
 
 @dataclass(frozen=True)
 class SCountry:  # tag = cty
-	"""A country's flag, cached in countries.yaml so a normal run needs no flag lookup."""
+	"""A country's flag and FIFA code, cached in countries.yaml so a normal run needs no lookup."""
 
-	strCountry: str  # country name (the registry key)
-	strUrlFlag: str  # source URL of the country's flag SVG
-	# strFifaCode: str = ""   # FUTURE — 3-letter FIFA code; HTTP lookup, --reload-all only
+	strCountry:  str  # country name (the registry key)
+	strUrlFlag:  str  # source URL of the country's flag SVG
+	strFifaCode: str  # 3-letter FIFA code, e.g. "ENG"; HTTP lookup, populate path only
 
 
 @dataclass(frozen=True)
@@ -306,6 +306,72 @@ def StrUrlFlagFromTeam(strTeam: str) -> str:
 	return StrUrlFlagFromCell(BeautifulSoup(strHtml, "html.parser"))
 
 
+# Candidate national-team article titles to probe for a country's FIFA code, most
+# specific first. The bare "<country> national football team" title is frequently a
+# men's/women's disambiguation page (Sweden, Australia, New Zealand, …) that carries no
+# infobox at all, so we try the explicit men's titles ahead of it; the "soccer" variants
+# cover the US/Canada/Australia naming. The first title whose infobox yields a code wins.
+
+g_lStrFifaSuffix = [
+	" men's national football team",
+	" men's national soccer team",
+	" national football team",
+	" national soccer team",
+]
+
+# A FIFA code is exactly three uppercase letters. The infobox data cell may carry a
+# trailing footnote marker, so we pull the first such token rather than taking the
+# whole cell text.
+
+g_reFifaCode = re.compile(r"\b[A-Z]{3}\b")
+
+
+def StrFifaFromInfobox(strHtml: str) -> str:
+	"""
+	The FIFA code from a national-team article's infobox HTML, or "".
+
+	We read the rendered "FIFA code" header cell and its paired data cell ("ENG") rather
+	than the wikitext: the wikitext field name ("FIFA Trigramme") and its wrapping template
+	vary between articles — several build the infobox indirectly, so that field never
+	appears in the lead-section wikitext at all, while the rendered label is uniform.
+	"""
+	soup = BeautifulSoup(strHtml, "html.parser")
+	for th in soup.find_all("th"):
+		if th.get_text(strip=True).lower() == "fifa code":
+			td = th.find_next_sibling("td")
+			if td is not None:
+				match = g_reFifaCode.search(td.get_text(" ", strip=True))
+				if match is not None:
+					return match.group(0)
+	return ""
+
+
+def StrFifaFromCountry(strCountry: str) -> str:
+	"""
+	The 3-letter FIFA code for a country (e.g. "England" -> "ENG"), or "".
+
+	HTTP lookup against the country's men's national-team article infobox — populate path
+	only, the sibling of StrUrlFlagFromTeam. We probe the candidate titles in
+	g_lStrFifaSuffix (most specific first, to dodge disambiguation pages) and return the
+	first article whose infobox carries a code. A missing page returns an API "error"
+	object with HTTP 200, so we simply skip to the next candidate.
+	"""
+	for strSuffix in g_lStrFifaSuffix:
+		objJson = ObjApiParse({
+			"action":    "parse",
+			"page":      strCountry + strSuffix,
+			"prop":      "text",
+			"redirects": "1",
+		})
+		if "error" in objJson:
+			continue
+		strHtml = objJson.get("parse", {}).get("text", {}).get("*", "")
+		strFifa = StrFifaFromInfobox(strHtml)
+		if strFifa:
+			return strFifa
+	return ""
+
+
 def StrUrlTeamFromP(p: Tag) -> str | None:
 	"""
 	Return the absolute URL of the team's own Wikipedia article, or None.
@@ -439,17 +505,28 @@ def ObjApiParse(mpStrParams: dict[str, str]) -> dict:
 	"""
 	GET the MediaWiki action=parse API and return the decoded JSON.
 
-	Retries on HTTP 429 (rate limit) with exponential backoff, honoring a
-	Retry-After header when present, so a burst of flag lookups doesn't fail the run.
+	Retries with exponential backoff on HTTP 429 (rate limit) and on transient network
+	failures (read/connect timeouts, dropped connections), honoring a Retry-After header
+	when present, so the populate path's burst of per-country lookups doesn't fail the
+	whole run on a single hiccup. A missing page is not an error here — the API returns
+	HTTP 200 with an {"error": …} body, which we hand back for the caller to interpret.
 	"""
 	dTBackoff = 1.0
 	cTry = 5
-	for _ in range(cTry):
-		resp = g_session.get(
-			"https://en.wikipedia.org/w/api.php",
-			params={**mpStrParams, "format": "json"},
-			timeout=15,
-		)
+	for iTry in range(cTry):
+		try:
+			resp = g_session.get(
+				"https://en.wikipedia.org/w/api.php",
+				params={**mpStrParams, "format": "json"},
+				timeout=15,
+			)
+		except requests.exceptions.RequestException:
+			# Transient network error — back off and retry; re-raise on the last attempt.
+			if iTry + 1 == cTry:
+				raise
+			time.sleep(dTBackoff)
+			dTBackoff *= 2
+			continue
 		if resp.status_code == 429:
 			dTWait = float(resp.headers.get("Retry-After", dTBackoff))
 			time.sleep(dTWait)
@@ -520,19 +597,23 @@ def MpObjGroupFromLSqd(lSqd: list[SSquad]) -> dict[str, dict]:
 
 def ObjFromCountry(cty: SCountry) -> dict:
 	"""Serialize an SCountry's value for countries.yaml (the name is the key)."""
-	return {"flag_url": cty.strUrlFlag}
+	return {"flag_url": cty.strUrlFlag, "fifa_code": cty.strFifaCode}
 
 
 def MpObjFromMpCty(mpStrCty: dict[str, SCountry]) -> dict[str, dict]:
-	"""countries.yaml body: country name -> {flag_url}, sorted for stable diffs."""
+	"""countries.yaml body: country name -> {flag_url, fifa_code}, sorted for stable diffs."""
 	return {strCountry: ObjFromCountry(mpStrCty[strCountry]) for strCountry in sorted(mpStrCty)}
 
 
 def MpCtyFromObj(objYaml: object) -> dict[str, SCountry]:
-	"""Parse countries.yaml's raw object (country name -> {flag_url}) into SCountry."""
+	"""Parse countries.yaml's raw object (country name -> {flag_url, fifa_code}) into SCountry."""
 	mpStrCty: dict[str, SCountry] = {}
 	for strCountry, obj in (objYaml or {}).items():
-		mpStrCty[strCountry] = SCountry(strCountry=strCountry, strUrlFlag=obj.get("flag_url", ""))
+		mpStrCty[strCountry] = SCountry(
+			strCountry  = strCountry,
+			strUrlFlag  = obj.get("flag_url", ""),
+			strFifaCode = obj.get("fifa_code", ""),
+		)
 	return mpStrCty
 
 
@@ -599,25 +680,36 @@ def MpCtyBuild(
 	"""
 	Resolve every referenced country to an SCountry for countries.yaml.
 
-	flag_url comes free from this run's page harvest (mpStrCountryUrl). A country
-	absent from the page is a coach whose nationality matches their team: when
-	populating we resolve it via the API; on a normal run we reuse the cached URL,
-	or error toward --reload-all when it isn't cached either. (FIFA codes will plug
-	in here the same way — populate-only, gated otherwise.)
+	flag_url comes free from this run's page harvest (mpStrCountryUrl); fifa_code never
+	appears on the page, so it is always an HTTP fact. Both follow the same policy: prefer
+	this run's free data, then the cache; a value still missing is resolved via the API when
+	populating, or an error toward --reload-all otherwise. On full populate the FIFA lookup
+	costs one API call per country (a few when the first candidate title misses), so it runs
+	only on --reload-all or a first populate, never on a normal cached run.
 	"""
 	mpStrCty: dict[str, SCountry] = {}
 	for strCountry in SetStrCountryRef(lSqd):
+		ctyCached = mpCtyCached.get(strCountry)
+
+		# flag_url — free from the page harvest, else the cache, else the API / an error.
 		strUrl = mpStrCountryUrl.get(strCountry, "")
-		if not strUrl:
-			ctyCached = mpCtyCached.get(strCountry)
-			if ctyCached is not None:
-				strUrl = ctyCached.strUrlFlag
+		if not strUrl and ctyCached is not None:
+			strUrl = ctyCached.strUrlFlag
 		if not strUrl:
 			if fPopulate:
 				strUrl = StrUrlFlagFromTeam(strCountry)   # API — populate path only
 			else:
 				sys.exit(f"ERROR: no cached flag for country {strCountry!r}; run: rcs --reload-all")
-		mpStrCty[strCountry] = SCountry(strCountry=strCountry, strUrlFlag=strUrl)
+
+		# fifa_code — never on the page, so the cache, else the API / an error.
+		strFifa = ctyCached.strFifaCode if ctyCached is not None else ""
+		if not strFifa:
+			if fPopulate:
+				strFifa = StrFifaFromCountry(strCountry)   # API — populate path only
+			else:
+				sys.exit(f"ERROR: no cached FIFA code for country {strCountry!r}; run: rcs --reload-all")
+
+		mpStrCty[strCountry] = SCountry(strCountry=strCountry, strUrlFlag=strUrl, strFifaCode=strFifa)
 	return mpStrCty
 
 
