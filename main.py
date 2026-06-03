@@ -7,7 +7,7 @@ generates roster cheat sheets
 from __future__ import annotations  # Forward refs without quotes
 
 from bs4 import BeautifulSoup, Tag
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from dateutil import parser as dateutil_parser
 from pathlib import Path
 
@@ -69,6 +69,8 @@ class SCoach:  # tag = coch
 
 	strName:    str
 	strCountry: str  # nationality; the team's own country when no flag icon was shown
+	strUrl:     str = ""  # coach's Wikipedia article URL (from the squads page); drives the previous-jobs lookup, not serialized
+	lStrPrevJobs: list[str] = field(default_factory=list)  # two most-recent prior managerial jobs, newest first, "" padded to length 2
 
 
 @dataclass(frozen=True)
@@ -283,7 +285,14 @@ def CoachFromTagP(tagP: Tag, strTeam: str) -> SCoach:
 	else:
 		strName = tagP.get_text(strip=True).removeprefix("Coach:").strip()
 
-	return SCoach(strName=strName, strCountry=strCountry)
+	# The name links to the coach's own article — capture it so the populate path can
+	# read their managerial-career infobox. Footnote anchors are #cite fragments, so the
+	# /wiki/ prefix test skips them.
+	strUrl = ""
+	if link is not None and link.get("href", "").startswith("/wiki/"):
+		strUrl = g_strUrlWikipedia + link.get("href", "")
+
+	return SCoach(strName=strName, strCountry=strCountry, strUrl=strUrl)
 
 
 def StrUrlFlagFromTeam(strTeam: str) -> str:
@@ -370,6 +379,89 @@ def StrFifaFromCountry(strCountry: str) -> str:
 		if strFifa:
 			return strFifa
 	return ""
+
+
+# A managerial-career row's first cell is a years range that opens with a 4-digit year
+# ("2021–2022", "2024–"); the medal-record and footnote rows that follow the career block
+# do not, so this both recognizes career rows and marks where the block ends.
+
+g_reCareerYears = re.compile(r"^\d{4}")
+
+# A still-current job has an open-ended date: a year, the en-dash (or hyphen) separator,
+# then nothing (or "present"). That last entry is the national team the coach holds now,
+# which we drop so previous_jobs holds only prior jobs.
+
+g_reCareerCurrent = re.compile(r"\d{4}\s*[–-]\s*(present)?\s*$", re.IGNORECASE)
+
+
+def StrTitleFromUrl(strUrl: str) -> str:
+	"""Wikipedia article title from a /wiki/ URL ("…/Mauricio_Pochettino" -> "Mauricio Pochettino")."""
+	return urllib.parse.unquote(strUrl.rsplit("/wiki/", 1)[-1]).replace("_", " ")
+
+
+def LStrPrevJobsFromCoachUrl(strUrl: str) -> list[str]:
+	"""
+	A coach's two most-recent prior managerial jobs (newest first), padded to length 2.
+
+	HTTP lookup against the coach's Wikipedia article — populate path only, the sibling of
+	StrFifaFromCountry. We read the rendered infobox rather than the wikitext: each row after
+	the "Managerial career" header pairs a years cell (th, "2021–2022") with a team cell (td,
+	whose link names the club/country). We drop the trailing current job (open-ended date — the
+	national team the coach holds now) and return the previous two team names, newest first.
+	Returns ["", ""] when the article, infobox, or career section is missing.
+	"""
+	if not strUrl:
+		return ["", ""]
+
+	objJson = ObjApiParse({
+		"action":    "parse",
+		"page":      StrTitleFromUrl(strUrl),
+		"prop":      "text",
+		"redirects": "1",
+	})
+	if "error" in objJson:
+		return ["", ""]
+
+	soup = BeautifulSoup(objJson.get("parse", {}).get("text", {}).get("*", ""), "html.parser")
+	infobox = soup.find("table", {"class": "infobox"})
+	if infobox is None:
+		return ["", ""]
+
+	# Walk the infobox rows: skip until the "Managerial career" header, then collect each
+	# (team, is-current) career row until the years cell stops looking like a year range.
+	lStrTeamCareer: list[tuple[str, bool]] = []
+	fInCareer = False
+	for tr in infobox.find_all("tr"):
+		th = tr.find("th")
+		if not fInCareer:
+			if th is not None and "Managerial career" in th.get_text(strip=True):
+				fInCareer = True
+			continue
+
+		strYears = th.get_text(" ", strip=True) if th is not None else ""
+		if strYears == "Years":
+			continue  # some infoboxes carry a "Years | Team" column sub-header — skip it
+		if not g_reCareerYears.match(strYears):
+			break  # left the career block (medal record, footnotes, …)
+
+		td = tr.find("td")
+		if td is None:
+			continue
+
+		link = td.find("a")
+		strTeam = link.get_text(strip=True) if link is not None else td.get_text(" ", strip=True)
+		lStrTeamCareer.append((strTeam, bool(g_reCareerCurrent.search(strYears))))
+
+	# Drop trailing current jobs (the national team coached now), then take the previous two
+	# in chronological order and reverse to newest-first.
+	while lStrTeamCareer and lStrTeamCareer[-1][1]:
+		lStrTeamCareer.pop()
+
+	lStrPrevJobs = [strTeam for strTeam, _ in lStrTeamCareer[-2:]]
+	lStrPrevJobs.reverse()
+	while len(lStrPrevJobs) < 2:
+		lStrPrevJobs.append("")
+	return lStrPrevJobs
 
 
 def StrUrlTeamFromP(p: Tag) -> str | None:
@@ -619,7 +711,7 @@ def MpCtyFromObj(objYaml: object) -> dict[str, SCountry]:
 
 def ObjFromCoach(coch: SCoach) -> dict:
 	"""Serialize an SCoach's value for coaches.yaml (the name is the key)."""
-	return {"country": coch.strCountry}
+	return {"country": coch.strCountry, "previous_jobs": coch.lStrPrevJobs}
 
 
 def MpObjFromMpCoch(mpStrCoch: dict[str, SCoach]) -> dict[str, dict]:
@@ -628,10 +720,14 @@ def MpObjFromMpCoch(mpStrCoch: dict[str, SCoach]) -> dict[str, dict]:
 
 
 def MpCochFromObj(objYaml: object) -> dict[str, SCoach]:
-	"""Parse coaches.yaml's raw object (coach name -> {country}) into SCoach."""
+	"""Parse coaches.yaml's raw object (coach name -> {country, previous_jobs}) into SCoach."""
 	mpStrCoch: dict[str, SCoach] = {}
 	for strName, obj in (objYaml or {}).items():
-		mpStrCoch[strName] = SCoach(strName=strName, strCountry=obj.get("country", ""))
+		mpStrCoch[strName] = SCoach(
+			strName      = strName,
+			strCountry   = obj.get("country", ""),
+			lStrPrevJobs = list(obj.get("previous_jobs", []) or []),
+		)
 	return mpStrCoch
 
 
@@ -727,15 +823,19 @@ def MpCochResolve(
 	already a known country name it's kept as-is (free); otherwise it's a genuine HTTP
 	fact — resolved via the team-flag API when populating (and its URL folded into
 	mpStrCountryUrl so countries.yaml gets it), served from coaches.yaml otherwise, or an
-	error toward --reload-all when uncached. This is where the coming per-coach article
-	fetch slots in: another populate-only lookup, gated the same way.
+	error toward --reload-all when uncached.
+
+	previous_jobs is never on the squads page, so it follows the cache-or-API-or-error
+	policy uniformly for every coach: served from coaches.yaml when present, fetched from
+	the coach's article when populating, or an error toward --reload-all otherwise.
 	"""
 	mpStrCoch: dict[str, SCoach] = {}
 	for sqd in lSqd:
 		coch       = sqd.coach
+		cochCached = mpCochCached.get(coch.strName)
+
 		strCountry = coch.strCountry
 		if strCountry not in mpStrCountryUrl:
-			cochCached = mpCochCached.get(coch.strName)
 			if cochCached is not None:
 				strCountry = cochCached.strCountry
 			elif fPopulate:
@@ -745,7 +845,17 @@ def MpCochResolve(
 					mpStrCountryUrl.setdefault(strCountry, strUrl)
 			else:
 				sys.exit(f"ERROR: no cached country for coach {coch.strName!r}; run: rcs --reload-all")
-		mpStrCoch[coch.strName] = replace(coch, strCountry=strCountry)
+
+		# previous_jobs — never on the page, so the cache (a populated entry is always
+		# length 2), else the coach-article API when populating, else an error.
+		if cochCached is not None and cochCached.lStrPrevJobs:
+			lStrPrevJobs = cochCached.lStrPrevJobs
+		elif fPopulate:
+			lStrPrevJobs = LStrPrevJobsFromCoachUrl(coch.strUrl)   # API — populate path only
+		else:
+			sys.exit(f"ERROR: no cached previous jobs for coach {coch.strName!r}; run: rcs --reload-all")
+
+		mpStrCoch[coch.strName] = replace(coch, strCountry=strCountry, lStrPrevJobs=lStrPrevJobs)
 	return mpStrCoch
 
 
