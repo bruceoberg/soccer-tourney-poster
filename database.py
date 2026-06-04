@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup, Tag
 from dataclasses import dataclass, field, replace
 from dateutil import parser as dateutil_parser
 from pathlib import Path
+from pydantic import BaseModel, Field, ConfigDict
 
 import re
 import requests
@@ -30,6 +31,7 @@ g_strUrlWikipedia = "https://en.wikipedia.org"
 # everything else. See LoadDatabase for the populate-vs-normal caching policy.
 
 g_pathDatabase = Path("database")
+s_pathDatabaseFile    = g_pathDatabase / "db.yaml"
 
 # Section anchor on a national-team article whose table lists the active roster;
 # we link each team URL straight to it.
@@ -47,18 +49,57 @@ g_strUserAgent = "roster-cheat-sheet/0.1 (https://github.com/bruceoberg/roster-c
 g_session = requests.Session()
 g_session.headers.update({"User-Agent": g_strUserAgent})
 
+# yaml classes
+
+class SPlayerObj(BaseModel): # tag = playero
+	strNumber:	str				= Field(alias='jersey_number')
+	strPos:   	str				= Field(alias='position')
+	fCaptain: 	bool			= Field(alias='is_captain')
+	strDob:   	str				= Field(alias='birthdate')
+	strCaps:  	str				= Field(alias='caps')
+	strClub:  	str				= Field(alias='club')
+	strCountry: str				= Field(alias='club_country')
+
+type SPlayersObj = dict[str, SPlayerObj] # tag = playerso
+
+class SSquadObj(BaseModel): # tag = squado
+	strCoach:	str				= Field(alias='coach')
+	strUrl:		str				= Field(alias='url')
+	playerso:	SPlayersObj		= Field(alias='players')
+
+class SCoachObj(BaseModel): # tag = coacho
+	strCountry: str				= Field(alias='country')
+	lStrPrevJobs: list[str]		= Field(alias='previous_jobs')
+
+class SCountryObj(BaseModel): # tag = countryo
+	strUrlFlag:  str				= Field(alias='flag_url')
+	strFifaCode: str				= Field(alias='fifa_code')
+
+type SGroupObj = dict[str, SSquadObj] # tag = groupso
+
+type SGroupsObj = dict[str, SGroupObj] # tag = groupso
+type SCoachesObj = dict[str, SCoachObj] # tag = coacheso
+type SCountriesObj = dict[str, SCountryObj] # tag = countrieso
+
+class SDatabase(BaseModel): # tag = db
+	groupso:	SGroupsObj			= Field(alias='groups')
+	coacheso:	SCoachesObj			= Field(alias='coaches')
+	countrieso:	SCountriesObj		= Field(alias='countries')
+
+
+# scraper classes
 
 @dataclass(frozen=True)
 class SPlayer:  # tag = plyr
 	"""One player row from a squad wikitable."""
 
-	strNo:    str
-	strPos:   str
-	strName:  str
-	fCaptain: bool   # team captain (parsed from a "(captain)" suffix on the name)
-	strDob:   str    # compact ISO date "1995-03-12" (age parenthetical stripped)
-	strCaps:  str
-	strClub:  str
+	strNumber:	str
+	strPos:   	str
+	strName:  	str
+	fCaptain: 	bool   # team captain (parsed from a "(captain)" suffix on the name)
+	strDob:   	str    # compact ISO date "1995-03-12" (age parenthetical stripped)
+	strCaps:  	str
+	strClub:  	str
 	strCountry: str  # the club's country name ("" if the club cell carried no flag); flag URL lives in countries.yaml
 
 
@@ -234,7 +275,7 @@ def PlyrFromRow(row: Tag) -> SPlayer | None:
 	strName, fCaptain = StrNameCaptain(StrCellText(lCols[2]))
 
 	return SPlayer(
-		strNo    = StrCellText(lCols[0]),
+		strNumber    = StrCellText(lCols[0]),
 		strPos   = StrCellText(lCols[1]),
 		strName  = strName,
 		fCaptain = fCaptain,
@@ -648,110 +689,41 @@ def StrUrlSquad(sqd: SSquad) -> str:
 	return f"{sqd.strUrl}#{g_strSquadAnchor}"
 
 
-def ObjFromSqd(sqd: SSquad) -> dict:
+def SSquadoFromSqd(sqd: SSquad) -> SSquadObj:
 	"""
 	Serialize an SSquad's value for squads.yaml (the team name is the key).
 
 	Players become a dict keyed by player name; the coach is just a name, with
 	the rest of the coach's data read from coaches.yaml by that name.
 	"""
-	return {
-		"coach":  sqd.coach.strName,
-		"url":    StrUrlSquad(sqd),
-		"players": {
-			plyr.strName: {
-				"no":      plyr.strNo,
-				"pos":     plyr.strPos,
-				"captain": plyr.fCaptain,
-				"dob":     plyr.strDob,
-				"caps":    plyr.strCaps,
-				"club":    plyr.strClub,
-				"country": plyr.strCountry,
-			}
-			for plyr in sqd.lPlyr
-		},
-	}
+	return SSquadObj(
+			coach = sqd.coach.strName,
+			url = StrUrlSquad(sqd),
+			players = {
+				plyr.strName:
+					SPlayerObj(
+						jersey_number = plyr.strNumber,
+						position = plyr.strPos,
+						is_captain = plyr.fCaptain,
+						birthdate = plyr.strDob,
+						caps = plyr.strCaps,
+						club = plyr.strClub,
+						club_country = plyr.strCountry)
+				for plyr in sqd.lPlyr
+			})
 
 
-def MpObjGroupFromLSqd(lSqd: list[SSquad]) -> dict[str, dict]:
+def GroupsoFromLSqd(lSqd: list[SSquad]) -> SGroupsObj:
 	"""
 	Bucket squads into group name -> team name -> team object, first-seen order.
 
 	The team's group is implied by its parent key and the team name is its own
 	key, so ObjFromSqd omits both.
 	"""
-	mpStrMpObj: dict[str, dict] = {}
+	groupso: SGroupsObj = {}
 	for sqd in lSqd:
-		mpStrMpObj.setdefault(sqd.strGroup, {})[sqd.strTeam] = ObjFromSqd(sqd)
-	return mpStrMpObj
-
-
-def ObjFromCountry(cty: SCountry) -> dict:
-	"""Serialize an SCountry's value for countries.yaml (the name is the key)."""
-	return {"flag_url": cty.strUrlFlag, "fifa_code": cty.strFifaCode}
-
-
-def MpObjFromMpCty(mpStrCty: dict[str, SCountry]) -> dict[str, dict]:
-	"""countries.yaml body: country name -> {flag_url, fifa_code}, sorted for stable diffs."""
-	return {strCountry: ObjFromCountry(mpStrCty[strCountry]) for strCountry in sorted(mpStrCty)}
-
-
-def MpCtyFromObj(objYaml: object) -> dict[str, SCountry]:
-	"""Parse countries.yaml's raw object (country name -> {flag_url, fifa_code}) into SCountry."""
-	mpStrCty: dict[str, SCountry] = {}
-	for strCountry, obj in (objYaml or {}).items():
-		mpStrCty[strCountry] = SCountry(
-			strCountry  = strCountry,
-			strUrlFlag  = obj.get("flag_url", ""),
-			strFifaCode = obj.get("fifa_code", ""),
-		)
-	return mpStrCty
-
-
-def ObjFromCoach(coch: SCoach) -> dict:
-	"""Serialize an SCoach's value for coaches.yaml (the name is the key)."""
-	return {"country": coch.strCountry, "previous_jobs": coch.lStrPrevJobs}
-
-
-def MpObjFromMpCoch(mpStrCoch: dict[str, SCoach]) -> dict[str, dict]:
-	"""coaches.yaml body: coach name -> {country}, sorted for stable diffs."""
-	return {strName: ObjFromCoach(mpStrCoch[strName]) for strName in sorted(mpStrCoch)}
-
-
-def MpCochFromObj(objYaml: object) -> dict[str, SCoach]:
-	"""Parse coaches.yaml's raw object (coach name -> {country, previous_jobs}) into SCoach."""
-	mpStrCoch: dict[str, SCoach] = {}
-	for strName, obj in (objYaml or {}).items():
-		mpStrCoch[strName] = SCoach(
-			strName      = strName,
-			strCountry   = obj.get("country", ""),
-			lStrPrevJobs = list(obj.get("previous_jobs", []) or []),
-		)
-	return mpStrCoch
-
-
-def WriteYaml(path: Path, obj: object) -> None:
-	"""Write obj to path as readable YAML (accents intact, our field order kept)."""
-	path.parent.mkdir(parents=True, exist_ok=True)
-	path.write_text(
-		yaml.dump(obj, allow_unicode=True, sort_keys=False, default_flow_style=False),
-		encoding="utf-8",
-	)
-
-
-def ObjLoadYaml(path: Path) -> object:
-	"""
-	Parse a sidecar YAML to its raw object, or None when the file is absent.
-
-	A present-but-unparseable file is a hand-editing mistake, not a cache miss, so we
-	stop rather than silently overwrite it.
-	"""
-	if not path.exists():
-		return None
-	try:
-		return yaml.safe_load(path.read_text(encoding="utf-8"))
-	except yaml.YAMLError as err:
-		sys.exit(f"ERROR: {path} is unreadable ({err}); fix it or run: rcs --reload-all")
+		groupso.setdefault(sqd.strGroup, {})[sqd.strTeam] = SSquadoFromSqd(sqd)
+	return groupso
 
 
 def SetStrCountryRef(lSqd: list[SSquad]) -> set[str]:
@@ -766,54 +738,33 @@ def SetStrCountryRef(lSqd: list[SSquad]) -> set[str]:
 	return setStrCountry
 
 
-def MpCtyBuild(
-	lSqd:            list[SSquad],
-	mpStrCountryUrl: dict[str, str],
-	mpCtyCached:     dict[str, SCountry],
-	fPopulate:       bool,
-) -> dict[str, SCountry]:
+def CountriesoFromLSqd(lSqd: list[SSquad], mpStrCountryUrl: dict[str, str]) -> SCountriesObj:
 	"""
 	Resolve every referenced country to an SCountry for countries.yaml.
 
 	flag_url comes free from this run's page harvest (mpStrCountryUrl); fifa_code never
 	appears on the page, so it is always an HTTP fact. Both follow the same policy: prefer
 	this run's free data, then the cache; a value still missing is resolved via the API when
-	populating, or an error toward --reload-all otherwise. On full populate the FIFA lookup
+	populating, or an error toward --rescrape otherwise. On full populate the FIFA lookup
 	costs one API call per country (a few when the first candidate title misses), so it runs
-	only on --reload-all or a first populate, never on a normal cached run.
+	only on --rescrape or a first populate, never on a normal cached run.
 	"""
-	mpStrCty: dict[str, SCountry] = {}
+	countrieso: SCountriesObj = {}
 	for strCountry in SetStrCountryRef(lSqd):
-		ctyCached = mpCtyCached.get(strCountry)
-
 		# flag_url — free from the page harvest, else the cache, else the API / an error.
 		strUrl = mpStrCountryUrl.get(strCountry, "")
-		if not strUrl and ctyCached is not None:
-			strUrl = ctyCached.strUrlFlag
+
 		if not strUrl:
-			if fPopulate:
-				strUrl = StrUrlFlagFromTeam(strCountry)   # API — populate path only
-			else:
-				sys.exit(f"ERROR: no cached flag for country {strCountry!r}; run: rcs --reload-all")
+			strUrl = StrUrlFlagFromTeam(strCountry)   # API — populate path only
 
-		# fifa_code — never on the page, so the cache, else the API / an error.
-		strFifa = ctyCached.strFifaCode if ctyCached is not None else ""
-		if not strFifa:
-			if fPopulate:
-				strFifa = StrFifaFromCountry(strCountry)   # API — populate path only
-			else:
-				sys.exit(f"ERROR: no cached FIFA code for country {strCountry!r}; run: rcs --reload-all")
+		strFifa = StrFifaFromCountry(strCountry)   # API — populate path only
 
-		mpStrCty[strCountry] = SCountry(strCountry=strCountry, strUrlFlag=strUrl, strFifaCode=strFifa)
-	return mpStrCty
+		countrieso[strCountry] = SCountryObj(flag_url=strUrl, fifa_code=strFifa)
+
+	return countrieso
 
 
-def MpCochResolve(
-	lSqd:            list[SSquad],
-	mpStrCountryUrl: dict[str, str],
-	mpCochCached:    dict[str, SCoach],
-	fPopulate:       bool,
-) -> dict[str, SCoach]:
+def CoachesoFromLSqd(lSqd: list[SSquad], mpStrCountryUrl: dict[str, str]) -> SCoachesObj:
 	"""
 	Resolve each coach's country to a canonical countries.yaml key, keyed by coach name.
 
@@ -822,77 +773,72 @@ def MpCochResolve(
 	already a known country name it's kept as-is (free); otherwise it's a genuine HTTP
 	fact — resolved via the team-flag API when populating (and its URL folded into
 	mpStrCountryUrl so countries.yaml gets it), served from coaches.yaml otherwise, or an
-	error toward --reload-all when uncached.
+	error toward --rescrape when uncached.
 
 	previous_jobs is never on the squads page, so it follows the cache-or-API-or-error
 	policy uniformly for every coach: served from coaches.yaml when present, fetched from
-	the coach's article when populating, or an error toward --reload-all otherwise.
+	the coach's article when populating, or an error toward --rescrape otherwise.
 	"""
-	mpStrCoch: dict[str, SCoach] = {}
+	coacheso: SCoachesObj = {}
 	for sqd in lSqd:
 		coch       = sqd.coach
-		cochCached = mpCochCached.get(coch.strName)
 
 		strCountry = coch.strCountry
 		if strCountry not in mpStrCountryUrl:
-			if cochCached is not None:
-				strCountry = cochCached.strCountry
-			elif fPopulate:
-				strUrl     = StrUrlFlagFromTeam(strCountry)      # API — populate path only
-				strCountry = StrCountryFromUrl(strUrl) or strCountry
-				if strUrl:
-					mpStrCountryUrl.setdefault(strCountry, strUrl)
-			else:
-				sys.exit(f"ERROR: no cached country for coach {coch.strName!r}; run: rcs --reload-all")
+			strUrl     = StrUrlFlagFromTeam(strCountry)      # API — populate path only
+			strCountry = StrCountryFromUrl(strUrl) or strCountry
+			if strUrl:
+				mpStrCountryUrl.setdefault(strCountry, strUrl)
 
 		# previous_jobs — never on the page, so the cache (a populated entry is always
 		# length 2), else the coach-article API when populating, else an error.
-		if cochCached is not None and cochCached.lStrPrevJobs:
-			lStrPrevJobs = cochCached.lStrPrevJobs
-		elif fPopulate:
-			lStrPrevJobs = LStrPrevJobsFromCoachUrl(coch.strUrl)   # API — populate path only
-		else:
-			sys.exit(f"ERROR: no cached previous jobs for coach {coch.strName!r}; run: rcs --reload-all")
+		lStrPrevJobs = LStrPrevJobsFromCoachUrl(coch.strUrl)   # API — populate path only
 
-		mpStrCoch[coch.strName] = replace(coch, strCountry=strCountry, lStrPrevJobs=lStrPrevJobs)
-	return mpStrCoch
+		coacheso[coch.strName] = SCoachObj(country=strCountry, previous_jobs=lStrPrevJobs)
+
+	return coacheso
 
 
-def LoadDatabase(fReloadAll: bool) -> None:
-	"""
-	"Load" mode: fetch the latest squads page, refresh the sidecar caches, and write
-	database/squads.yaml. A future "PDF" mode reads squads.yaml + countries.yaml.
-	"""
-	pathSquads    = g_pathDatabase / "squads.yaml"
-	pathCountries = g_pathDatabase / "countries.yaml"
-	pathCoaches   = g_pathDatabase / "coaches.yaml"
+def DbScrape() -> SDatabase:
 
+	print(f"Scraping teams...")
 	soup = SoupFetchSquads()
 	lSqd = LSqdFromSoup(soup)
-	print(f"Parsed {len(lSqd)} teams")
+	print(f"Scraped {len(lSqd)} teams")
 
 	mpStrCountryUrl = MpStrCountryUrlFromSoup(soup)
 
-	# coaches.yaml — resolve each coach's country to a canonical key. Populate (allow the
-	# team-flag API for a non-canonical team heading) on --reload-all or when the file is
-	# absent; otherwise serve cached coaches and error on an uncached HTTP-needing one.
-	fPopulateCoaches = fReloadAll or not pathCoaches.exists()
-	mpCochCached = {} if fPopulateCoaches else MpCochFromObj(ObjLoadYaml(pathCoaches))
-	mpStrCoch = MpCochResolve(lSqd, mpStrCountryUrl, mpCochCached, fPopulateCoaches)
-	WriteYaml(pathCoaches, MpObjFromMpCoch(mpStrCoch))
-	print(f"Wrote {pathCoaches} ({len(mpStrCoch)} coaches)")
+	print(f"Scraping groups...")
+	groupso = GroupsoFromLSqd(lSqd)
+	print(f"Scraped {len(groupso)} groups")
 
-	# Fold the resolved coach countries back onto the squads for squads.yaml.
-	lSqd = [replace(sqd, coach=mpStrCoch[sqd.coach.strName]) for sqd in lSqd]
+	print(f"Scraping coaches...")
+	coacheso = CoachesoFromLSqd(lSqd, mpStrCountryUrl)
+	print(f"Scraped {len(coacheso)} coaches")
 
-	# countries.yaml — assemble every referenced country's flag URL. Free URLs come from
-	# this run's harvest; a country missing from it is resolved via the API at populate
-	# time, served from the cache otherwise, or an error toward --reload-all.
-	fPopulateCountries = fReloadAll or not pathCountries.exists()
-	mpCtyCached = {} if fPopulateCountries else MpCtyFromObj(ObjLoadYaml(pathCountries))
-	mpStrCty = MpCtyBuild(lSqd, mpStrCountryUrl, mpCtyCached, fPopulateCountries)
-	WriteYaml(pathCountries, MpObjFromMpCty(mpStrCty))
-	print(f"Wrote {pathCountries} ({len(mpStrCty)} countries)")
+	print(f"Scraping countries...")
+	countrieso = CountriesoFromLSqd(lSqd, mpStrCountryUrl)
+	print(f"Scraped {len(countrieso)} countries")
 
-	WriteYaml(pathSquads, MpObjGroupFromLSqd(lSqd))
-	print(f"Wrote {pathSquads}")
+	return SDatabase(groups=groupso, coaches=coacheso, countries=countrieso)
+
+def DbEnsure(fRescrape: bool) -> SDatabase:
+	if fRescrape or not s_pathDatabaseFile.exists():
+		db = DbScrape()
+
+		print(f"Writing {s_pathDatabaseFile}...")
+
+		s_pathDatabaseFile.write_text(
+			yaml.dump(
+        		db.model_dump(mode="json", by_alias=True),
+				allow_unicode=True,   		# don't escape non-ASCII
+				sort_keys=False,      		# preserve field declaration order
+				default_flow_style=False))	# prettier?
+		
+		return db
+
+	print(f"Loading {s_pathDatabaseFile}...")
+
+	return SDatabase.model_validate(
+			yaml.safe_load(
+					s_pathDatabaseFile.read_text(encoding="utf-8")))
