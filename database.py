@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
 """
-loast tournament roster data from wikipedia
+soccer tournament roster data from wikipedia
 """
 
 from __future__ import annotations  # Forward refs without quotes
 
 from bs4 import BeautifulSoup, Tag
-from dataclasses import dataclass, field, replace
 from dateutil import parser as dateutil_parser
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
+from tqdm import tqdm
+from typing import Literal
 
 import re
 import requests
@@ -18,6 +19,8 @@ import sys
 import time
 import urllib.parse
 import yaml
+
+from .util import CMpStrInjected
 
 g_strUrlWikipedia = "https://en.wikipedia.org"
 
@@ -49,88 +52,65 @@ g_strUserAgent = "roster-cheat-sheet/0.1 (https://github.com/bruceoberg/roster-c
 g_session = requests.Session()
 g_session.headers.update({"User-Agent": g_strUserAgent})
 
-# yaml classes
+# database classes
 
-class SPlayerObj(BaseModel): # tag = playero
+class SPlayer(BaseModel): # tag = playero
+	"""One player row from a squad wikitable."""
+
+	model_config = ConfigDict(populate_by_name=True)
+
+	strName:	str				= Field(exclude=True)	# injected on load by CMpStrInjected
 	strNumber:	str				= Field(alias='jersey_number')
 	strPos:   	str				= Field(alias='position')
-	fCaptain: 	bool			= Field(alias='is_captain')
-	strDob:   	str				= Field(alias='birthdate')
+	fCaptain: 	bool			= Field(alias='is_captain')		# team captain (parsed from a "(captain)" suffix on the name)
+	strDob:   	str				= Field(alias='birthdate')		# compact ISO date "1995-03-12" (age parenthetical stripped)
 	strCaps:  	str				= Field(alias='caps')
 	strClub:  	str				= Field(alias='club')
-	strCountry: str				= Field(alias='club_country')
+	strCountry: str				= Field(alias='club_country')	# the club's country name ("" if the club cell carried no flag); flag URL lives in countries.yaml
 
-type SPlayersObj = dict[str, SPlayerObj] # tag = playerso
+type SPlayers = CMpStrInjected[SPlayer, Literal["strName"]] # tag = players
 
-class SSquadObj(BaseModel): # tag = squado
+class SSquad(BaseModel): # tag = squado
+	"""One national team's full tournament squad."""
+
+	model_config = ConfigDict(populate_by_name=True)
+
+	strTeam:	str				= Field(exclude=True)	# injected on load by CMpStrInjected
 	strCoach:	str				= Field(alias='coach')
 	strUrl:		str				= Field(alias='url')
-	playerso:	SPlayersObj		= Field(alias='players')
+	players:	SPlayers		= Field(alias='players')
 
-class SCoachObj(BaseModel): # tag = coacho
+type SGroup = CMpStrInjected[SSquad, Literal["strTeam"]] # tag = group
+
+class SCoach(BaseModel): # tag = coach
+	"""One team's head coach, with nationality inferred from the squad page."""
+
+	model_config = ConfigDict(populate_by_name=True)
+
+	strName:	str				= Field(exclude=True)	# injected on load by CMpStrInjected
 	strCountry: str				= Field(alias='country')
 	lStrPrevJobs: list[str]		= Field(alias='previous_jobs')
 
-class SCountryObj(BaseModel): # tag = countryo
-	strUrlFlag:  str				= Field(alias='flag_url')
-	strFifaCode: str				= Field(alias='fifa_code')
-
-type SGroupObj = dict[str, SSquadObj] # tag = groupso
-
-type SGroupsObj = dict[str, SGroupObj] # tag = groupso
-type SCoachesObj = dict[str, SCoachObj] # tag = coacheso
-type SCountriesObj = dict[str, SCountryObj] # tag = countrieso
-
-class SDatabase(BaseModel): # tag = db
-	groupso:	SGroupsObj			= Field(alias='groups')
-	coacheso:	SCoachesObj			= Field(alias='coaches')
-	countrieso:	SCountriesObj		= Field(alias='countries')
-
-
-# scraper classes
-
-@dataclass(frozen=True)
-class SPlayer:  # tag = plyr
-	"""One player row from a squad wikitable."""
-
-	strNumber:	str
-	strPos:   	str
-	strName:  	str
-	fCaptain: 	bool   # team captain (parsed from a "(captain)" suffix on the name)
-	strDob:   	str    # compact ISO date "1995-03-12" (age parenthetical stripped)
-	strCaps:  	str
-	strClub:  	str
-	strCountry: str  # the club's country name ("" if the club cell carried no flag); flag URL lives in countries.yaml
-
-
-@dataclass(frozen=True)
-class SCoach:  # tag = coch
-	"""One team's head coach, with nationality inferred from the squad page."""
-
-	strName:    str
-	strCountry: str  # nationality; the team's own country when no flag icon was shown
-	strUrl:     str = ""  # coach's Wikipedia article URL (from the squads page); drives the previous-jobs lookup, not serialized
-	lStrPrevJobs: list[str] = field(default_factory=list)  # two most-recent prior managerial jobs, newest first, "" padded to length 2
-
-
-@dataclass(frozen=True)
-class SCountry:  # tag = cty
+class SCountry(BaseModel): # tag = country
 	"""A country's flag and FIFA code, cached in countries.yaml so a normal run needs no lookup."""
 
-	strCountry:  str  # country name (the registry key)
-	strUrlFlag:  str  # source URL of the country's flag SVG
-	strFifaCode: str  # 3-letter FIFA code, e.g. "ENG"; HTTP lookup, populate path only
+	model_config = ConfigDict(populate_by_name=True)
 
+	strName:	str				= Field(exclude=True)	# injected on load by CMpStrInjected
+	strUrlFlag:  str			= Field(alias='flag_url')
+	strFifaCode: str			= Field(alias='fifa_code')
 
-@dataclass(frozen=True)
-class SSquad:  # tag = sqd
-	"""One national team's full tournament squad."""
+type SGroups = dict[str, SGroup] # tag = groups
+type SCoaches = CMpStrInjected[SCoach, Literal["strName"]] # tag = coaches
+type SCountries = CMpStrInjected[SCountry, Literal["strName"]] # tag = countries
 
-	strGroup: str    # group-stage group, e.g. "Group A"
-	strTeam:  str
-	coach:    SCoach
-	strUrl:   str    # team's own Wikipedia article URL ("" if none was found)
-	lPlyr:    list[SPlayer]
+class SDatabase(BaseModel): # tag = db
+	
+	model_config = ConfigDict(populate_by_name=True)
+
+	groups:		SGroups		= Field(alias='groups')
+	coaches:	SCoaches	= Field(alias='coaches')
+	countries:	SCountries	= Field(alias='countries')
 
 
 def StrCellText(tag: Tag) -> str:
@@ -186,7 +166,7 @@ def StrDobCompact(strRaw: str) -> str:
 	return t.date().isoformat()
 
 
-def StrUrlFlagFromImg(img: Tag) -> str:
+def StrUrlFlagFromImg(tagImg: Tag) -> str:
 	"""
 	Canonical SVG URL behind a flagicon's <img> thumbnail, or "".
 
@@ -198,7 +178,7 @@ def StrUrlFlagFromImg(img: Tag) -> str:
 	future PDF step can rasterize crisply at any size. Wikimedia emits protocol-relative
 	"//upload…" srcs, so we prepend https:.
 	"""
-	strSrc = img.get("src", "")
+	strSrc = tagImg.get("src", "")
 	if not strSrc:
 		return ""
 	if strSrc.startswith("//"):
@@ -258,7 +238,7 @@ def StrCountryFromCell(tag: Tag) -> str:
 	return StrCountryFromUrl(StrUrlFlagFromImg(img)) if img is not None else ""
 
 
-def PlyrFromRow(row: Tag) -> SPlayer | None:
+def PlayerFromRow(row: Tag) -> SPlayer | None:
 	"""
 	Parse one <tr> into an SPlayer.
 	Returns None for header rows and position-group subheaders (GK/DF/MF/FW).
@@ -275,64 +255,27 @@ def PlyrFromRow(row: Tag) -> SPlayer | None:
 	strName, fCaptain = StrNameCaptain(StrCellText(lCols[2]))
 
 	return SPlayer(
-		strNumber    = StrCellText(lCols[0]),
-		strPos   = StrCellText(lCols[1]),
-		strName  = strName,
-		fCaptain = fCaptain,
-		strDob   = StrDobCompact(StrCellText(lCols[3])),
-		strCaps  = StrCellText(lCols[4]),
+		strName  	= strName,
+		jersey_number	= StrCellText(lCols[0]),
+		position   	= StrCellText(lCols[1]),
+		fCaptain 	= fCaptain,
+		strDob   	= StrDobCompact(StrCellText(lCols[3])),
+		strCaps  	= StrCellText(lCols[4]),
 		# lCols[5] is the Goals column — not captured in SPlayer
-		strClub    = StrCellText(lCols[6]),
-		strCountry = StrCountryFromCell(lCols[6]),
+		strClub		= StrCellText(lCols[6]),
+		strCountry	= StrCountryFromCell(lCols[6]),
 	)
 
 
-def LPlyrFromTable(table: Tag) -> list[SPlayer]:
+def LPlayerFromTable(table: Tag) -> list[SPlayer]:
 	"""Parse a squad wikitable into a list of players, skipping the header row."""
-	lPlyr: list[SPlayer] = []
+	lPlayer: list[SPlayer] = []
 	for row in table.find_all("tr")[1:]:  # [1:] skips the column header row
-		plyr = PlyrFromRow(row)
-		if plyr is not None:
-			lPlyr.append(plyr)
-	return lPlyr
+		player = PlayerFromRow(row)
+		if player is not None:
+			lPlayer.append(player)
+	return lPlayer
 
-
-def CoachFromTagP(tagP: Tag, strTeam: str) -> SCoach:
-	"""
-	Parse a <p>Coach: [flag] <a>Name</a></p> paragraph into an SCoach.
-
-	A leading flagicon appears only when the coach's nationality differs from the
-	team's; we canonicalize its country from the flag file (its alt text is unreliable,
-	see StrCountryFromUrl). With no flagicon the coach shares the team's country, so
-	strCountry falls back to the team heading — a raw name that MpCochResolve later maps
-	to a canonical countries.yaml key (free when it already is one, else an API lookup).
-	"""
-	strCountry = strTeam
-
-	flag = tagP.find("span", {"class": "flagicon"})
-	if flag is not None:
-		img = flag.find("img")
-		strCountryFlag = StrCountryFromUrl(StrUrlFlagFromImg(img)) if img is not None else ""
-		if strCountryFlag:
-			strCountry = strCountryFlag
-
-	for flag in tagP.find_all("span", {"class": "flagicon"}):
-		flag.decompose()
-
-	link = tagP.find("a")
-	if link:
-		strName = link.get_text(strip=True)
-	else:
-		strName = tagP.get_text(strip=True).removeprefix("Coach:").strip()
-
-	# The name links to the coach's own article — capture it so the populate path can
-	# read their managerial-career infobox. Footnote anchors are #cite fragments, so the
-	# /wiki/ prefix test skips them.
-	strUrl = ""
-	if link is not None and link.get("href", "").startswith("/wiki/"):
-		strUrl = g_strUrlWikipedia + link.get("href", "")
-
-	return SCoach(strName=strName, strCountry=strCountry, strUrl=strUrl)
 
 
 def StrUrlFlagFromTeam(strTeam: str) -> str:
@@ -539,99 +482,284 @@ def TagHeadingFromTag(node: Tag) -> Tag | None:
 		return node.find(["h2", "h3"])
 	return None
 
+class CScraper:
+	def __init__(self, dbCache: SDatabase):
+		self.dbCache = dbCache
+		self.mpStrGroupLSquad: dict[str, list[SSquad]] = {}
+		self.mpStrCoachUrl: dict[str, str] = {}
+		self.mpStrCountryUrl: dict[str, str] = {}
 
-def LSqdFromSoup(soup: BeautifulSoup) -> list[SSquad]:
-	"""
-	Walk the mw-parser-output div linearly. The repeating pattern is:
+		self.lCoach: list[SCoach] = []
+		self.lCountry: list[SCountry] = []
 
-		<div class="mw-heading mw-heading2"><h2>Group A</h2></div>   — group
-		<div class="mw-heading mw-heading3"><h3>Czech Republic</h3></div>  — team
-		<p>Coach: <a>Name</a></p>
-		<table class="wikitable">  — 26-player roster
+		self.ScrapeSquads()
 
-	Team names come from <h3> headings; the enclosing <h2> ("Group A") is the
-	current group. A <h2> heading clears the current team so a stray table under
-	a non-team section can't be misattributed, and resets the group context.
-	"""
-	lSqd: list[SSquad] = []
-	strTeamCur:  str | None = None
-	strGroupCur: str | None = None
+	def ScrapeSquads(self) -> None:
+		"""
+		Walk the mw-parser-output div linearly. The repeating pattern is:
 
-	tagContent = soup.find("div", {"class": "mw-parser-output"})
-	lTag = list(tagContent.children)
+			<div class="mw-heading mw-heading2"><h2>Group A</h2></div>   — group
+			<div class="mw-heading mw-heading3"><h3>Czech Republic</h3></div>  — team
+			<p>Coach: <a>Name</a></p>
+			<table class="wikitable">  — 26-player roster
 
-	for iTag, tag in enumerate(lTag):
+		Team names come from <h3> headings; the enclosing <h2> ("Group A") is the
+		current group. A <h2> heading clears the current team so a stray table under
+		a non-team section can't be misattributed, and resets the group context.
+		"""
 
-		if not isinstance(tag, Tag):
-			continue
+		soup = SoupFetchSquads()
 
-		tagHeading = TagHeadingFromTag(tag)
+		strTeamCur:  str | None = None
+		strGroupCur: str | None = None
 
-		if tagHeading is not None:
-			if tagHeading.name == "h3":
-				strTeamCur = tagHeading.get_text(strip=True)
-			else:
-				# h2 group heading ("Group A") — record it and clear team context
-				strGroupCur = tagHeading.get_text(strip=True)
-				strTeamCur  = None
+		tagContent = soup.find("div", {"class": "mw-parser-output"})
+		lTag = list(tagContent.children)
 
-		elif tag.name == "p" and "Coach" in tag.get_text():
-			coch = CoachFromTagP(tag, strTeamCur or "")
+		for iTag, tag in enumerate(lTag):
 
-			# Scan ahead for the roster table, stopping at the next heading so a
-			# Coach paragraph without its own table can't grab a later team's.
-			# The descriptive <p> between the Coach line and the table carries
-			# the team's article link, so capture the first one we pass.
-			tableSquad: Tag | None = None
-			strUrlTeam: str | None = None
-			for elemLook in lTag[iTag + 1:]:
-				if isinstance(elemLook, Tag):
-					if elemLook.name == "table":
-						tableSquad = elemLook
-						break
-					if TagHeadingFromTag(elemLook) is not None:
-						break
-					if elemLook.name == "p" and strUrlTeam is None:
-						strUrlTeam = StrUrlTeamFromP(elemLook)
+			if not isinstance(tag, Tag):
+				continue
 
-			if tableSquad is not None and strTeamCur is not None:
-				lPlyr = LPlyrFromTable(tableSquad)
+			tagHeading = TagHeadingFromTag(tag)
 
-				# A real squad has players; this skips trailing summary sections
-				# (e.g. "Coach representation by country") that also pair a
-				# "Coach" paragraph with a table.
-				if lPlyr:
-					lSqd.append(SSquad(
-						strGroup = strGroupCur or "",
-						strTeam  = strTeamCur,
-						coach    = coch,
-						strUrl   = strUrlTeam or "",
-						lPlyr    = lPlyr,
-					))
+			if tagHeading is not None:
+				if tagHeading.name == "h3":
+					strTeamCur = tagHeading.get_text(strip=True)
+				else:
+					# h2 group heading ("Group A") — record it and clear team context
+					strGroupCur = tagHeading.get_text(strip=True)
+					strTeamCur  = None
 
-	return lSqd
+			elif tag.name == "p" and "Coach" in tag.get_text():
+				strCoach = self.StrCoachScrape(tag, strTeamCur or "")
 
+				# Scan ahead for the roster table, stopping at the next heading so a
+				# Coach paragraph without its own table can't grab a later team's.
+				# The descriptive <p> between the Coach line and the table carries
+				# the team's article link, so capture the first one we pass.
+				tableSquad: Tag | None = None
+				strUrlTeam: str | None = None
+				for tagLook in lTag[iTag + 1:]:
+					if isinstance(tagLook, Tag):
+						if tagLook.name == "table":
+							tableSquad = tagLook
+							break
+						if TagHeadingFromTag(tagLook) is not None:
+							break
+						if tagLook.name == "p" and strUrlTeam is None:
+							strUrlTeam = StrUrlTeamFromP(tagLook)
 
-def MpStrCountryUrlFromSoup(soup: BeautifulSoup) -> dict[str, str]:
-	"""
-	Harvest every flag icon on the squads page into country name -> flag SVG URL.
+				if tableSquad is not None and strTeamCur is not None:
+					lPlayer = LPlayerFromTable(tableSquad)
 
-	This is the free tier: it costs no extra HTTP (the page is already fetched) and
-	covers every player's club country plus every coach whose nationality differs
-	from their team. countries.yaml fills its remaining entries (coaches whose
-	nationality matches their team) from the API at populate time.
-	"""
-	mpStrCountryUrl: dict[str, str] = {}
-	for flag in soup.find_all("span", {"class": "flagicon"}):
-		img = flag.find("img")
-		if img is None:
-			continue
-		strUrl     = StrUrlFlagFromImg(img)
-		strCountry = StrCountryFromUrl(strUrl)
-		if strCountry and strUrl:
-			mpStrCountryUrl.setdefault(strCountry, strUrl)
-	return mpStrCountryUrl
+					# A real squad has players; this skips trailing summary sections
+					# (e.g. "Coach representation by country") that also pair a
+					# "Coach" paragraph with a table.
+					if lPlayer:
+						players: SPlayers = {player.strName: player for player in lPlayer}
+						assert strGroupCur
+						assert strTeamCur
+						lSquad = self.mpStrGroupLSquad.setdefault(strGroupCur, [])
+						lSquad.append(
+							SSquad(
+								strTeam  = strTeamCur,
+								strCoach = strCoach,
+								strUrl   = strUrlTeam or "",
+								players  = players))
+						
+		cSquad = sum([len(lSquad) for lSquad in self.mpStrGroupLSquad.values()])
+		print(f"Scraped {cSquad} squads in {len(self.mpStrGroupLSquad)} groups")
 
+		self.ScrapeFlags(soup)
+
+	def ScrapeFlags(self, soup: BeautifulSoup) -> None:
+		"""
+		Harvest every flag icon on the squads page into country name -> flag SVG URL.
+
+		This is the free tier: it costs no extra HTTP (the page is already fetched) and
+		covers every player's club country plus every coach whose nationality differs
+		from their team. countries.yaml fills its remaining entries (coaches whose
+		nationality matches their team) from the API at populate time.
+		"""
+
+		for flag in soup.find_all("span", {"class": "flagicon"}):
+			img = flag.find("img")
+			if img is None:
+				continue
+			strUrl     = StrUrlFlagFromImg(img)
+			strCountry = StrCountryFromUrl(strUrl)
+			if strCountry and strUrl:
+				self.mpStrCountryUrl.setdefault(strCountry, strUrl)
+		print(f"Scraped {len(self.mpStrCountryUrl)} flags")
+
+	def StrCoachScrape(self, tagP: Tag, strTeam: str) -> str:
+		"""
+		Parse a <p>Coach: [flag] <a>Name</a></p> paragraph into an SCoach.
+
+		A leading flagicon appears only when the coach's nationality differs from the
+		team's; we canonicalize its country from the flag file (its alt text is unreliable,
+		see StrCountryFromUrl). With no flagicon the coach shares the team's country, so
+		strCountry falls back to the team heading — a raw name that MpCochResolve later maps
+		to a canonical countries.yaml key (free when it already is one, else an API lookup).
+		"""
+		strCountry = strTeam
+
+		tagFlag = tagP.find("span", {"class": "flagicon"})
+		if tagFlag is not None:
+			tagImg = tagFlag.find("img")
+			strCountryFlag = StrCountryFromUrl(StrUrlFlagFromImg(tagImg)) if tagImg is not None else ""
+			if strCountryFlag:
+				strCountry = strCountryFlag
+
+		for tagFlag in tagP.find_all("span", {"class": "flagicon"}):
+			tagFlag.decompose()
+
+		tagLink = tagP.find("a")
+		if tagLink:
+			strName = tagLink.get_text(strip=True)
+		else:
+			strName = tagP.get_text(strip=True).removeprefix("Coach:").strip()
+
+		if len(self.lCoach) >= 48:
+			pass
+
+		# The name links to the coach's own article — capture it so the populate path can
+		# read their managerial-career infobox. Footnote anchors are #cite fragments, so the
+		# /wiki/ prefix test skips them.
+		if tagLink is not None and tagLink.get("href", "").startswith("/wiki/"):
+			self.mpStrCoachUrl[strName] = g_strUrlWikipedia + tagLink.get("href", "")
+
+			coach = SCoach(strName=strName, strCountry=strCountry, lStrPrevJobs=[])
+			self.lCoach.append(coach)
+
+			return coach.strName
+		
+		return "Unknown"
+
+	def ScrapeCoachesExtras(self) -> None:
+		"""
+		Resolve each coach's country to a canonical countries.yaml key, keyed by coach name.
+
+		A coach with a flag on the page is already canonical (CoachFromP read it from the
+		flag file). A coach without one shares the team's country: if the team heading is
+		already a known country name it's kept as-is (free); otherwise it's a genuine HTTP
+		fact — resolved via the team-flag API when populating (and its URL folded into
+		mpStrCountryUrl so countries.yaml gets it), served from coaches.yaml otherwise, or an
+		error toward --rescrape when uncached.
+
+		previous_jobs is never on the squads page, so it follows the cache-or-API-or-error
+		policy uniformly for every coach: served from coaches.yaml when present, fetched from
+		the coach's article when populating, or an error toward --rescrape otherwise.
+		"""
+
+		strBarFormat = "{desc} {n_fmt}/{total_fmt}: {percentage:3.0f}%|{bar}|{postfix[0]}"
+
+		with tqdm(total=len(self.lCoach), desc="Scraping Coaches", bar_format=strBarFormat, postfix=[" " * 20]) as pbar:
+			for coach in self.lCoach:
+				pbar.postfix[0] = f"{coach.strName:<20}"
+				pbar.update(0)
+				strCountry = coach.strCountry
+				if strCountry not in self.mpStrCountryUrl:
+					strUrl     = StrUrlFlagFromTeam(strCountry)
+					strCountry = StrCountryFromUrl(strUrl) or strCountry
+					if strUrl:
+						self.mpStrCountryUrl.setdefault(strCountry, strUrl)
+
+				# previous_jobs — never on the page, so the cache (a populated entry is always
+				# length 2), else the coach-article API when populating, else an error.
+				strUrlCoach = self.mpStrCoachUrl[coach.strName]
+				coach.lStrPrevJobs = LStrPrevJobsFromCoachUrl(strUrlCoach)
+
+				pbar.update(1)
+
+	def ScrapeCountryExtras(self) ->None:
+		"""
+		Resolve every referenced country to an SCountry.
+
+		flag_url comes free from this run's page harvest (mpStrCountryUrl); fifa_code never
+		appears on the page, so it is always an HTTP fact. Both follow the same policy: prefer
+		this run's free data, then the cache; a value still missing is resolved via the API when
+		populating, or an error toward --rescrape otherwise. On full populate the FIFA lookup
+		costs one API call per country (a few when the first candidate title misses), so it runs
+		only on --rescrape or a first populate, never on a normal cached run.
+		"""
+
+		setStrCountry = self.SetStrCountryRef()
+
+		strBarFormat = "{desc} {n_fmt}/{total_fmt}: {percentage:3.0f}%|{bar}|{postfix[0]}"
+
+		with tqdm(total=len(setStrCountry), desc="Scraping Countries", bar_format=strBarFormat, postfix=[" " * 20]) as pbar:
+			for strCountry in setStrCountry:
+				pbar.postfix[0] = f"{strCountry:<20}"
+				pbar.update(0)
+				# flag_url — free from the page harvest, else the cache, else the API / an error.
+				strUrl = self.mpStrCountryUrl.get(strCountry, "")
+
+				if not strUrl:
+					strUrl = StrUrlFlagFromTeam(strCountry)   # API — populate path only
+
+				strFifa = StrFifaFromCountry(strCountry)   # API — populate path only
+
+				self.lCountry.append(
+							SCountry(
+								strName = strCountry,
+								strUrlFlag = strUrl,
+								strFifaCode = strFifa))
+				
+				pbar.update(1)
+
+	def SetStrCountryRef(self) -> set[str]:
+		"""Every country name the output references (player club countries + coaches)."""
+		setStrCountry: set[str] = set()
+		for lSquad in self.mpStrGroupLSquad.values():
+			for squad in lSquad:
+				for player in squad.players.values():
+					if player.strCountry:
+						setStrCountry.add(player.strCountry)
+
+		for coach in self.lCoach:
+			if coach.strCountry:
+				setStrCountry.add(coach.strCountry)
+
+		return setStrCountry
+
+	def Groups(self) -> SGroups:
+		"""
+		Bucket squads into group name -> team name -> team object, first-seen order.
+
+		The team's group is implied by its parent key and the team name is its own
+		key, so ObjFromSqd omits both.
+		"""
+		return {
+			strGroup: {
+				squad.strTeam: squad
+				for squad in lSquad
+			}
+			for strGroup, lSquad in self.mpStrGroupLSquad.items()
+		}
+	
+	def Coaches(self) -> SCoaches:
+		if self.dbCache:
+			return self.dbCache.coaches
+		
+		self.ScrapeCoachesExtras()
+		
+		return {coach.strName: coach for coach in self.lCoach}
+		
+	def Countries(self) -> SCountries:
+		if self.dbCache:
+			return self.dbCache.countries
+		
+		self.ScrapeCountryExtras()
+
+		return {country.strName: country for country in self.lCountry}
+	
+	def Db(self) -> SDatabase:
+		return SDatabase(
+				groups = self.Groups(),
+				coaches = self.Coaches(),
+				countries = self.Countries())
 
 def ObjApiParse(mpStrParams: dict[str, str]) -> dict:
 	"""
@@ -689,144 +817,24 @@ def StrUrlSquad(sqd: SSquad) -> str:
 	return f"{sqd.strUrl}#{g_strSquadAnchor}"
 
 
-def SSquadoFromSqd(sqd: SSquad) -> SSquadObj:
-	"""
-	Serialize an SSquad's value for squads.yaml (the team name is the key).
+def DbEnsure(fRescapeSquads: bool, fRescrapeAll: bool) -> SDatabase:
+	if not s_pathDatabaseFile.exists():
+		fRescrapeAll = True
 
-	Players become a dict keyed by player name; the coach is just a name, with
-	the rest of the coach's data read from coaches.yaml by that name.
-	"""
-	return SSquadObj(
-			coach = sqd.coach.strName,
-			url = StrUrlSquad(sqd),
-			players = {
-				plyr.strName:
-					SPlayerObj(
-						jersey_number = plyr.strNumber,
-						position = plyr.strPos,
-						is_captain = plyr.fCaptain,
-						birthdate = plyr.strDob,
-						caps = plyr.strCaps,
-						club = plyr.strClub,
-						club_country = plyr.strCountry)
-				for plyr in sqd.lPlyr
-			})
+	if fRescrapeAll:
+		dbCache = None
+	else:
+		strYaml = s_pathDatabaseFile.read_text(encoding="utf-8")
+		print(f"Reading {s_pathDatabaseFile.stem}...")
+		objDb = yaml.safe_load(strYaml)
+		dbCache = SDatabase.model_validate(objDb)
 
+	if dbCache and not fRescapeSquads:
+		db = dbCache
+	else:
+		db = CScraper(dbCache).Db()
 
-def GroupsoFromLSqd(lSqd: list[SSquad]) -> SGroupsObj:
-	"""
-	Bucket squads into group name -> team name -> team object, first-seen order.
-
-	The team's group is implied by its parent key and the team name is its own
-	key, so ObjFromSqd omits both.
-	"""
-	groupso: SGroupsObj = {}
-	for sqd in lSqd:
-		groupso.setdefault(sqd.strGroup, {})[sqd.strTeam] = SSquadoFromSqd(sqd)
-	return groupso
-
-
-def SetStrCountryRef(lSqd: list[SSquad]) -> set[str]:
-	"""Every country name the output references (player club countries + coaches)."""
-	setStrCountry: set[str] = set()
-	for sqd in lSqd:
-		if sqd.coach.strCountry:
-			setStrCountry.add(sqd.coach.strCountry)
-		for plyr in sqd.lPlyr:
-			if plyr.strCountry:
-				setStrCountry.add(plyr.strCountry)
-	return setStrCountry
-
-
-def CountriesoFromLSqd(lSqd: list[SSquad], mpStrCountryUrl: dict[str, str]) -> SCountriesObj:
-	"""
-	Resolve every referenced country to an SCountry for countries.yaml.
-
-	flag_url comes free from this run's page harvest (mpStrCountryUrl); fifa_code never
-	appears on the page, so it is always an HTTP fact. Both follow the same policy: prefer
-	this run's free data, then the cache; a value still missing is resolved via the API when
-	populating, or an error toward --rescrape otherwise. On full populate the FIFA lookup
-	costs one API call per country (a few when the first candidate title misses), so it runs
-	only on --rescrape or a first populate, never on a normal cached run.
-	"""
-	countrieso: SCountriesObj = {}
-	for strCountry in SetStrCountryRef(lSqd):
-		# flag_url — free from the page harvest, else the cache, else the API / an error.
-		strUrl = mpStrCountryUrl.get(strCountry, "")
-
-		if not strUrl:
-			strUrl = StrUrlFlagFromTeam(strCountry)   # API — populate path only
-
-		strFifa = StrFifaFromCountry(strCountry)   # API — populate path only
-
-		countrieso[strCountry] = SCountryObj(flag_url=strUrl, fifa_code=strFifa)
-
-	return countrieso
-
-
-def CoachesoFromLSqd(lSqd: list[SSquad], mpStrCountryUrl: dict[str, str]) -> SCoachesObj:
-	"""
-	Resolve each coach's country to a canonical countries.yaml key, keyed by coach name.
-
-	A coach with a flag on the page is already canonical (CoachFromP read it from the
-	flag file). A coach without one shares the team's country: if the team heading is
-	already a known country name it's kept as-is (free); otherwise it's a genuine HTTP
-	fact — resolved via the team-flag API when populating (and its URL folded into
-	mpStrCountryUrl so countries.yaml gets it), served from coaches.yaml otherwise, or an
-	error toward --rescrape when uncached.
-
-	previous_jobs is never on the squads page, so it follows the cache-or-API-or-error
-	policy uniformly for every coach: served from coaches.yaml when present, fetched from
-	the coach's article when populating, or an error toward --rescrape otherwise.
-	"""
-	coacheso: SCoachesObj = {}
-	for sqd in lSqd:
-		coch       = sqd.coach
-
-		strCountry = coch.strCountry
-		if strCountry not in mpStrCountryUrl:
-			strUrl     = StrUrlFlagFromTeam(strCountry)      # API — populate path only
-			strCountry = StrCountryFromUrl(strUrl) or strCountry
-			if strUrl:
-				mpStrCountryUrl.setdefault(strCountry, strUrl)
-
-		# previous_jobs — never on the page, so the cache (a populated entry is always
-		# length 2), else the coach-article API when populating, else an error.
-		lStrPrevJobs = LStrPrevJobsFromCoachUrl(coch.strUrl)   # API — populate path only
-
-		coacheso[coch.strName] = SCoachObj(country=strCountry, previous_jobs=lStrPrevJobs)
-
-	return coacheso
-
-
-def DbScrape() -> SDatabase:
-
-	print(f"Scraping teams...")
-	soup = SoupFetchSquads()
-	lSqd = LSqdFromSoup(soup)
-	print(f"Scraped {len(lSqd)} teams")
-
-	mpStrCountryUrl = MpStrCountryUrlFromSoup(soup)
-
-	print(f"Scraping groups...")
-	groupso = GroupsoFromLSqd(lSqd)
-	print(f"Scraped {len(groupso)} groups")
-
-	print(f"Scraping coaches...")
-	coacheso = CoachesoFromLSqd(lSqd, mpStrCountryUrl)
-	print(f"Scraped {len(coacheso)} coaches")
-
-	print(f"Scraping countries...")
-	countrieso = CountriesoFromLSqd(lSqd, mpStrCountryUrl)
-	print(f"Scraped {len(countrieso)} countries")
-
-	return SDatabase(groups=groupso, coaches=coacheso, countries=countrieso)
-
-def DbEnsure(fRescrape: bool) -> SDatabase:
-	if fRescrape or not s_pathDatabaseFile.exists():
-		db = DbScrape()
-
-		print(f"Writing {s_pathDatabaseFile}...")
+		print(f"Writing {s_pathDatabaseFile.stem}...")
 
 		s_pathDatabaseFile.write_text(
 			yaml.dump(
@@ -835,10 +843,4 @@ def DbEnsure(fRescrape: bool) -> SDatabase:
 				sort_keys=False,      		# preserve field declaration order
 				default_flow_style=False))	# prettier?
 		
-		return db
-
-	print(f"Loading {s_pathDatabaseFile}...")
-
-	return SDatabase.model_validate(
-			yaml.safe_load(
-					s_pathDatabaseFile.read_text(encoding="utf-8")))
+	return db
