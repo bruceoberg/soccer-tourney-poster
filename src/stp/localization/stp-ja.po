@@ -300,7 +300,7 @@ msgstr "ブルキナファソ"
 
 msgctxt "country.bih"
 msgid "Bosnia/Herzeg."
-msgstr "ボスニアa。ヘルゼグ。"
+msgstr "ボスニア"
 
 msgctxt "country.blr"
 msgid "Belarus"
@@ -588,7 +588,7 @@ msgstr "チュニジア"
 
 msgctxt "country.tur"
 msgid "Türkiye"
-msgstr "七面鳥"
+msgstr "トルコ"
 
 msgctxt "country.uae"
 msgid "Un. Ar. Emirates"
