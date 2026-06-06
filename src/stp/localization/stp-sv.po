@@ -42,7 +42,7 @@ msgstr "Euro"
 
 msgctxt "competition.mens-world-cup"
 msgid "World Cup"
-msgstr "Fotbolls VM"
+msgstr "Fotbolls-VM"
 
 #. The "WC" here is an abbreviation for "World Cup".
 #. We want this title to be distinct from the mens
