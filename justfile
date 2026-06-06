@@ -27,9 +27,15 @@ publish:
     mv {{dirProjectRoot}}/playground/published/{{strTournLatest}}/ {{dirProjectRoot}}/published/
     git add {{dirProjectRoot}}/published/{{strTournLatest}}/
 
+grid:
+    stp -d grid -t {{strTournLatest}}
+
 copy-manifest:
     cp {{dirGridSrc}}/manifest.yaml {{dirGridDst}}
 
 copy-grid:
     rm -fr {{dirGridDst}}
     cp -R {{dirGridSrc}} {{dirGridDst}}
+
+release: grid copy-grid publish
+    echo "Ready to Commit"
