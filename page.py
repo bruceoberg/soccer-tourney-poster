@@ -17,6 +17,29 @@ from .common import mpStrGroupStrColor
 
 from . import metrics
 
+class CSquadBlot(CBlot): # tag = squadb
+	s_rSName = 10.0
+
+	def __init__(self, pdf, squad: SSquad, rectLocal: SRect):
+		super().__init__(pdf)
+
+		self.squad = squad
+		self.rectLocal = rectLocal
+
+	def Draw(self, pos):
+		rectSquad = self.rectLocal.Copy().Shift(dX=pos.x, dY=pos.y)
+		dYName = rectSquad.dX / self.s_rSName
+		rectName = rectSquad.Copy(dY=dYName)
+
+		self.FillBox(rectName, colorLightGrey)
+
+		oltbSquadName = self.Oltb(rectName, SFontKey('NotoSans', ''), dYName)
+		oltbSquadName.DrawText(
+						self.squad.strTeam,
+						colorDarkgrey,
+						JH.Left,
+						JV.Middle)
+
 class SColors: # tag = colors
 	s_dSDarker = 0.5
 
@@ -35,7 +58,7 @@ class SColors: # tag = colors
 			self.colorDarker: SColor = ColorResaturateDarker(self.color, rV=self.s_rVDarker)
 			self.colorLighter: SColor = ColorResaturate(self.color, dV=self.s_dVLighter)
 
-class CGroupBlot(CBlot): # tag = titleb
+class CGroupBlot(CBlot): # tag = groupb
 
 	s_dX = metrics.page.dXLive
 	s_dY = metrics.page.dYLive
@@ -56,6 +79,29 @@ class CGroupBlot(CBlot): # tag = titleb
 		self.group = group
 		self.colors = SColors(mpStrGroupStrColor[self.strGroup])
 
+		# repeating some of the layout in Draw() here
+
+		rectBorder = SRect(0, 0, self.s_dX, self.s_dY)
+		rectInside = rectBorder.Copy().Inset(self.s_dSLineOuter / 2.0)
+
+		dYTitle = rectInside.dX / self.s_rSGroup
+
+		dXSquads = rectInside.dX
+		dYSquads = rectInside.dY - dYTitle
+
+		assert len(group) == 4
+
+		dXSquad = dXSquads / 2
+		dYSquad = dYSquads / 2
+
+		self.lSquadb: list[CSquadBlot] = []
+
+		for iSquad, squad in enumerate(self.group.values()):
+			row, col = divmod(iSquad, 2)
+			rectLocal = SRect(row * dXSquad, col * dYSquad, dXSquad, dYSquad)
+
+			self.lSquadb.append(CSquadBlot(self.pdf, squad, rectLocal))
+
 	def Draw(self, pos: SPoint) -> None:
 
 		rectBorder = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
@@ -66,6 +112,11 @@ class CGroupBlot(CBlot): # tag = titleb
 		#dYTitle = dY * self.s_uYTitle
 		dYTitle = rectInside.dX / self.s_rSGroup
 		rectTitle = rectInside.Copy(dY=dYTitle)
+
+		posSquads = SPoint(rectInside.x, rectInside.y + dYTitle)
+
+		for squadb in self.lSquadb:
+			squadb.Draw(posSquads)
 
 		self.FillBox(rectTitle, self.colors.color)
 
