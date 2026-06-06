@@ -20,6 +20,7 @@ import time
 import urllib.parse
 import yaml
 
+from .common import strSquadsPage
 from .util import CMpStrInjected
 
 g_strUrlWikipedia = "https://en.wikipedia.org"
@@ -803,7 +804,7 @@ def ObjApiParse(mpStrParams: dict[str, str]) -> dict:
 def SoupFetchSquads() -> BeautifulSoup:
 	objJson = ObjApiParse({
 		"action": "parse",
-		"page":   "2026_FIFA_World_Cup_squads",
+		"page":   strSquadsPage,
 		"prop":   "text",
 	})
 	strHtml = objJson["parse"]["text"]["*"]
