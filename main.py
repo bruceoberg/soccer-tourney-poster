@@ -9,7 +9,7 @@ from __future__ import annotations  # Forward refs without quotes
 import argparse
 
 from .database import DbEnsure
-from .doc import DoIt
+from .doc import WritePdf
 
 def main() -> None:
 	parser = argparse.ArgumentParser(prog="rcs", description="generate roster cheat sheets")
@@ -25,7 +25,7 @@ def main() -> None:
 	)
 	args = parser.parse_args()
 
-	DoIt(DbEnsure(args.rescrape_squads, args.rescrape_all))
+	WritePdf(DbEnsure(args.rescrape_squads, args.rescrape_all))
 
 	# group = next(iter(db.groups.values()))
 	# squad = next(iter(group.values()))

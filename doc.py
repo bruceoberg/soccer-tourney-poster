@@ -23,12 +23,15 @@ from . import g_pathCode
 
 g_pathFonts = g_pathCode / 'fonts'
 
-def DoIt(db: SDatabase):
+def WritePdf(db: SDatabase):
 	pdf = CPdf()
 
 	pdf.AddFont('NotoSans', '', g_pathFonts / 'NotoSans-Regular.ttf')
 	pdf.AddFont('NotoSans', 'B', g_pathFonts / 'NotoSans-Bold.ttf')
 	pdf.AddFont('NotoSans', 'I', g_pathFonts / 'NotoSans-Light.ttf')
+	pdf.AddFont('NotoSansMono', '', g_pathFonts / 'NotoSansMono-Regular.ttf')
+	pdf.AddFont('NotoSansMono', 'B', g_pathFonts / 'NotoSansMono-Bold.ttf')
+	pdf.AddFont('NotoSansMono', 'I', g_pathFonts / 'NotoSansMono-Thin.ttf')
 
 	pdf.set_title(strYearTitle)
 	pdf.set_author('bruce oberg')
@@ -38,12 +41,14 @@ def DoIt(db: SDatabase):
 	pdf.set_lang('en')
 	pdf.set_creation_date(datetime.datetime.now())
 
-	pdf.add_page(orientation="portrait", format="letter")
+	for strGroup, group in db.groups.items():
 
-	assert pdf.w == metrics.page.dX
-	assert pdf.h == metrics.page.dY
+		pdf.add_page(orientation="portrait", format="letter")
 
-	CGroupBlot(pdf).Draw(SPoint(metrics.page.dXLeft, metrics.page.dYTop))
+		assert pdf.w == metrics.page.dX
+		assert pdf.h == metrics.page.dY
+
+		CGroupBlot(pdf, strGroup, group).Draw(SPoint(metrics.page.dXLeft, metrics.page.dYTop))
 
 	pathDst = (Path.cwd() / "playground" / strFile).with_suffix('.pdf')
 	print(f'Writing: {pathDst.relative_to(Path.cwd())}')
