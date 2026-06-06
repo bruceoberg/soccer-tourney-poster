@@ -41,6 +41,10 @@ def WritePdf(db: SDatabase):
 	pdf.set_lang('en')
 	pdf.set_creation_date(datetime.datetime.now())
 
+	cPersonMax = db.CPersonMax()
+
+	print(f"Persons: {cPersonMax}")
+
 	for strGroup, group in db.groups.items():
 
 		pdf.add_page(orientation="portrait", format="letter")
@@ -48,7 +52,7 @@ def WritePdf(db: SDatabase):
 		assert pdf.w == metrics.page.dX
 		assert pdf.h == metrics.page.dY
 
-		CGroupBlot(pdf, strGroup, group).Draw(SPoint(metrics.page.dXLeft, metrics.page.dYTop))
+		CGroupBlot(pdf, strGroup, group, cPersonMax).Draw(SPoint(metrics.page.dXLeft, metrics.page.dYTop))
 
 	pathDst = (Path.cwd() / "playground" / strFile).with_suffix('.pdf')
 	print(f'Writing: {pathDst.relative_to(Path.cwd())}')

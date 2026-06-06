@@ -20,11 +20,12 @@ from . import metrics
 class CSquadBlot(CBlot): # tag = squadb
 	s_rSName = 10.0
 
-	def __init__(self, pdf, squad: SSquad, rectLocal: SRect):
+	def __init__(self, pdf, squad: SSquad, rectLocal: SRect, cPersonMax: int):
 		super().__init__(pdf)
 
 		self.squad = squad
 		self.rectLocal = rectLocal
+		self.cPersonMax = cPersonMax
 
 	def Draw(self, pos):
 		rectSquad = self.rectLocal.Copy().Shift(dX=pos.x, dY=pos.y)
@@ -39,6 +40,30 @@ class CSquadBlot(CBlot): # tag = squadb
 						colorDarkgrey,
 						JH.Left,
 						JV.Middle)
+		
+		rectPlayers = rectSquad.Copy().Stretch(dYTop = dYName)
+		dYPlayer = rectPlayers.dY / self.cPersonMax
+		yCur = rectPlayers.y
+
+		if self.squad.strCoach:
+			rectPerson = SRect(rectPlayers.x, yCur, rectPlayers.dY, dYPlayer)
+			yCur += dYPlayer
+			oltbPerson = self.Oltb(rectPerson, SFontKey('NotoSans', 'B'), dYPlayer)
+			oltbPerson.DrawText(
+							self.squad.strCoach,
+							colorBlack,
+							JH.Left,
+							JV.Middle)
+			
+		for player in self.squad.players.values():
+			rectPerson = SRect(rectPlayers.x, yCur, rectPlayers.dY, dYPlayer)
+			yCur += dYPlayer
+			oltbPerson = self.Oltb(rectPerson, SFontKey('NotoSans', ''), dYPlayer)
+			oltbPerson.DrawText(
+							player.strName,
+							colorBlack,
+							JH.Left,
+							JV.Middle)
 
 class SColors: # tag = colors
 	s_dSDarker = 0.5
@@ -70,7 +95,7 @@ class CGroupBlot(CBlot): # tag = groupb
 
 	s_rSGroup = 10.0
 
-	def __init__(self, pdf: CPdf, strGroup: str, group: SGroup) -> None:
+	def __init__(self, pdf: CPdf, strGroup: str, group: SGroup, cPersonMax: int) -> None:
 		super().__init__(pdf)
 
 		assert strGroup.startswith("Group ")
@@ -100,7 +125,7 @@ class CGroupBlot(CBlot): # tag = groupb
 			row, col = divmod(iSquad, 2)
 			rectLocal = SRect(row * dXSquad, col * dYSquad, dXSquad, dYSquad)
 
-			self.lSquadb.append(CSquadBlot(self.pdf, squad, rectLocal))
+			self.lSquadb.append(CSquadBlot(self.pdf, squad, rectLocal, cPersonMax))
 
 	def Draw(self, pos: SPoint) -> None:
 
