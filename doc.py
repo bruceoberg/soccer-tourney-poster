@@ -47,7 +47,7 @@ def WritePdf(db: SDatabase):
 
 	for strGroup, group in db.groups.items():
 
-		pdf.add_page(orientation="portrait", format="letter")
+		pdf.add_page(orientation=metrics.page.strOrientation, format=metrics.page.strFormat)
 
 		assert pdf.w == metrics.page.dX
 		assert pdf.h == metrics.page.dY

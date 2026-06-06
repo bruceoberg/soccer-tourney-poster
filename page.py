@@ -18,7 +18,7 @@ from .common import mpStrGroupStrColor
 from . import metrics
 
 class CSquadBlot(CBlot): # tag = squadb
-	s_rSName = 10.0
+	s_rSName = 15.0
 
 	def __init__(self, pdf, squad: SSquad, rectLocal: SRect, cPersonMax: int):
 		super().__init__(pdf)
@@ -93,7 +93,7 @@ class CGroupBlot(CBlot): # tag = groupb
 	s_dSLineOuter = s_dX * s_rSLineOuter
 	s_dSLineInner = s_dX * s_rSLineInner
 
-	s_rSGroup = 10.0
+	s_rSGroup = 15.0
 
 	def __init__(self, pdf: CPdf, strGroup: str, group: SGroup, cPersonMax: int) -> None:
 		super().__init__(pdf)

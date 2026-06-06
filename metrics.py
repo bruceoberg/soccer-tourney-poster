@@ -3,8 +3,10 @@ from typing import NamedTuple
 # this appears to be the least gross way to create constants within a namespace
 
 class Page(NamedTuple):
-	dX: float = 8.5
-	dY: float = 11
+	strOrientation: str = 'landscape'
+	strFormat: str = 'letter'
+	dX: float = 11
+	dY: float = 8.5
 	dXLeft: float = 0.25
 	dXRight: float = 0.25
 	dYTop: float = 0.25
