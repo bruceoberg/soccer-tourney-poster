@@ -113,6 +113,12 @@ class SDatabase(BaseModel): # tag = db
 	coaches:	SCoaches	= Field(alias='coaches')
 	countries:	SCountries	= Field(alias='countries')
 
+	def CPersonMax(self) -> int:
+		cPerson = -1
+		for group in self.groups.values():
+			for squad in group.values():
+				cPerson = max(cPerson, len(squad.players) + 1)
+		return cPerson
 
 def StrCellText(tag: Tag) -> str:
 	"""
