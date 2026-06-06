@@ -42,7 +42,7 @@ msgstr "Euro"
 
 msgctxt "competition.mens-world-cup"
 msgid "World Cup"
-msgstr "VM"
+msgstr "Fotbolls VM"
 
 #. The "WC" here is an abbreviation for "World Cup".
 #. We want this title to be distinct from the mens
@@ -119,7 +119,7 @@ msgstr "{label}: {timezone}"
 #. scores.
 msgctxt "page.type.fixtures"
 msgid "Fixtures"
-msgstr "Tävling"
+msgstr "Spelschema"
 
 #. Inserted into page.format.title when poster shows completed matches with
 #. scores.
