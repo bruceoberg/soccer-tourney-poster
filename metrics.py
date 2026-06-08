@@ -3,10 +3,11 @@ from typing import NamedTuple
 # this appears to be the least gross way to create constants within a namespace
 
 class Page(NamedTuple):
-	strOrientation: str = 'landscape'
+	strOrientation: str = 'portrait'
 	strFormat: str = 'letter'
-	dX: float = 11
-	dY: float = 8.5
+	tuDs: tuple[float, float] = (8.5, 11)
+	dX: float = min(tuDs) if strOrientation == 'portrait' else max(tuDs)
+	dY: float = max(tuDs) if strOrientation == 'portrait' else min(tuDs)
 	dXLeft: float = 0.25
 	dXRight: float = 0.25
 	dYTop: float = 0.25
