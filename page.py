@@ -6,26 +6,89 @@ soccer tournament roster page handling
 
 from __future__ import annotations  # Forward refs without quotes
 
-from typing import TYPE_CHECKING
-
+from typing import TYPE_CHECKING, Type, Callable, Iterable, Generator
+from dataclasses import dataclass
+from dateutil import parser as dateutil_parser
+from dateutil.relativedelta import relativedelta
 from bolay import CBlot, SRect, SPoint, SFontKey, JH, JV
 from bolay import SColor, ColorFromStr, ColorResaturate, ColorResaturateDarker, FIsSaturated
 from bolay import colorWhite, colorBlack, colorLightGrey, colorDarkgrey
 
 from .database import SGroup, SSquad, SPlayer
-from .common import mpStrGroupStrColor
+from .common import mpStrGroupStrColor, strDateStart
 
 from . import metrics
 
 if TYPE_CHECKING:
 	from .doc import CDocument
 
+# cell widths
+
+s_tuDXCells: tuple[float] = (
+	0.1,	# captain
+	0.2,	# number
+	0.2,	# pos
+	1.5,	# name
+	0.2,	# age
+	0.2,	# caps
+)
+
+# starting date
+
+s_tTourney = dateutil_parser.parse(strDateStart)
+
+def StrAge(player: SPlayer) -> str:
+	tDob = dateutil_parser.parse(player.strDob)
+	return str(abs(relativedelta(tDob, s_tTourney).years))
+
+def StrCaptain(player: SPlayer) -> str:
+	return 'C' if player.fCaptain else ''
+
+@dataclass(frozen=True, slots=True)
+class SCellSpec():
+	clsCell: Type[CCellBlot] | None
+	fnField: Callable[[SPlayer], str] | None
+
+@dataclass(frozen=True, slots=True)
+class SCellParam(SCellSpec):
+	dX: float
+
+def IterCellp(dXTotal: float, iterCellsp: Iterable[SCellSpec | None]) -> Generator[SCellParam]:
+	dXRemaining = dXTotal
+	itor = iter(iterCellsp)
+	for dX in s_tuDXCells:
+		try:
+			cellsp = next(itor)
+		except StopIteration:
+			break
+		dXRemaining -= dX
+
+		if cellsp is None:
+			yield SCellParam(None, None, dX)
+		else:
+			yield SCellParam(cellsp.clsCell, cellsp.fnField, dX)
+
+	if lCellsp := list(itor):
+		dX = dXRemaining / len(lCellsp)
+		for cellsp in lCellsp:
+
+			if cellsp is None:
+				yield SCellParam(None, None, dX)
+			else:
+				yield SCellParam(cellsp.clsCell, cellsp.fnField, dX)
+
+
 class CCellBlot(CBlot):
-	def __init__(self, doc: CDocument, rect: SRect, strText: str):
+	def __init__(self, doc: CDocument, rect: SRect):
 		super().__init__(doc.pdf)
 
 		self.doc = doc
 		self.rect = rect
+
+class CTextCell(CCellBlot):
+	def __init__(self, doc: CDocument, rect: SRect, strText: str):
+		super().__init__(doc, rect)
+
 		self.strText = strText
 
 	def Draw(self):
@@ -38,19 +101,38 @@ class CCellBlot(CBlot):
 						JV.Middle)
 
 class CPlayerBlot(CBlot):
+
+	s_tuCellsp: tuple[SCellParam | None] = (
+		SCellSpec(CTextCell, lambda player: StrCaptain(player)),
+		SCellSpec(CTextCell, lambda player: player.strNumber),
+		SCellSpec(CTextCell, lambda player: player.strPos),
+		SCellSpec(CTextCell, lambda player: player.strName),
+		SCellSpec(CTextCell, lambda player: StrAge(player)),
+		SCellSpec(CTextCell, lambda player: player.strCaps),
+		SCellSpec(CTextCell, lambda player: player.strClub),
+	)
+
 	def __init__(self, doc: CDocument, rect: SRect, player: SPlayer):
 		super().__init__(doc.pdf)
 
 		self.doc = doc
 		self.rect = rect
 		self.player = player
+		self.lCellb: list[CCellBlot] = []
 
-		rectCell = self.rect.Copy().Stretch(dXLeft = 0.5)
-		self.cell = CCellBlot(doc, rectCell, self.player.strName)
+		xCur = rect.x
+		for cellp in IterCellp(rect.dX, self.s_tuCellsp):
+			rectCell = self.rect.Copy(x=xCur, dX=cellp.dX)
+			xCur += rectCell.dX
+
+			if cellp.clsCell is None:
+				continue
+
+			self.lCellb.append(cellp.clsCell(doc, rectCell, cellp.fnField(self.player)))
 
 	def Draw(self):
-		self.cell.Draw()
-
+		for cellb in self.lCellb:
+			cellb.Draw()
 
 class CSquadBlot(CBlot): # tag = squadb
 	s_rSName = 15.0

@@ -4,6 +4,7 @@ year = 2026
 strFile = f'{year}-mens-world-cup-rosters'
 strYearTitle = f'{year} World Cup'
 strSquadsPage = f'{year}_FIFA_World_Cup_squads'
+strDateStart = 'June 11, 2026'
 
 mpStrGroupStrColor: dict[str, str] ={
 	"A":	"#b9deb7",	# green
