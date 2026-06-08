@@ -115,9 +115,13 @@ class SDatabase(BaseModel): # tag = db
 
 	def CPersonMax(self) -> int:
 		cPerson = -1
+
 		for group in self.groups.values():
 			for squad in group.values():
 				cPerson = max(cPerson, len(squad.players) + 1)
+
+		#print(f"Persons: {cPersonMax}")
+
 		return cPerson
 
 def StrCellText(tag: Tag) -> str:
