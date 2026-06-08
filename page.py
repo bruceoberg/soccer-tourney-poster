@@ -6,9 +6,9 @@ soccer tournament roster page handling
 
 from __future__ import annotations  # Forward refs without quotes
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from bolay import CBlot, CPdf, SRect, SPoint, SFontKey, JH, JV
+from bolay import CBlot, SRect, SPoint, SFontKey, JH, JV
 from bolay import SColor, ColorFromStr, ColorResaturate, ColorResaturateDarker, FIsSaturated
 from bolay import colorWhite, colorBlack, colorLightGrey, colorDarkgrey
 
@@ -17,15 +17,18 @@ from .common import mpStrGroupStrColor
 
 from . import metrics
 
+if TYPE_CHECKING:
+	from .doc import CDocument
+
 class CSquadBlot(CBlot): # tag = squadb
 	s_rSName = 15.0
 
-	def __init__(self, pdf, squad: SSquad, rectLocal: SRect, cPersonMax: int):
-		super().__init__(pdf)
+	def __init__(self, doc: CDocument, squad: SSquad, rectLocal: SRect):
+		super().__init__(doc.pdf)
 
+		self.doc = doc
 		self.squad = squad
 		self.rectLocal = rectLocal
-		self.cPersonMax = cPersonMax
 
 	def Draw(self, pos):
 		rectSquad = self.rectLocal.Copy().Shift(dX=pos.x, dY=pos.y)
@@ -42,7 +45,7 @@ class CSquadBlot(CBlot): # tag = squadb
 						JV.Middle)
 		
 		rectPlayers = rectSquad.Copy().Stretch(dYTop = dYName)
-		dYPlayer = rectPlayers.dY / self.cPersonMax
+		dYPlayer = rectPlayers.dY / self.doc.cPersonMax
 		yCur = rectPlayers.y
 
 		if self.squad.strCoach:
@@ -95,8 +98,10 @@ class CGroupBlot(CBlot): # tag = groupb
 
 	s_rSGroup = 15.0
 
-	def __init__(self, pdf: CPdf, strGroup: str, group: SGroup, cPersonMax: int) -> None:
-		super().__init__(pdf)
+	def __init__(self, doc: CDocument, strGroup: str, group: SGroup) -> None:
+		super().__init__(doc.pdf)
+
+		self.doc = doc
 
 		assert strGroup.startswith("Group ")
 		assert len(strGroup) == len("Group ") + 1
@@ -125,7 +130,7 @@ class CGroupBlot(CBlot): # tag = groupb
 			row, col = divmod(iSquad, 2)
 			rectLocal = SRect(row * dXSquad, col * dYSquad, dXSquad, dYSquad)
 
-			self.lSquadb.append(CSquadBlot(self.pdf, squad, rectLocal, cPersonMax))
+			self.lSquadb.append(CSquadBlot(self.doc, squad, rectLocal))
 
 	def Draw(self, pos: SPoint) -> None:
 

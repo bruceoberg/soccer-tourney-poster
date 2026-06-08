@@ -23,37 +23,40 @@ from . import g_pathCode
 
 g_pathFonts = g_pathCode / 'fonts'
 
-def WritePdf(db: SDatabase):
-	pdf = CPdf()
+class CDocument():
+	def __init__(self, db: SDatabase):
+		self.db = db
+		self.pdf = CPdf()
+		self.cPersonMax = self.db.CPersonMax()
 
-	pdf.AddFont('NotoSans', '', g_pathFonts / 'NotoSans-Regular.ttf')
-	pdf.AddFont('NotoSans', 'B', g_pathFonts / 'NotoSans-Bold.ttf')
-	pdf.AddFont('NotoSans', 'I', g_pathFonts / 'NotoSans-Light.ttf')
-	pdf.AddFont('NotoSansMono', '', g_pathFonts / 'NotoSansMono-Regular.ttf')
-	pdf.AddFont('NotoSansMono', 'B', g_pathFonts / 'NotoSansMono-Bold.ttf')
-	pdf.AddFont('NotoSansMono', 'I', g_pathFonts / 'NotoSansMono-Thin.ttf')
+	def Write(self):
 
-	pdf.set_title(strYearTitle)
-	pdf.set_author('bruce oberg')
-	pdf.set_subject("Roster Cheat Sheet")
-	pdf.set_keywords('world cup soccer football rosters')
-	pdf.set_creator(f'python v{platform.python_version()}, fpdf2 v{fpdf.__version__}')
-	pdf.set_lang('en')
-	pdf.set_creation_date(datetime.datetime.now())
+		self.pdf.AddFont('NotoSans', '', g_pathFonts / 'NotoSans-Regular.ttf')
+		self.pdf.AddFont('NotoSans', 'B', g_pathFonts / 'NotoSans-Bold.ttf')
+		self.pdf.AddFont('NotoSans', 'I', g_pathFonts / 'NotoSans-Light.ttf')
+		self.pdf.AddFont('NotoSansMono', '', g_pathFonts / 'NotoSansMono-Regular.ttf')
+		self.pdf.AddFont('NotoSansMono', 'B', g_pathFonts / 'NotoSansMono-Bold.ttf')
+		self.pdf.AddFont('NotoSansMono', 'I', g_pathFonts / 'NotoSansMono-Thin.ttf')
 
-	cPersonMax = db.CPersonMax()
+		self.pdf.set_title(strYearTitle)
+		self.pdf.set_author('bruce oberg')
+		self.pdf.set_subject("Roster Cheat Sheet")
+		self.pdf.set_keywords('world cup soccer football rosters')
+		self.pdf.set_creator(f'python v{platform.python_version()}, fpdf2 v{fpdf.__version__}')
+		self.pdf.set_lang('en')
+		self.pdf.set_creation_date(datetime.datetime.now())
 
-	print(f"Persons: {cPersonMax}")
+		for strGroup, group in self.db.groups.items():
 
-	for strGroup, group in db.groups.items():
+			self.pdf.add_page(orientation=metrics.page.strOrientation, format=metrics.page.strFormat)
 
-		pdf.add_page(orientation=metrics.page.strOrientation, format=metrics.page.strFormat)
+			assert self.pdf.w == metrics.page.dX
+			assert self.pdf.h == metrics.page.dY
 
-		assert pdf.w == metrics.page.dX
-		assert pdf.h == metrics.page.dY
+			CGroupBlot(self, strGroup, group).Draw(SPoint(metrics.page.dXLeft, metrics.page.dYTop))
 
-		CGroupBlot(pdf, strGroup, group, cPersonMax).Draw(SPoint(metrics.page.dXLeft, metrics.page.dYTop))
+		pathDst = (Path.cwd() / "playground" / strFile).with_suffix('.pdf')
+		pathDst.parent.mkdir(parents=True, exist_ok=True)
 
-	pathDst = (Path.cwd() / "playground" / strFile).with_suffix('.pdf')
-	print(f'Writing: {pathDst.relative_to(Path.cwd())}')
-	pdf.output(str(pathDst))
+		print(f'Writing: {pathDst.relative_to(Path.cwd())}')
+		self.pdf.output(str(pathDst))
