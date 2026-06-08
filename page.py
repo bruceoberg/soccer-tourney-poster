@@ -20,6 +20,23 @@ from . import metrics
 if TYPE_CHECKING:
 	from .doc import CDocument
 
+class CCellBlot(CBlot):
+	def __init__(self, doc: CDocument, rect: SRect, strText: str):
+		super().__init__(doc.pdf)
+
+		self.doc = doc
+		self.rect = rect
+		self.strText = strText
+
+	def Draw(self):
+		dYText = self.rect.dY * 0.60
+		oltbPlayer = self.Oltb(self.rect, SFontKey('NotoSans', ''), dYText)
+		oltbPlayer.DrawText(
+						self.strText,
+						colorBlack,
+						JH.Left,
+						JV.Middle)
+
 class CPlayerBlot(CBlot):
 	def __init__(self, doc: CDocument, rect: SRect, player: SPlayer):
 		super().__init__(doc.pdf)
@@ -28,14 +45,11 @@ class CPlayerBlot(CBlot):
 		self.rect = rect
 		self.player = player
 
+		rectCell = self.rect.Copy().Stretch(dXLeft = 0.5)
+		self.cell = CCellBlot(doc, rectCell, self.player.strName)
+
 	def Draw(self):
-		dYText = self.rect.dY * 0.60
-		oltbPlayer = self.Oltb(self.rect, SFontKey('NotoSans', ''), dYText)
-		oltbPlayer.DrawText(
-						self.player.strName,
-						colorBlack,
-						JH.Left,
-						JV.Middle)
+		self.cell.Draw()
 
 
 class CSquadBlot(CBlot): # tag = squadb
