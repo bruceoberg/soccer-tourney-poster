@@ -12,13 +12,31 @@ from bolay import CBlot, SRect, SPoint, SFontKey, JH, JV
 from bolay import SColor, ColorFromStr, ColorResaturate, ColorResaturateDarker, FIsSaturated
 from bolay import colorWhite, colorBlack, colorLightGrey, colorDarkgrey
 
-from .database import SGroup, SSquad
+from .database import SGroup, SSquad, SPlayer
 from .common import mpStrGroupStrColor
 
 from . import metrics
 
 if TYPE_CHECKING:
 	from .doc import CDocument
+
+class CPlayerBlot(CBlot):
+	def __init__(self, doc: CDocument, rect: SRect, player: SPlayer):
+		super().__init__(doc.pdf)
+
+		self.doc = doc
+		self.rect = rect
+		self.player = player
+
+	def Draw(self):
+		dYText = self.rect.dY * 0.60
+		oltbPlayer = self.Oltb(self.rect, SFontKey('NotoSans', ''), dYText)
+		oltbPlayer.DrawText(
+						self.player.strName,
+						colorBlack,
+						JH.Left,
+						JV.Middle)
+
 
 class CSquadBlot(CBlot): # tag = squadb
 	s_rSName = 15.0
@@ -30,7 +48,7 @@ class CSquadBlot(CBlot): # tag = squadb
 		self.squad = squad
 		self.rectLocal = rectLocal
 
-	def Draw(self, pos):
+	def Draw(self, pos: SPoint):
 		rectSquad = self.rectLocal.Copy().Shift(dX=pos.x, dY=pos.y)
 		dYName = rectSquad.dX / self.s_rSName
 		rectName = rectSquad.Copy(dY=dYName)
@@ -44,14 +62,14 @@ class CSquadBlot(CBlot): # tag = squadb
 						JH.Left,
 						JV.Middle)
 		
-		rectPlayers = rectSquad.Copy().Stretch(dYTop = dYName)
-		dYPlayer = rectPlayers.dY / self.doc.cPersonMax
-		yCur = rectPlayers.y
+		rectPeople = rectSquad.Copy().Stretch(dYTop = dYName)
+		dYPerson = rectPeople.dY / self.doc.cPersonMax
+		yCur = rectPeople.y
 
 		if self.squad.strCoach:
-			rectPerson = SRect(rectPlayers.x, yCur, rectPlayers.dY, dYPlayer)
-			yCur += dYPlayer
-			oltbPerson = self.Oltb(rectPerson, SFontKey('NotoSans', 'B'), dYPlayer)
+			rectCoach = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
+			yCur += dYPerson
+			oltbPerson = self.Oltb(rectCoach, SFontKey('NotoSans', 'B'), dYPerson)
 			oltbPerson.DrawText(
 							self.squad.strCoach,
 							colorBlack,
@@ -59,14 +77,10 @@ class CSquadBlot(CBlot): # tag = squadb
 							JV.Middle)
 			
 		for player in self.squad.players.values():
-			rectPerson = SRect(rectPlayers.x, yCur, rectPlayers.dY, dYPlayer)
-			yCur += dYPlayer
-			oltbPerson = self.Oltb(rectPerson, SFontKey('NotoSans', ''), dYPlayer)
-			oltbPerson.DrawText(
-							player.strName,
-							colorBlack,
-							JH.Left,
-							JV.Middle)
+			rectPlayer = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
+			yCur += dYPerson
+
+			CPlayerBlot(self.doc, rectPlayer, player).Draw()
 
 class SColors: # tag = colors
 	s_dSDarker = 0.5
