@@ -30,7 +30,7 @@ s_tuDXCells: tuple[float] = (
 	0.15,	# number
 	0.14,	# pos
 	0.08,	# captain
-	1.5,	# name
+	1.4,	# name
 	0.16,	# age
 	0.21,	# caps
 	0.21,	# goals
@@ -114,7 +114,8 @@ class CTextCell(CCellBlot):
 					self.strText,
 					colorBlack,
 					self.jh,
-					JV.Middle)
+					JV.Middle,
+					fShrinkToFit=(len(self.strText)>=10))
 
 class CImageCell(CCellBlot):
 	s_uSRectImage = CTextCell.s_uYText
@@ -390,7 +391,7 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		self.pdf.set_line_width(.25 / 72.0)
 		self.pdf.SetDrawColor(colorBlack)
-		xLine = rectGroupLabel.xMin + rectGroupLabel.xMax / 2.0
+		xLine = rectInside.x + self.dXSquad
 		self.pdf.line(
 					xLine,
 					rectGroupLabel.yMax,
