@@ -25,12 +25,14 @@ if TYPE_CHECKING:
 # cell widths
 
 s_tuDXCells: tuple[float] = (
+	0.15,	# number
+	0.1,	# pos
 	0.1,	# captain
-	0.2,	# number
-	0.2,	# pos
 	1.5,	# name
-	0.2,	# age
+	0.15,	# age
 	0.2,	# caps
+	0.2,	# goals
+	0.3,	# flag
 )
 
 # starting date
@@ -42,7 +44,8 @@ def StrAge(player: SPlayer) -> str:
 	return str(abs(relativedelta(tDob, s_tTourney).years))
 
 def StrCaptain(player: SPlayer) -> str:
-	return 'C' if player.fCaptain else ''
+	# U+F04D2: nerdfont md-star_outline
+	return '\U000f04d2' if player.fCaptain else ''
 
 @dataclass(frozen=True, slots=True)
 class SCellSpec():
@@ -93,22 +96,59 @@ class CTextCell(CCellBlot):
 
 	def Draw(self):
 		dYText = self.rect.dY * 0.60
-		oltbPlayer = self.Oltb(self.rect, SFontKey('NotoSans', ''), dYText)
-		oltbPlayer.DrawText(
-						self.strText,
-						colorBlack,
-						JH.Left,
-						JV.Middle)
+		oltbText = self.Oltb(self.rect, SFontKey('NotoSans', ''), dYText)
+		oltbText.DrawText(
+					self.strText,
+					colorBlack,
+					JH.Left,
+					JV.Middle)
+
+class CHeaderBlot(CBlot):
+
+	s_tuCellsp: tuple[SCellParam | None] = (
+		None,										# number
+		SCellSpec(CTextCell, lambda: '\uef0c'),		# pos		(nerdfont nf-fa-person_running)
+		None,										# captain
+		None,										# name
+		SCellSpec(CTextCell, lambda: '\uf1fd'),		# age		(nerdfont nf-fa-cake_candles)
+		SCellSpec(CTextCell, lambda: '\U000f0499'),	# caps		(nerdfont nf-md-shield_outline)
+		SCellSpec(CTextCell, lambda: '\uf4de'),		# goals		(nerdfont nf-oct-goal)
+		None,										# flag
+		SCellSpec(CTextCell, lambda: '\uf155'),		# club		(nerdfont nf-fa-dollar)
+	)
+
+	def __init__(self, doc: CDocument, rect: SRect):
+		super().__init__(doc.pdf)
+
+		self.doc = doc
+		self.rect = rect
+		self.lCellb: list[CCellBlot] = []
+
+		xCur = rect.x
+		for cellp in IterCellp(rect.dX, self.s_tuCellsp):
+			rectCell = self.rect.Copy(x=xCur, dX=cellp.dX)
+			xCur += rectCell.dX
+
+			if cellp.clsCell is None:
+				continue
+
+			self.lCellb.append(cellp.clsCell(doc, rectCell, cellp.fnField()))
+
+	def Draw(self):
+		for cellb in self.lCellb:
+			cellb.Draw()
 
 class CPlayerBlot(CBlot):
 
 	s_tuCellsp: tuple[SCellParam | None] = (
-		SCellSpec(CTextCell, lambda player: StrCaptain(player)),
-		SCellSpec(CTextCell, lambda player: player.strNumber),
-		SCellSpec(CTextCell, lambda player: player.strPos),
-		SCellSpec(CTextCell, lambda player: player.strName),
-		SCellSpec(CTextCell, lambda player: StrAge(player)),
-		SCellSpec(CTextCell, lambda player: player.strCaps),
+		SCellSpec(CTextCell, lambda player: player.strNumber),		# number
+		SCellSpec(CTextCell, lambda player: player.strPos[0]),		# pos
+		SCellSpec(CTextCell, lambda player: StrCaptain(player)),	# captain
+		SCellSpec(CTextCell, lambda player: player.strName),		# name
+		SCellSpec(CTextCell, lambda player: StrAge(player)),		# age
+		SCellSpec(CTextCell, lambda player: player.strCaps),		# caps
+		None,														# goals
+		None,														# flag
 		SCellSpec(CTextCell, lambda player: player.strClub),
 	)
 
@@ -159,19 +199,24 @@ class CSquadBlot(CBlot): # tag = squadb
 						JV.Middle)
 		
 		rectPeople = rectSquad.Copy().Stretch(dYTop = dYName)
-		dYPerson = rectPeople.dY / self.doc.cPersonMax
+		dYPerson = rectPeople.dY / (self.doc.cPersonMax + 1)
 		yCur = rectPeople.y
 
 		if self.squad.strCoach:
 			rectCoach = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
 			yCur += dYPerson
-			oltbPerson = self.Oltb(rectCoach, SFontKey('NotoSans', 'B'), dYPerson)
+			oltbPerson = self.Oltb(rectCoach, SFontKey('NotoSans', 'I'), dYPerson)
 			oltbPerson.DrawText(
 							self.squad.strCoach,
 							colorBlack,
 							JH.Left,
 							JV.Middle)
-			
+
+		rectPlayer = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
+		yCur += dYPerson
+
+		CHeaderBlot(self.doc, rectPlayer).Draw()
+
 		for player in self.squad.players.values():
 			rectPlayer = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
 			yCur += dYPerson
