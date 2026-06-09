@@ -99,6 +99,8 @@ class CCellBlot(CBlot):
 		self.rect = rect
 
 class CTextCell(CCellBlot):
+	s_uYText = 0.60
+
 	def __init__(self, doc: CDocument, rect: SRect, strText: str, jh: JH):
 		super().__init__(doc, rect)
 
@@ -106,7 +108,7 @@ class CTextCell(CCellBlot):
 		self.jh = jh
 
 	def Draw(self):
-		dYText = self.rect.dY * 0.60
+		dYText = self.rect.dY * self.s_uYText
 		oltbText = self.Oltb(self.rect, SFontKey('NotoSans', ''), dYText, dSMargin=0.0)
 		oltbText.DrawText(
 					self.strText,
@@ -169,6 +171,7 @@ class CPlayerBlot(CBlot):
 		self.doc = doc
 		self.rect = rect
 		self.player = player
+		self.dSLine = (1.0 - CTextCell.s_uYText) * rect.dY * 0.0625
 		self.lCellb: list[CCellBlot] = []
 
 		xCur = rect.x
@@ -182,6 +185,14 @@ class CPlayerBlot(CBlot):
 			self.lCellb.append(cellp.clsCell(doc, rectCell, cellp.fnField(self.player), cellp.jh))
 
 	def Draw(self):
+		self.pdf.set_line_width(self.dSLine)
+		self.pdf.SetDrawColor(colorLightGrey)
+		self.pdf.line(
+					self.rect.xMin,
+					self.rect.yMin,
+					self.rect.xMax,
+					self.rect.yMin)
+		
 		for cellb in self.lCellb:
 			cellb.Draw()
 
@@ -219,7 +230,7 @@ class CSquadBlot(CBlot): # tag = squadb
 		if self.squad.strCoach:
 			rectCoach = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
 			yCur += dYPerson
-			oltbPerson = self.Oltb(rectCoach, SFontKey('NotoSans', 'I'), dYPerson, dSMargin=0.0)
+			oltbPerson = self.Oltb(rectCoach, SFontKey('NotoSans', 'I'), dYPerson * CTextCell.s_uYText)
 			oltbPerson.DrawText(
 							self.squad.strCoach,
 							colorDarkgrey,
@@ -232,7 +243,7 @@ class CSquadBlot(CBlot): # tag = squadb
 		CHeaderBlot(self.group.doc, rectPlayer).Draw()
 
 		for player in self.squad.players.values():
-			rectPlayer = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
+			rectPlayer = SRect(rectPeople.x, yCur, rectPeople.dX, dYPerson)
 			yCur += dYPerson
 
 			CPlayerBlot(self.group.doc, rectPlayer, player).Draw()
@@ -334,5 +345,14 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		# borders
 
+		self.pdf.set_line_width(.25 / 72.0)
+		self.pdf.SetDrawColor(colorBlack)
+		xLine = rectGroupLabel.xMin + rectGroupLabel.xMax / 2.0
+		self.pdf.line(
+					xLine,
+					rectGroupLabel.yMax,
+					xLine,
+					rectInside.yMax)
+		
 		self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
 		self.DrawBox(rectBorder, self.s_dSLineInner, self.colors.color)
