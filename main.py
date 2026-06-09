@@ -7,9 +7,12 @@ generates roster cheat sheets
 from __future__ import annotations  # Forward refs without quotes
 
 import argparse
+import logging
 
 from .database import DbEnsure
 from .doc import CDocument
+
+logging.getLogger("fontTools.subset").setLevel(logging.ERROR) # disable warnings about subsetting
 
 def main() -> None:
 	parser = argparse.ArgumentParser(prog="rcs", description="generate roster cheat sheets")

@@ -31,7 +31,7 @@ class CDocument():
 
 	def Write(self):
 
-		self.pdf.AddFont('NotoSans', '', g_pathFonts / 'NotoSans-Regular.ttf')
+		self.pdf.AddFont('NotoSans', '', g_pathFonts / 'NotoSansNerdFont-Regular.ttf')
 		self.pdf.AddFont('NotoSans', 'B', g_pathFonts / 'NotoSans-Bold.ttf')
 		self.pdf.AddFont('NotoSans', 'I', g_pathFonts / 'NotoSans-Light.ttf')
 		self.pdf.AddFont('NotoSansMono', '', g_pathFonts / 'NotoSansMono-Regular.ttf')
