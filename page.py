@@ -116,6 +116,48 @@ class CTextCell(CCellBlot):
 					self.jh,
 					JV.Middle)
 
+class CImageCell(CCellBlot):
+	s_uSRectImage = CTextCell.s_uYText
+
+	def __init__(self, doc: CDocument, rect: SRect, strCountry: str, jh: JH):
+		# sad that SRect.Inset() is in absolute units, not relative.
+		rectImage = rect.Copy(
+							dX = rect.dX * self.s_uSRectImage,
+							dY = rect.dY * self.s_uSRectImage)
+		rectImage.Shift(
+					dX = (rect.dX - rectImage.dX) / 2.0,
+					dY = (rect.dY - rectImage.dY) / 2.0)
+
+		super().__init__(doc, rectImage)
+
+		self.jh = jh
+		self.img = doc.imgc.ImgFlagFromStrCountry(strCountry, rectImage)
+
+	def Draw(self):
+		if self.img is None:
+			return
+
+		# the image already fits the cell with correct aspect; justify horizontally per jh
+		# and center vertically (matching the text cells' JV.Middle)
+
+		if self.jh == JH.Left:
+			x = self.rect.xMin
+		elif self.jh == JH.Center:
+			x = self.rect.xMin + (self.rect.dX - self.img.dXIn) / 2.0
+		else:
+			assert self.jh == JH.Right
+			x = self.rect.xMax - self.img.dXIn
+
+		y = self.rect.yMin + (self.rect.dY - self.img.dYIn) / 2.0
+
+		rectFlag = SRect(x, y, self.img.dXIn, self.img.dYIn)
+
+		self.pdf.image(str(self.img.path), rectFlag.x, rectFlag.y, w=rectFlag.dX, h=rectFlag.dY)
+
+		dSLine = min(self.img.dXIn, self.img.dYIn) / 30.0
+
+		self.DrawBox(rectFlag, dSLine, colorLightGrey)
+
 class CHeaderBlot(CBlot):
 
 	s_tuCellsp: tuple[SCellParam | None] = (
@@ -161,7 +203,7 @@ class CPlayerBlot(CBlot):
 		SCellSpec(JH.Right,		CTextCell,	lambda player: StrAge(player)),		# age
 		SCellSpec(JH.Right,		CTextCell,	lambda player: StrCaps(player)),	# caps
 		SCellSpec(JH.Right,		CTextCell,	lambda player: StrGoals(player)),	# goals
-		None,																	# flag
+		SCellSpec(JH.Right,		CImageCell,	lambda player: player.strClubCountry),	# flag
 		SCellSpec(JH.Left,		CTextCell,	lambda player: player.strClub),
 	)
 

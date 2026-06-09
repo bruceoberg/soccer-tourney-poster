@@ -16,6 +16,7 @@ from bolay import CBlot, CPdf, SRect, SPoint, SFontKey, colorBlack, JH, JV
 
 from .database import SDatabase
 from .common import strFile, strYearTitle
+from .image import CImageCache
 from .page import CGroupBlot
 
 from . import metrics
@@ -27,6 +28,7 @@ class CDocument():
 	def __init__(self, db: SDatabase):
 		self.db = db
 		self.pdf = CPdf()
+		self.imgc = CImageCache(db)
 		self.cPersonMax = self.db.CPersonMax()
 
 	def Write(self):
