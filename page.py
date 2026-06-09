@@ -207,6 +207,7 @@ class CSquadBlot(CBlot): # tag = squadb
 		country = group.doc.db.countries[self.squad.strCountry]
 		strFifaCode = country.strFifaCode
 		self.strSeed = mpStrFifaCodeStrSeed[strFifaCode]
+		self.strRank = country.strFifaRank
 
 	def Draw(self, pos: SPoint):
 		rectSquad = SRect(pos.x, pos.y, self.group.dXSquad, self.group.dYSquad)
@@ -218,7 +219,7 @@ class CSquadBlot(CBlot): # tag = squadb
 		uCountryText = 0.75
 		oltbSquadName = self.Oltb(rectCountry, SFontKey('NotoSans', ''), dYCountry * uCountryText, dSMargin = 0)
 		oltbSquadName.DrawText(
-						self.squad.strCountry,
+						f"{self.squad.strCountry} #{self.strRank}",
 						colorBlack,
 						JH.Left,
 						JV.Middle)
