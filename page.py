@@ -6,6 +6,8 @@ soccer tournament roster page handling
 
 from __future__ import annotations  # Forward refs without quotes
 
+import sys
+
 from typing import TYPE_CHECKING, Type, Callable, Iterable, Generator
 from dataclasses import dataclass
 from dateutil import parser as dateutil_parser
@@ -15,7 +17,7 @@ from bolay import SColor, ColorFromStr, ColorResaturate, ColorResaturateDarker, 
 from bolay import colorWhite, colorBlack, colorLightGrey, colorDarkgrey
 
 from .database import SGroup, SSquad, SPlayer
-from .common import mpStrGroupStrColor, strDateStart
+from .common import mpStrGroupStrColor, mpStrFifaCodeStrSeed, strDateStart
 
 from . import metrics
 
@@ -26,12 +28,12 @@ if TYPE_CHECKING:
 
 s_tuDXCells: tuple[float] = (
 	0.15,	# number
-	0.1,	# pos
-	0.1,	# captain
+	0.14,	# pos
+	0.08,	# captain
 	1.5,	# name
-	0.15,	# age
-	0.2,	# caps
-	0.2,	# goals
+	0.16,	# age
+	0.21,	# caps
+	0.21,	# goals
 	0.3,	# flag
 )
 
@@ -47,8 +49,16 @@ def StrCaptain(player: SPlayer) -> str:
 	# U+F04D2: nerdfont md-star_outline
 	return '\U000f04d2' if player.fCaptain else ''
 
+def StrGoals(player: SPlayer) -> str:
+	return player.strGoals if int(player.strGoals) > 0 else ''
+
+def StrCaps(player: SPlayer) -> str:
+	return player.strCaps if int(player.strCaps) > 0 else ''
+
+
 @dataclass(frozen=True, slots=True)
 class SCellSpec():
+	jh: JH
 	clsCell: Type[CCellBlot] | None
 	fnField: Callable[[SPlayer], str] | None
 
@@ -67,18 +77,18 @@ def IterCellp(dXTotal: float, iterCellsp: Iterable[SCellSpec | None]) -> Generat
 		dXRemaining -= dX
 
 		if cellsp is None:
-			yield SCellParam(None, None, dX)
+			yield SCellParam(JH.Center, None, None, dX)
 		else:
-			yield SCellParam(cellsp.clsCell, cellsp.fnField, dX)
+			yield SCellParam(cellsp.jh, cellsp.clsCell, cellsp.fnField, dX)
 
 	if lCellsp := list(itor):
 		dX = dXRemaining / len(lCellsp)
 		for cellsp in lCellsp:
 
 			if cellsp is None:
-				yield SCellParam(None, None, dX)
+				yield SCellParam(JH.Center, None, None, dX)
 			else:
-				yield SCellParam(cellsp.clsCell, cellsp.fnField, dX)
+				yield SCellParam(cellsp.jh, cellsp.clsCell, cellsp.fnField, dX)
 
 
 class CCellBlot(CBlot):
@@ -89,32 +99,33 @@ class CCellBlot(CBlot):
 		self.rect = rect
 
 class CTextCell(CCellBlot):
-	def __init__(self, doc: CDocument, rect: SRect, strText: str):
+	def __init__(self, doc: CDocument, rect: SRect, strText: str, jh: JH):
 		super().__init__(doc, rect)
 
 		self.strText = strText
+		self.jh = jh
 
 	def Draw(self):
 		dYText = self.rect.dY * 0.60
-		oltbText = self.Oltb(self.rect, SFontKey('NotoSans', ''), dYText)
+		oltbText = self.Oltb(self.rect, SFontKey('NotoSans', ''), dYText, dSMargin=0.0)
 		oltbText.DrawText(
 					self.strText,
 					colorBlack,
-					JH.Left,
+					self.jh,
 					JV.Middle)
 
 class CHeaderBlot(CBlot):
 
 	s_tuCellsp: tuple[SCellParam | None] = (
-		None,										# number
-		SCellSpec(CTextCell, lambda: '\uef0c'),		# pos		(nerdfont nf-fa-person_running)
-		None,										# captain
-		None,										# name
-		SCellSpec(CTextCell, lambda: '\uf1fd'),		# age		(nerdfont nf-fa-cake_candles)
-		SCellSpec(CTextCell, lambda: '\U000f0499'),	# caps		(nerdfont nf-md-shield_outline)
-		SCellSpec(CTextCell, lambda: '\uf4de'),		# goals		(nerdfont nf-oct-goal)
-		None,										# flag
-		SCellSpec(CTextCell, lambda: '\uf155'),		# club		(nerdfont nf-fa-dollar)
+		None,														# number
+		SCellSpec(JH.Center,	CTextCell,	lambda: '\uef0c'),		# pos		(nerdfont nf-fa-person_running)
+		None,														# captain
+		None,														# name
+		SCellSpec(JH.Right,		CTextCell,	lambda: '\uf1fd'),		# age		(nerdfont nf-fa-cake_candles)
+		SCellSpec(JH.Right,		CTextCell,	lambda: '\U000f0499'),	# caps		(nerdfont nf-md-shield_outline)
+		SCellSpec(JH.Right,		CTextCell,	lambda: '\uf4de'),		# goals		(nerdfont nf-oct-goal)
+		None,														# flag
+		SCellSpec(JH.Left,		CTextCell,	lambda: '\uf155'),		# club		(nerdfont nf-fa-dollar)
 	)
 
 	def __init__(self, doc: CDocument, rect: SRect):
@@ -132,7 +143,7 @@ class CHeaderBlot(CBlot):
 			if cellp.clsCell is None:
 				continue
 
-			self.lCellb.append(cellp.clsCell(doc, rectCell, cellp.fnField()))
+			self.lCellb.append(cellp.clsCell(doc, rectCell, cellp.fnField(), cellp.jh))
 
 	def Draw(self):
 		for cellb in self.lCellb:
@@ -141,15 +152,15 @@ class CHeaderBlot(CBlot):
 class CPlayerBlot(CBlot):
 
 	s_tuCellsp: tuple[SCellParam | None] = (
-		SCellSpec(CTextCell, lambda player: player.strNumber),		# number
-		SCellSpec(CTextCell, lambda player: player.strPos[0]),		# pos
-		SCellSpec(CTextCell, lambda player: StrCaptain(player)),	# captain
-		SCellSpec(CTextCell, lambda player: player.strName),		# name
-		SCellSpec(CTextCell, lambda player: StrAge(player)),		# age
-		SCellSpec(CTextCell, lambda player: player.strCaps),		# caps
-		None,														# goals
-		None,														# flag
-		SCellSpec(CTextCell, lambda player: player.strClub),
+		SCellSpec(JH.Right,		CTextCell,	lambda player: player.strNumber),	# number
+		SCellSpec(JH.Center,	CTextCell,	lambda player: player.strPos[0]),	# pos
+		SCellSpec(JH.Right,		CTextCell,	lambda player: StrCaptain(player)),	# captain
+		SCellSpec(JH.Left,		CTextCell,	lambda player: player.strName),		# name
+		SCellSpec(JH.Right,		CTextCell,	lambda player: StrAge(player)),		# age
+		SCellSpec(JH.Right,		CTextCell,	lambda player: StrCaps(player)),	# caps
+		SCellSpec(JH.Right,		CTextCell,	lambda player: StrGoals(player)),	# goals
+		None,																	# flag
+		SCellSpec(JH.Left,		CTextCell,	lambda player: player.strClub),
 	)
 
 	def __init__(self, doc: CDocument, rect: SRect, player: SPlayer):
@@ -168,60 +179,63 @@ class CPlayerBlot(CBlot):
 			if cellp.clsCell is None:
 				continue
 
-			self.lCellb.append(cellp.clsCell(doc, rectCell, cellp.fnField(self.player)))
+			self.lCellb.append(cellp.clsCell(doc, rectCell, cellp.fnField(self.player), cellp.jh))
 
 	def Draw(self):
 		for cellb in self.lCellb:
 			cellb.Draw()
 
 class CSquadBlot(CBlot): # tag = squadb
-	s_rSName = 15.0
+	s_rSCountry = 15.0
 
-	def __init__(self, doc: CDocument, squad: SSquad, rectLocal: SRect):
-		super().__init__(doc.pdf)
+	def __init__(self, group: CGroupBlot, squad: SSquad):
+		super().__init__(group.doc.pdf)
 
-		self.doc = doc
+		self.group = group
 		self.squad = squad
-		self.rectLocal = rectLocal
+		country = group.doc.db.countries[self.squad.strCountry]
+		strFifaCode = country.strFifaCode
+		self.strSeed = mpStrFifaCodeStrSeed[strFifaCode]
 
 	def Draw(self, pos: SPoint):
-		rectSquad = self.rectLocal.Copy().Shift(dX=pos.x, dY=pos.y)
-		dYName = rectSquad.dX / self.s_rSName
-		rectName = rectSquad.Copy(dY=dYName)
+		rectSquad = SRect(pos.x, pos.y, self.group.dXSquad, self.group.dYSquad)
+		dYCountry = rectSquad.dX / self.s_rSCountry
+		rectCountry = rectSquad.Copy(dY=dYCountry)
 
-		self.FillBox(rectName, colorLightGrey)
+		self.FillBox(rectCountry, colorLightGrey)
 
-		oltbSquadName = self.Oltb(rectName, SFontKey('NotoSans', ''), dYName)
+		uCountryText = 0.75
+		oltbSquadName = self.Oltb(rectCountry, SFontKey('NotoSans', ''), dYCountry * uCountryText, dSMargin = 0)
 		oltbSquadName.DrawText(
-						self.squad.strTeam,
-						colorDarkgrey,
+						self.squad.strCountry,
+						colorBlack,
 						JH.Left,
 						JV.Middle)
 		
-		rectPeople = rectSquad.Copy().Stretch(dYTop = dYName)
-		dYPerson = rectPeople.dY / (self.doc.cPersonMax + 1)
+		rectPeople = rectSquad.Copy().Stretch(dYTop = dYCountry)
+		dYPerson = rectPeople.dY / (self.group.doc.cPersonMax + 1)
 		yCur = rectPeople.y
 
 		if self.squad.strCoach:
 			rectCoach = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
 			yCur += dYPerson
-			oltbPerson = self.Oltb(rectCoach, SFontKey('NotoSans', 'I'), dYPerson)
+			oltbPerson = self.Oltb(rectCoach, SFontKey('NotoSans', 'I'), dYPerson, dSMargin=0.0)
 			oltbPerson.DrawText(
 							self.squad.strCoach,
-							colorBlack,
+							colorDarkgrey,
 							JH.Left,
 							JV.Middle)
 
 		rectPlayer = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
 		yCur += dYPerson
 
-		CHeaderBlot(self.doc, rectPlayer).Draw()
+		CHeaderBlot(self.group.doc, rectPlayer).Draw()
 
 		for player in self.squad.players.values():
 			rectPlayer = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
 			yCur += dYPerson
 
-			CPlayerBlot(self.doc, rectPlayer, player).Draw()
+			CPlayerBlot(self.group.doc, rectPlayer, player).Draw()
 
 class SColors: # tag = colors
 	s_dSDarker = 0.5
@@ -276,16 +290,11 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		assert len(group) == 4
 
-		dXSquad = dXSquads / 2
-		dYSquad = dYSquads / 2
+		self.dXSquad = dXSquads / 2
+		self.dYSquad = dYSquads / 2
 
-		self.lSquadb: list[CSquadBlot] = []
-
-		for iSquad, squad in enumerate(self.group.values()):
-			row, col = divmod(iSquad, 2)
-			rectLocal = SRect(row * dXSquad, col * dYSquad, dXSquad, dYSquad)
-
-			self.lSquadb.append(CSquadBlot(self.doc, squad, rectLocal))
+		self.lSquadb: list[CSquadBlot] = [CSquadBlot(self, squad) for squad in self.group.values()]
+		self.lSquadb.sort(key=lambda squadb: squadb.strSeed)
 
 	def Draw(self, pos: SPoint) -> None:
 
@@ -297,11 +306,6 @@ class CGroupBlot(CBlot): # tag = groupb
 		#dYTitle = dY * self.s_uYTitle
 		dYTitle = rectInside.dX / self.s_rSGroup
 		rectTitle = rectInside.Copy(dY=dYTitle)
-
-		posSquads = SPoint(rectInside.x, rectInside.y + dYTitle)
-
-		for squadb in self.lSquadb:
-			squadb.Draw(posSquads)
 
 		self.FillBox(rectTitle, self.colors.color)
 
@@ -319,6 +323,16 @@ class CGroupBlot(CBlot): # tag = groupb
 		strGroupTitle = "Group"
 		oltbGroupLabel = self.Oltb(rectGroupLabel, SFontKey('NotoSans', ''), dYTitle * uGroupLabel, dSMargin = oltbGroupName.dSMargin)
 		oltbGroupLabel.DrawText(strGroupTitle, colorWhite, JH.Right) #, JV.Top)
+
+		# squads
+
+		posSquads = SPoint(rectInside.x, rectInside.y + dYTitle)
+
+		for iSquadb, squadb in enumerate(self.lSquadb):
+			row, col = divmod(iSquadb, 2)
+			squadb.Draw(SPoint(posSquads.x + col * self.dXSquad, posSquads.y + row * self.dYSquad))
+
+		# borders
 
 		self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
 		self.DrawBox(rectBorder, self.s_dSLineInner, self.colors.color)

@@ -60,14 +60,15 @@ class SPlayer(BaseModel): # tag = playero
 
 	model_config = ConfigDict(populate_by_name=True)
 
-	strName:	str				= Field(exclude=True)	# injected on load by CMpStrInjected
-	strNumber:	str				= Field(alias='jersey_number')
-	strPos:   	str				= Field(alias='position')
-	fCaptain: 	bool			= Field(alias='is_captain')		# team captain (parsed from a "(captain)" suffix on the name)
-	strDob:   	str				= Field(alias='birthdate')		# compact ISO date "1995-03-12" (age parenthetical stripped)
-	strCaps:  	str				= Field(alias='caps')
-	strClub:  	str				= Field(alias='club')
-	strCountry: str				= Field(alias='club_country')	# the club's country name ("" if the club cell carried no flag); flag URL lives in countries.yaml
+	strName:		str				= Field(exclude=True)	# injected on load by CMpStrInjected
+	strNumber:		str				= Field(alias='jersey_number')
+	strPos:   		str				= Field(alias='position')
+	fCaptain: 		bool			= Field(alias='is_captain')		# team captain (parsed from a "(captain)" suffix on the name)
+	strDob:   		str				= Field(alias='birthdate')		# compact ISO date "1995-03-12" (age parenthetical stripped)
+	strCaps:  		str				= Field(alias='caps')
+	strGoals:		str				= Field(alias='goals')
+	strClub:  		str				= Field(alias='club')
+	strClubCountry: str				= Field(alias='club_country')	# the club's country name ("" if the club cell carried no flag); flag URL lives in countries.yaml
 
 type SPlayers = CMpStrInjected[SPlayer, Literal["strName"]] # tag = players
 
@@ -76,21 +77,21 @@ class SSquad(BaseModel): # tag = squado
 
 	model_config = ConfigDict(populate_by_name=True)
 
-	strTeam:	str				= Field(exclude=True)	# injected on load by CMpStrInjected
+	strCountry:	str				= Field(exclude=True)	# injected on load by CMpStrInjected
 	strCoach:	str				= Field(alias='coach')
 	strUrl:		str				= Field(alias='url')
 	players:	SPlayers		= Field(alias='players')
 
-type SGroup = CMpStrInjected[SSquad, Literal["strTeam"]] # tag = group
+type SGroup = CMpStrInjected[SSquad, Literal["strCountry"]] # tag = group
 
 class SCoach(BaseModel): # tag = coach
 	"""One team's head coach, with nationality inferred from the squad page."""
 
 	model_config = ConfigDict(populate_by_name=True)
 
-	strName:	str				= Field(exclude=True)	# injected on load by CMpStrInjected
-	strCountry: str				= Field(alias='country')
-	lStrPrevJobs: list[str]		= Field(alias='previous_jobs')
+	strName: 			str			= Field(exclude=True)	# injected on load by CMpStrInjected
+	strCountry: 		str			= Field(alias='country')
+	lStrJobPrevious:	list[str]	= Field(alias='previous_jobs')
 
 class SCountry(BaseModel): # tag = country
 	"""A country's flag and FIFA code, cached in countries.yaml so a normal run needs no lookup."""
@@ -267,14 +268,14 @@ def PlayerFromRow(row: Tag) -> SPlayer | None:
 
 	return SPlayer(
 		strName  	= strName,
-		jersey_number	= StrCellText(lCols[0]),
-		position   	= StrCellText(lCols[1]),
+		strNumber	= StrCellText(lCols[0]),
+		strPos   	= StrCellText(lCols[1]),
 		fCaptain 	= fCaptain,
 		strDob   	= StrDobCompact(StrCellText(lCols[3])),
 		strCaps  	= StrCellText(lCols[4]),
-		# lCols[5] is the Goals column — not captured in SPlayer
+		strGoals	= StrCellText(lCols[5]),
 		strClub		= StrCellText(lCols[6]),
-		strCountry	= StrCountryFromCell(lCols[6]),
+		strClubCountry	= StrCountryFromCell(lCols[6]),
 	)
 
 
@@ -289,7 +290,7 @@ def LPlayerFromTable(table: Tag) -> list[SPlayer]:
 
 
 
-def StrUrlFlagFromTeam(strTeam: str) -> str:
+def StrUrlFlagFromTeam(strCountry: str) -> str:
 	"""
 	Canonical SVG URL of a national team's own flag, or "".
 
@@ -301,7 +302,7 @@ def StrUrlFlagFromTeam(strTeam: str) -> str:
 	"""
 	objJson = ObjApiParse({
 		"action":       "parse",
-		"text":         "{{flagicon|" + strTeam + "}}",
+		"text":         "{{flagicon|" + strCountry + "}}",
 		"contentmodel": "wikitext",
 		"prop":         "text",
 	})
@@ -423,7 +424,7 @@ def LStrPrevJobsFromCoachUrl(strUrl: str) -> list[str]:
 
 	# Walk the infobox rows: skip until the "Managerial career" header, then collect each
 	# (team, is-current) career row until the years cell stops looking like a year range.
-	lStrTeamCareer: list[tuple[str, bool]] = []
+	lStrJobCareer: list[tuple[str, bool]] = []
 	fInCareer = False
 	for tr in infobox.find_all("tr"):
 		th = tr.find("th")
@@ -443,19 +444,19 @@ def LStrPrevJobsFromCoachUrl(strUrl: str) -> list[str]:
 			continue
 
 		link = td.find("a")
-		strTeam = link.get_text(strip=True) if link is not None else td.get_text(" ", strip=True)
-		lStrTeamCareer.append((strTeam, bool(g_reCareerCurrent.search(strYears))))
+		strJob = link.get_text(strip=True) if link is not None else td.get_text(" ", strip=True)
+		lStrJobCareer.append((strJob, bool(g_reCareerCurrent.search(strYears))))
 
 	# Drop trailing current jobs (the national team coached now), then take the previous two
 	# in chronological order and reverse to newest-first.
-	while lStrTeamCareer and lStrTeamCareer[-1][1]:
-		lStrTeamCareer.pop()
+	while lStrJobCareer and lStrJobCareer[-1][1]:
+		lStrJobCareer.pop()
 
-	lStrPrevJobs = [strTeam for strTeam, _ in lStrTeamCareer[-2:]]
-	lStrPrevJobs.reverse()
-	while len(lStrPrevJobs) < 2:
-		lStrPrevJobs.append("")
-	return lStrPrevJobs
+	lStrJobPrevious = [strJob for strJob, _ in lStrJobCareer[-2:]]
+	lStrJobPrevious.reverse()
+	while len(lStrJobPrevious) < 2:
+		lStrJobPrevious.append("")
+	return lStrJobPrevious
 
 
 def StrUrlTeamFromP(p: Tag) -> str | None:
@@ -521,7 +522,7 @@ class CScraper:
 
 		soup = SoupFetchSquads()
 
-		strTeamCur:  str | None = None
+		strCountryCur:  str | None = None
 		strGroupCur: str | None = None
 
 		tagContent = soup.find("div", {"class": "mw-parser-output"})
@@ -536,14 +537,14 @@ class CScraper:
 
 			if tagHeading is not None:
 				if tagHeading.name == "h3":
-					strTeamCur = tagHeading.get_text(strip=True)
+					strCountryCur = tagHeading.get_text(strip=True)
 				else:
 					# h2 group heading ("Group A") — record it and clear team context
 					strGroupCur = tagHeading.get_text(strip=True)
-					strTeamCur  = None
+					strCountryCur  = None
 
 			elif tag.name == "p" and "Coach" in tag.get_text():
-				strCoach = self.StrCoachScrape(tag, strTeamCur or "")
+				strCoach = self.StrCoachScrape(tag, strCountryCur or "")
 
 				# Scan ahead for the roster table, stopping at the next heading so a
 				# Coach paragraph without its own table can't grab a later team's.
@@ -561,7 +562,7 @@ class CScraper:
 						if tagLook.name == "p" and strUrlTeam is None:
 							strUrlTeam = StrUrlTeamFromP(tagLook)
 
-				if tableSquad is not None and strTeamCur is not None:
+				if tableSquad is not None and strCountryCur is not None:
 					lPlayer = LPlayerFromTable(tableSquad)
 
 					# A real squad has players; this skips trailing summary sections
@@ -570,14 +571,14 @@ class CScraper:
 					if lPlayer:
 						players: SPlayers = {player.strName: player for player in lPlayer}
 						assert strGroupCur
-						assert strTeamCur
+						assert strCountryCur
 						lSquad = self.mpStrGroupLSquad.setdefault(strGroupCur, [])
 						lSquad.append(
 							SSquad(
-								strTeam  = strTeamCur,
-								strCoach = strCoach,
-								strUrl   = strUrlTeam or "",
-								players  = players))
+								strCountry  = strCountryCur,
+								strCoach 	= strCoach,
+								strUrl   	= strUrlTeam or "",
+								players  	= players))
 						
 		cSquad = sum([len(lSquad) for lSquad in self.mpStrGroupLSquad.values()])
 		print(f"Scraped {cSquad} squads in {len(self.mpStrGroupLSquad)} groups")
@@ -604,7 +605,7 @@ class CScraper:
 				self.mpStrCountryUrl.setdefault(strCountry, strUrl)
 		print(f"Scraped {len(self.mpStrCountryUrl)} flags")
 
-	def StrCoachScrape(self, tagP: Tag, strTeam: str) -> str:
+	def StrCoachScrape(self, tagP: Tag, strCountry: str) -> str:
 		"""
 		Parse a <p>Coach: [flag] <a>Name</a></p> paragraph into an SCoach.
 
@@ -614,7 +615,6 @@ class CScraper:
 		strCountry falls back to the team heading — a raw name that MpCochResolve later maps
 		to a canonical countries.yaml key (free when it already is one, else an API lookup).
 		"""
-		strCountry = strTeam
 
 		tagFlag = tagP.find("span", {"class": "flagicon"})
 		if tagFlag is not None:
@@ -641,7 +641,7 @@ class CScraper:
 		if tagLink is not None and tagLink.get("href", "").startswith("/wiki/"):
 			self.mpStrCoachUrl[strName] = g_strUrlWikipedia + tagLink.get("href", "")
 
-			coach = SCoach(strName=strName, strCountry=strCountry, lStrPrevJobs=[])
+			coach = SCoach(strName=strName, strCountry=strCountry, lStrJobPrevious=[])
 			self.lCoach.append(coach)
 
 			return coach.strName
@@ -680,7 +680,7 @@ class CScraper:
 				# previous_jobs — never on the page, so the cache (a populated entry is always
 				# length 2), else the coach-article API when populating, else an error.
 				strUrlCoach = self.mpStrCoachUrl[coach.strName]
-				coach.lStrPrevJobs = LStrPrevJobsFromCoachUrl(strUrlCoach)
+				coach.lStrJobPrevious = LStrPrevJobsFromCoachUrl(strUrlCoach)
 
 				pbar.update(1)
 
@@ -725,9 +725,10 @@ class CScraper:
 		setStrCountry: set[str] = set()
 		for lSquad in self.mpStrGroupLSquad.values():
 			for squad in lSquad:
+				setStrCountry.add(squad.strCountry)
 				for player in squad.players.values():
-					if player.strCountry:
-						setStrCountry.add(player.strCountry)
+					if player.strClubCountry:
+						setStrCountry.add(player.strClubCountry)
 
 		for coach in self.lCoach:
 			if coach.strCountry:
@@ -744,7 +745,7 @@ class CScraper:
 		"""
 		return {
 			strGroup: {
-				squad.strTeam: squad
+				squad.strCountry: squad
 				for squad in lSquad
 			}
 			for strGroup, lSquad in self.mpStrGroupLSquad.items()
