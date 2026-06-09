@@ -37,6 +37,12 @@ g_strUrlWikipedia = "https://en.wikipedia.org"
 g_pathDatabase = Path("database")
 s_pathDatabaseFile    = g_pathDatabase / "db.yaml"
 
+# Local cache of flag SVGs, alongside db.yaml so the future PDF step rasterizes from disk
+# with no network. Paths stored in the database are relative to db.yaml's directory (e.g.
+# "flags/svg/Flag_of_France.svg"), keeping the database tree relocatable.
+
+g_pathFlagsSvg = g_pathDatabase / "flags" / "svg"
+
 # Section anchor on a national-team article whose table lists the active roster;
 # we link each team URL straight to it.
 
@@ -98,9 +104,11 @@ class SCountry(BaseModel): # tag = country
 
 	model_config = ConfigDict(populate_by_name=True)
 
-	strName:	str				= Field(exclude=True)	# injected on load by CMpStrInjected
-	strUrlFlag:  str			= Field(alias='flag_url')
-	strFifaCode: str			= Field(alias='fifa_code')
+	strName:		str	= Field(exclude=True)	# injected on load by CMpStrInjected
+	strUrlSvgFlag:  str	= Field(alias='flag_svg_url')
+	strPathSvgFlag:	str	= Field(alias='flag_svg_path')	# db.yaml-relative path to the locally cached flag SVG
+	strFifaCode: 	str	= Field(alias='fifa_code')
+	strFifaRank: 	str	= Field(alias='fifa_rank')	# current FIFA world ranking number, or "" if the country has none
 
 type SGroups = dict[str, SGroup] # tag = groups
 type SCoaches = CMpStrInjected[SCoach, Literal["strName"]] # tag = coaches
@@ -310,6 +318,31 @@ def StrUrlFlagFromTeam(strCountry: str) -> str:
 	return StrUrlFlagFromCell(BeautifulSoup(strHtml, "html.parser"))
 
 
+def StrPathSvgFlagCache(strUrl: str) -> str:
+	"""
+	Download a flag's SVG into the local cache and return its db.yaml-relative path, or "".
+
+	The SVG behind strUrl is fetched once into database/flags/svg/<file>.svg and the path
+	returned is relative to db.yaml's directory (e.g. "flags/svg/Flag_of_France.svg"), so the
+	database tree stays relocatable and the future PDF step rasterizes from disk. The file name
+	is the URL's last segment, percent-decoded to match the country key (StrCountryFromUrl). An
+	already-cached file is not re-fetched; "" in (no flag URL) yields "" out.
+	"""
+	if not strUrl:
+		return ""
+
+	strFile = urllib.parse.unquote(strUrl.rsplit("/", 1)[-1])
+	pathSvg = g_pathFlagsSvg / strFile
+
+	if not pathSvg.exists():
+		g_pathFlagsSvg.mkdir(parents=True, exist_ok=True)
+		resp = g_session.get(strUrl, timeout=15)
+		resp.raise_for_status()
+		pathSvg.write_bytes(resp.content)
+
+	return (pathSvg.relative_to(g_pathDatabase)).as_posix()
+
+
 # Candidate national-team article titles to probe for a country's FIFA code, most
 # specific first. The bare "<country> national football team" title is frequently a
 # men's/women's disambiguation page (Sweden, Australia, New Zealand, …) that carries no
@@ -350,15 +383,49 @@ def StrFifaFromInfobox(strHtml: str) -> str:
 	return ""
 
 
-def StrFifaFromCountry(strCountry: str) -> str:
+# A FIFA ranking data cell opens with the current rank, then an Increase/Decrease arrow
+# image and last month's rank — e.g. "1 [Increase] 2 (1 April 2026)[1]". The first integer
+# token is the current rank.
+
+g_reFifaRank = re.compile(r"\d+")
+
+
+def StrFifaRankFromInfobox(strHtml: str) -> str:
 	"""
-	The 3-letter FIFA code for a country (e.g. "England" -> "ENG"), or "".
+	The current FIFA world ranking number from a national-team infobox, or "".
+
+	The "FIFA ranking" header sits a few rows below the FIFA code and introduces a "Current"
+	row whose data cell opens with the rank (see g_reFifaRank). We take that first integer,
+	ignoring the trailing arrow, last-month rank, date and footnote.
+	"""
+	soup = BeautifulSoup(strHtml, "html.parser")
+	fInRanking = False
+	for th in soup.find_all("th"):
+		strHead = th.get_text(strip=True).lower()
+		if strHead == "fifa ranking":
+			fInRanking = True
+			continue
+		if fInRanking and strHead == "current":
+			td = th.find_next_sibling("td")
+			if td is not None:
+				match = g_reFifaRank.search(td.get_text(" ", strip=True))
+				if match is not None:
+					return match.group(0)
+			return ""
+	return ""
+
+
+def TuStrFifaFromCountry(strCountry: str) -> tuple[str, str]:
+	"""
+	The 3-letter FIFA code (e.g. "England" -> "ENG") and current FIFA ranking for a country.
 
 	HTTP lookup against the country's men's national-team article infobox — populate path
-	only, the sibling of StrUrlFlagFromTeam. We probe the candidate titles in
-	g_lStrFifaSuffix (most specific first, to dodge disambiguation pages) and return the
-	first article whose infobox carries a code. A missing page returns an API "error"
-	object with HTTP 200, so we simply skip to the next candidate.
+	only, the sibling of StrUrlFlagFromTeam. We probe the candidate titles in g_lStrFifaSuffix
+	(most specific first, to dodge disambiguation pages) and return the code and ranking from
+	the first article whose infobox carries a code; the ranking lives a few rows below the code
+	in that same infobox, so both come from one fetch. A missing page returns an API "error"
+	object with HTTP 200, so we simply skip to the next candidate. Returns ("", "") when no
+	candidate yields a code.
 	"""
 	for strSuffix in g_lStrFifaSuffix:
 		objJson = ObjApiParse({
@@ -372,8 +439,8 @@ def StrFifaFromCountry(strCountry: str) -> str:
 		strHtml = objJson.get("parse", {}).get("text", {}).get("*", "")
 		strFifa = StrFifaFromInfobox(strHtml)
 		if strFifa:
-			return strFifa
-	return ""
+			return strFifa, StrFifaRankFromInfobox(strHtml)
+	return "", ""
 
 
 # A managerial-career row's first cell is a years range that opens with a 4-digit year
@@ -399,7 +466,7 @@ def LStrPrevJobsFromCoachUrl(strUrl: str) -> list[str]:
 	A coach's two most-recent prior managerial jobs (newest first), padded to length 2.
 
 	HTTP lookup against the coach's Wikipedia article — populate path only, the sibling of
-	StrFifaFromCountry. We read the rendered infobox rather than the wikitext: each row after
+	StrFifaCodeRankFromCountry. We read the rendered infobox rather than the wikitext: each row after
 	the "Managerial career" header pairs a years cell (th, "2021–2022") with a team cell (td,
 	whose link names the club/country). We drop the trailing current job (open-ended date — the
 	national team the coach holds now) and return the previous two team names, newest first.
@@ -688,12 +755,13 @@ class CScraper:
 		"""
 		Resolve every referenced country to an SCountry.
 
-		flag_url comes free from this run's page harvest (mpStrCountryUrl); fifa_code never
-		appears on the page, so it is always an HTTP fact. Both follow the same policy: prefer
-		this run's free data, then the cache; a value still missing is resolved via the API when
-		populating, or an error toward --rescrape otherwise. On full populate the FIFA lookup
-		costs one API call per country (a few when the first candidate title misses), so it runs
-		only on --rescrape or a first populate, never on a normal cached run.
+		flag_url comes free from this run's page harvest (mpStrCountryUrl); fifa_code and
+		fifa_rank never appear on the page, so they are always an HTTP fact. All follow the same
+		policy: prefer this run's free data, then the cache; a value still missing is resolved via
+		the API when populating, or an error toward --rescrape otherwise. On full populate the FIFA
+		lookup costs one API call per country (a few when the first candidate title misses), so it
+		runs only on --rescrape or a first populate, never on a normal cached run; svg_path caches
+		each flag's SVG to disk (flags/svg/), fetched once and skipped when already present.
 		"""
 
 		setStrCountry = self.SetStrCountryRef()
@@ -705,18 +773,24 @@ class CScraper:
 				pbar.postfix[0] = f"{strCountry:<20}"
 				pbar.update(0)
 				# flag_url — free from the page harvest, else the cache, else the API / an error.
-				strUrl = self.mpStrCountryUrl.get(strCountry, "")
+				strUrlSvgFlag = self.mpStrCountryUrl.get(strCountry, "")
 
-				if not strUrl:
-					strUrl = StrUrlFlagFromTeam(strCountry)   # API — populate path only
+				if not strUrlSvgFlag:
+					strUrlSvgFlag = StrUrlFlagFromTeam(strCountry)   # API — populate path only
 
-				strFifa = StrFifaFromCountry(strCountry)   # API — populate path only
+				# svg_path — download the flag SVG into the local cache (skipped if already on disk).
+				strPathSvgFlag = StrPathSvgFlagCache(strUrlSvgFlag)
+
+				# fifa_code + fifa_rank — never on the page, so always an HTTP fact; both from one fetch.
+				strFifaCode, strFifaRank = TuStrFifaFromCountry(strCountry)   # API — populate path only
 
 				self.lCountry.append(
 							SCountry(
 								strName = strCountry,
-								strUrlFlag = strUrl,
-								strFifaCode = strFifa))
+								strUrlSvgFlag = strUrlSvgFlag,
+								strPathSvgFlag = strPathSvgFlag,
+								strFifaCode = strFifaCode,
+								strFifaRank = strFifaRank))
 				
 				pbar.update(1)
 
