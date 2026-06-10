@@ -9,7 +9,7 @@ from __future__ import annotations  # Forward refs without quotes
 import sys
 
 from typing import TYPE_CHECKING, Type, Callable, Iterable, Generator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from dateutil import parser as dateutil_parser
 from dateutil.relativedelta import relativedelta
 from bolay import CBlot, SRect, SPoint, SFontKey, JH, JV
@@ -23,19 +23,6 @@ from . import metrics
 
 if TYPE_CHECKING:
 	from .doc import CDocument
-
-# cell widths
-
-s_tuDXCells: tuple[float] = (
-	0.15,	# number
-	0.14,	# pos
-	0.08,	# captain
-	1.4,	# name
-	0.16,	# age
-	0.21,	# caps
-	0.21,	# goals
-	0.3,	# flag
-)
 
 # starting date
 
@@ -57,39 +44,51 @@ def StrCaps(player: SPlayer) -> str:
 
 
 @dataclass(frozen=True, slots=True)
-class SCellSpec():
-	jh: JH
-	clsCell: Type[CCellBlot] | None
-	fnField: Callable[[SPlayer], str] | None
+class SCellSpec(): # tag = cellsp
+	dX: float | None = None
+	jh: JH | None = None
+	clsCell: Type[CCellBlot] | None = None
+	fnField: Callable[[SPlayer], str] | None = None
 
-@dataclass(frozen=True, slots=True)
-class SCellParam(SCellSpec):
-	dX: float
+type TRowSpec = list[SCellSpec | None] # tag = rowsp
 
-def IterCellp(dXTotal: float, iterCellsp: Iterable[SCellSpec | None]) -> Generator[SCellParam]:
+def IterCellsp(dXTotal: float, rowsp: TRowSpec, rowspWidths: TRowSpec | None = None) -> Generator[SCellSpec]:
+	# collect and distribute widths
+	rowspCollect = rowspWidths if rowspWidths else rowsp
+	assert rowspCollect
+	assert all([cellsp is not None for cellsp in rowspCollect])
+	lDX = [cellsp.dX for cellsp in rowspCollect]
+
+	# collect
+
 	dXRemaining = dXTotal
-	itor = iter(iterCellsp)
-	for dX in s_tuDXCells:
-		try:
-			cellsp = next(itor)
-		except StopIteration:
-			break
-		dXRemaining -= dX
+	dXNegativeSum = 0
 
-		if cellsp is None:
-			yield SCellParam(JH.Center, None, None, dX)
+	for dX in lDX:
+		if dX == 0:
+			continue
+
+		if dX < 0:
+			dXNegativeSum += dX
 		else:
-			yield SCellParam(cellsp.jh, cellsp.clsCell, cellsp.fnField, dX)
+			dXRemaining -= dX
+			dXRemaining = max(dXRemaining, 0)
 
-	if lCellsp := list(itor):
-		dX = dXRemaining / len(lCellsp)
-		for cellsp in lCellsp:
+	# distribute
 
-			if cellsp is None:
-				yield SCellParam(JH.Center, None, None, dX)
-			else:
-				yield SCellParam(cellsp.jh, cellsp.clsCell, cellsp.fnField, dX)
+	for iDX in range(len(lDX)):
+		if lDX[iDX] < 0:
+			uRemaining = lDX[iDX] / dXNegativeSum # undoes negativeness
+			assert uRemaining >= 0
+			lDX[iDX] = dXRemaining * uRemaining
 
+	iDXCur = 0
+	for cellsp in rowsp:
+		if cellsp is None:
+			yield SCellSpec(lDX[iDXCur])
+		else:
+			yield replace(cellsp, dX = lDX[iDXCur])
+		iDXCur += 1
 
 class CCellBlot(CBlot):
 	def __init__(self, doc: CDocument, rect: SRect):
@@ -161,17 +160,17 @@ class CImageCell(CCellBlot):
 
 class CHeaderBlot(CBlot):
 
-	s_tuCellsp: tuple[SCellParam | None] = (
-		None,														# number
-		SCellSpec(JH.Center,	CTextCell,	lambda: '\uef0c'),		# pos		(nerdfont nf-fa-person_running)
-		None,														# captain
-		None,														# name
-		SCellSpec(JH.Right,		CTextCell,	lambda: '\uf1fd'),		# age		(nerdfont nf-fa-cake_candles)
-		SCellSpec(JH.Right,		CTextCell,	lambda: '\U000f0499'),	# caps		(nerdfont nf-md-shield_outline)
-		SCellSpec(JH.Right,		CTextCell,	lambda: '\uf4de'),		# goals		(nerdfont nf-oct-goal)
-		None,														# flag
-		SCellSpec(JH.Left,		CTextCell,	lambda: '\uf155'),		# club		(nerdfont nf-fa-dollar)
-	)
+	s_rowsp: TRowSpec = [
+		None,															# number
+		SCellSpec(None,	JH.Center,	CTextCell,	lambda: '\uef0c'),		# pos		(nerdfont nf-fa-person_running)
+		None,															# captain
+		None,															# name
+		SCellSpec(None,	JH.Right,	CTextCell,	lambda: '\uf1fd'),		# age		(nerdfont nf-fa-cake_candles)
+		SCellSpec(None,	JH.Right,	CTextCell,	lambda: '\U000f0499'),	# caps		(nerdfont nf-md-shield_outline)
+		SCellSpec(None,	JH.Right,	CTextCell,	lambda: '\uf4de'),		# goals		(nerdfont nf-oct-goal)
+		None,															# flag
+		SCellSpec(None,	JH.Left,	CTextCell,	lambda: '\uf155'),		# club		(nerdfont nf-fa-dollar)
+	]
 
 	def __init__(self, doc: CDocument, rect: SRect):
 		super().__init__(doc.pdf)
@@ -181,7 +180,7 @@ class CHeaderBlot(CBlot):
 		self.lCellb: list[CCellBlot] = []
 
 		xCur = rect.x
-		for cellp in IterCellp(rect.dX, self.s_tuCellsp):
+		for cellp in IterCellsp(rect.dX, self.s_rowsp, CPlayerBlot.s_rowsp):
 			rectCell = self.rect.Copy(x=xCur, dX=cellp.dX)
 			xCur += rectCell.dX
 
@@ -196,17 +195,17 @@ class CHeaderBlot(CBlot):
 
 class CPlayerBlot(CBlot):
 
-	s_tuCellsp: tuple[SCellParam | None] = (
-		SCellSpec(JH.Right,		CTextCell,	lambda player: player.strNumber),	# number
-		SCellSpec(JH.Center,	CTextCell,	lambda player: player.strPos[0]),	# pos
-		SCellSpec(JH.Right,		CTextCell,	lambda player: StrCaptain(player)),	# captain
-		SCellSpec(JH.Left,		CTextCell,	lambda player: player.strName),		# name
-		SCellSpec(JH.Right,		CTextCell,	lambda player: StrAge(player)),		# age
-		SCellSpec(JH.Right,		CTextCell,	lambda player: StrCaps(player)),	# caps
-		SCellSpec(JH.Right,		CTextCell,	lambda player: StrGoals(player)),	# goals
-		SCellSpec(JH.Right,		CImageCell,	lambda player: player.strClubCountry),	# flag
-		SCellSpec(JH.Left,		CTextCell,	lambda player: player.strClub),
-	)
+	s_rowsp: TRowSpec = [
+		SCellSpec(0.15,	JH.Right,	CTextCell,	lambda player: player.strNumber),		# number
+		SCellSpec(0.14,	JH.Center,	CTextCell,	lambda player: player.strPos[0]),		# pos
+		SCellSpec(0.08,	JH.Right,	CTextCell,	lambda player: StrCaptain(player)),		# captain
+		SCellSpec(1.4,	JH.Left,	CTextCell,	lambda player: player.strName),			# name
+		SCellSpec(0.16,	JH.Right,	CTextCell,	lambda player: StrAge(player)),			# age
+		SCellSpec(0.21,	JH.Right,	CTextCell,	lambda player: StrCaps(player)),		# caps
+		SCellSpec(0.21,	JH.Right,	CTextCell,	lambda player: StrGoals(player)),		# goals
+		SCellSpec(0.3,	JH.Right,	CImageCell,	lambda player: player.strClubCountry),	# club flag
+		SCellSpec(-1,	JH.Left,	CTextCell,	lambda player: player.strClub),			# club
+	]
 
 	def __init__(self, doc: CDocument, rect: SRect, player: SPlayer):
 		super().__init__(doc.pdf)
@@ -218,7 +217,7 @@ class CPlayerBlot(CBlot):
 		self.lCellb: list[CCellBlot] = []
 
 		xCur = rect.x
-		for cellp in IterCellp(rect.dX, self.s_tuCellsp):
+		for cellp in IterCellsp(rect.dX, self.s_rowsp):
 			rectCell = self.rect.Copy(x=xCur, dX=cellp.dX)
 			xCur += rectCell.dX
 
