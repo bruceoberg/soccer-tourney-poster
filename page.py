@@ -16,7 +16,7 @@ from bolay import CBlot, SRect, SPoint, SFontKey, JH, JV
 from bolay import SColor, ColorFromStr, ColorResaturate, ColorResaturateDarker, FIsSaturated
 from bolay import colorWhite, colorBlack, colorLightGrey, colorDarkgrey
 
-from .database import SGroup, SSquad, SPlayer
+from .database import SGroup, SSquad, SPlayer, StrUrlSquad
 from .common import mpStrGroupStrColor, mpStrFifaCodeStrSeed, strDateStart
 
 from . import metrics
@@ -119,19 +119,32 @@ class CTextCell(CCellBlot):
 class CImageCell(CCellBlot):
 	s_uSRectImage = CTextCell.s_uYText
 
-	def __init__(self, doc: CDocument, rect: SRect, strCountry: str, jh: JH):
-		# sad that SRect.Inset() is in absolute units, not relative.
-		rectImage = rect.Copy(
-							dX = rect.dX * self.s_uSRectImage,
-							dY = rect.dY * self.s_uSRectImage)
-		rectImage.Shift(
-					dX = (rect.dX - rectImage.dX) / 2.0,
-					dY = (rect.dY - rectImage.dY) / 2.0)
+	def __init__(self, doc: CDocument, rect: SRect, strImage: str, jh: JH):
+		self.fIsUrl = strImage.startswith('http')
+
+		# don't shrink url images
+		if self.fIsUrl:
+			rectImage = rect.Copy()
+		else:
+			# sad that SRect.Inset() is in absolute units, not relative.
+			rectImage = rect.Copy(
+								dX = rect.dX * self.s_uSRectImage,
+								dY = rect.dY * self.s_uSRectImage)
+			rectImage.Shift(
+						dX = (rect.dX - rectImage.dX) / 2.0,
+						dY = (rect.dY - rectImage.dY) / 2.0)
 
 		super().__init__(doc, rectImage)
 
 		self.jh = jh
-		self.img = doc.imgc.ImgFlagFromStrCountry(strCountry, rectImage)
+
+		# the cell payload is usually a country name, but a URL (http prefix) means render a
+		# QR code instead of a flag.
+
+		if self.fIsUrl:
+			self.img = doc.imgc.ImgQRCodeFromStrUrl(strImage, rectImage)
+		else:
+			self.img = doc.imgc.ImgFlagFromStrCountry(strImage, rectImage)
 
 	def Draw(self, colorText: SColor = colorBlack):
 		if self.img is None:
@@ -154,9 +167,10 @@ class CImageCell(CCellBlot):
 
 		self.pdf.image(str(self.img.path), rectFlag.x, rectFlag.y, w=rectFlag.dX, h=rectFlag.dY)
 
-		dSLine = min(self.img.dXIn, self.img.dYIn) / 30.0
+		if not self.fIsUrl:
+			dSLine = min(self.img.dXIn, self.img.dYIn) / 30.0
 
-		self.DrawBox(rectFlag, dSLine, colorLightGrey)
+			self.DrawBox(rectFlag, dSLine, colorLightGrey)
 
 class CHeaderBlot(CBlot):
 
@@ -253,7 +267,7 @@ class CSquadBlot(CBlot): # tag = squadb
 			SCellSpec(0.37,	JH.Center,	CImageCell,		lambda: country.strName),
 			SCellSpec(-1,	JH.Left,	CTextCell,		lambda: f"{country.strName} #{country.strFifaRank}"),
 			SCellSpec(-1,	JH.Right,	CTextCell,		lambda: country.strFifaCode),
-#			SCellSpec(0.6,	JH.Right,	CQRCodeCell,	lambda: country.strName),	# club flag
+			SCellSpec(0.37,	JH.Right,	CImageCell,		lambda: StrUrlSquad(self.squad)),	# club flag
 		]
 
 		coach = group.doc.db.coaches[self.squad.strCoach]

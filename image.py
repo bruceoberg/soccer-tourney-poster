@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 
 """
-image cache: rasterize country flag SVGs into appropriately-sized PNGs for fpdf2.
+image cache: rasterize country flag SVGs and squad-URL QR codes into appropriately-sized
+PNGs for fpdf2.
 
 fpdf2's SVG parser chokes on gradient-heavy flags (Mexico), so we rasterize each flag to a
 PNG sized for its destination cell and hand fpdf2 a stable file path. fpdf2 then de-dupes
 identical same-sized PNGs internally (each flag is placed dozens of times).
 
-A second producer (QR codes from a squad URL) will live here eventually; the rasterize +
-"skip if the PNG is newer than its source" step is kept as a reusable helper for that.
+QR codes are produced the same way: rendered once to a cell-sized PNG and cached on disk so
+fpdf2 receives a stable path. Both producers preserve aspect and fit the destination box.
 """
 
 from __future__ import annotations  # Forward refs without quotes
 
 import cairosvg
+import hashlib
 import io
+import qrcode
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -35,6 +38,7 @@ s_dpiImage = 300
 
 g_pathDatabase = Path("database")
 g_pathFlagsPng = g_pathDatabase / "flags" / "png"
+g_pathQRCodePng = g_pathDatabase / "qrcode"
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,6 +82,51 @@ class CImageCache: # tag = imgc
 		dXPng, dYPng = self._TuPngEnsure(pathSvg, pathPng, dXBox, dYBox)
 
 		return SImage(pathPng, dXPng / s_dpiImage, dYPng / s_dpiImage)
+
+	def ImgQRCodeFromStrUrl(self, strUrl: str, rect: SRect) -> SImage | None:
+		"""
+		Cached PNG of a QR code encoding strUrl, sized to fit rect (always square).
+
+		The cache is content-addressed: the file name carries a hash of the URL joined with
+		the box dimensions, so an unchanged URL at the same size is regenerated only once.
+		"""
+
+		if not strUrl:
+			return None
+
+		# QR codes are square, so the largest that fits the box is min(box).
+
+		dSBox = max(1, round(min(rect.dX, rect.dY) * s_dpiImage))
+
+		# BB(bruce): a hash makes the file name opaque; no obvious human-readable slug for an
+		# arbitrary URL. Dimensions are appended so different cell sizes don't collide.
+
+		strHash = hashlib.sha1(strUrl.encode()).hexdigest()[:16]
+		pathPng = g_pathQRCodePng / f"{strHash}-{dSBox}x{dSBox}.png"
+
+		if not pathPng.exists():
+			self._RenderQRCode(strUrl, pathPng, dSBox)
+
+		return SImage(pathPng, dSBox / s_dpiImage, dSBox / s_dpiImage)
+
+	def _RenderQRCode(self, strUrl: str, pathPng: Path, dSBox: int) -> None:
+		"""Render strUrl as a dSBox-square QR code PNG at pathPng."""
+
+		qr = qrcode.QRCode(border=2)
+		qr.add_data(strUrl)
+		qr.make(fit=True)
+
+		# render at the QR's natural size, then resize to the box with NEAREST so module edges
+		# stay crisp (no anti-aliased blur that would hurt scannability).
+
+		bytesPng = io.BytesIO()
+		qr.make_image(fill_color="black", back_color="white").save(bytesPng)
+
+		with Image.open(io.BytesIO(bytesPng.getvalue())) as img:
+			imgFit = img.convert("RGB").resize((dSBox, dSBox), Image.NEAREST)
+
+			pathPng.parent.mkdir(parents=True, exist_ok=True)
+			imgFit.save(pathPng)
 
 	def _TuPngEnsure(self, pathSvg: Path, pathPng: Path, dXBox: int, dYBox: int) -> tuple[int, int]:
 		"""
