@@ -17,7 +17,7 @@ from bolay import SColor, ColorFromStr, ColorResaturate, ColorResaturateDarker, 
 from bolay import colorWhite, colorBlack, colorLightGrey, colorDarkgrey
 
 from .database import SGroup, SSquad, SPlayer, StrUrlSquad
-from .common import mpStrGroupStrColor, mpStrFifaCodeStrSeed, strDateStart
+from .common import mpStrGroupStrColor, mpStrFifaCodeStrSeed, strDateStart, strYearTitle
 
 from . import metrics
 
@@ -33,8 +33,9 @@ def StrAge(player: SPlayer) -> str:
 	return str(abs(relativedelta(tDob, s_tTourney).years))
 
 def StrCaptain(player: SPlayer) -> str:
-	# U+F04D2: nerdfont md-star_outline
-	return '\U000f04d2' if player.fCaptain else ''
+	# u+f04d2: nerdfont nf-md-star_outline
+	# u+f04ce: nerdfont nf-md-star
+	return '\U000f04ce' if player.fCaptain else ''
 
 def StrGoals(player: SPlayer) -> str:
 	return player.strGoals if int(player.strGoals) > 0 else ''
@@ -170,14 +171,15 @@ class CImageCell(CCellBlot):
 		if not self.fIsUrl:
 			dSLine = min(self.img.dXIn, self.img.dYIn) / 30.0
 
-			self.DrawBox(rectFlag, dSLine, colorLightGrey)
+			self.DrawBox(rectFlag, dSLine, colorDarkgrey)
 
 class CHeaderBlot(CBlot):
 
 	s_rowsp: TRowSpec = [
 		None,															# number
-		None,															# captain
+		None,															# gap
 		None,															# name
+		None,															# captain
 		SCellSpec(None,	JH.Center,	CTextCell,	lambda: '\uef0c'),		# pos		(nerdfont nf-fa-person_running)
 		SCellSpec(None,	JH.Right,	CTextCell,	lambda: '\uf1fd'),		# age		(nerdfont nf-fa-cake_candles)
 		SCellSpec(None,	JH.Right,	CTextCell,	lambda: '\U000f0499'),	# caps		(nerdfont nf-md-shield_outline)
@@ -211,8 +213,9 @@ class CPlayerBlot(CBlot):
 
 	s_rowsp: TRowSpec = [
 		SCellSpec(0.15,	JH.Right,	CTextCell,	lambda player: player.strNumber),		# number
-		SCellSpec(0.1,	JH.Right,	CTextCell,	lambda player: StrCaptain(player)),		# captain
+		SCellSpec(0.02),																# gap
 		SCellSpec(1.4,	JH.Left,	CTextCell,	lambda player: player.strName),			# name
+		SCellSpec(0.08,	JH.Left,	CTextCell,	lambda player: StrCaptain(player)),		# captain
 		SCellSpec(0.12,	JH.Center,	CTextCell,	lambda player: player.strPos[0]),		# pos
 		SCellSpec(0.16,	JH.Right,	CTextCell,	lambda player: StrAge(player)),			# age
 		SCellSpec(0.21,	JH.Right,	CTextCell,	lambda player: StrCaps(player)),		# caps
@@ -242,7 +245,7 @@ class CPlayerBlot(CBlot):
 
 	def Draw(self):
 		self.pdf.set_line_width(self.dSLine)
-		self.pdf.SetDrawColor(colorLightGrey)
+		self.pdf.SetDrawColor(colorDarkgrey)
 		self.pdf.line(
 					self.rect.xMin,
 					self.rect.yMin,
@@ -396,26 +399,30 @@ class CGroupBlot(CBlot): # tag = groupb
 
 		# title
 
-		#dYTitle = dY * self.s_uYTitle
 		dYTitle = rectInside.dX / self.s_rSGroup
 		rectTitle = rectInside.Copy(dY=dYTitle)
 
 		self.FillBox(rectTitle, self.colors.color)
 
+		rectTitleText = rectTitle.Copy().Stretch(dXLeft = dYTitle, dXRight = -dYTitle)
+
 		dYGroupName = dYTitle * 1.3
-		oltbGroupName = self.Oltb(rectTitle, SFontKey('NotoSansMono', ''), dYGroupName)
+		oltbGroupName = self.Oltb(rectTitleText, SFontKey('NotoSansMono', ''), dYGroupName)
 		rectGroupName = oltbGroupName.RectDrawText(
 										self.strGroup,
 										self.colors.colorDarker,
 										JH.Right,
 										JV.Middle)
 
-		rectGroupLabel = rectTitle.Copy(dX=rectGroupName.x - rectTitle.x)
+		rectGroupLabel = rectTitleText.Copy(dX=rectGroupName.x - rectTitleText.x)
 
 		uGroupLabel = 0.65
 		strGroupTitle = "Group"
 		oltbGroupLabel = self.Oltb(rectGroupLabel, SFontKey('NotoSans', ''), dYTitle * uGroupLabel, dSMargin = oltbGroupName.dSMargin)
 		oltbGroupLabel.DrawText(strGroupTitle, colorWhite, JH.Right) #, JV.Top)
+
+		oltbCompetition = self.Oltb(rectTitleText, SFontKey('NotoSans', ''), dYTitle * uGroupLabel, dSMargin = oltbGroupName.dSMargin)
+		oltbCompetition.DrawText(strYearTitle, self.colors.colorLighter, JH.Left) #, JV.Top)
 
 		# squads
 
