@@ -106,12 +106,12 @@ class CTextCell(CCellBlot):
 		self.strText = strText
 		self.jh = jh
 
-	def Draw(self):
+	def Draw(self, colorText: SColor = colorBlack):
 		dYText = self.rect.dY * self.s_uYText
 		oltbText = self.Oltb(self.rect, SFontKey('NotoSans', ''), dYText, dSMargin=0.0)
 		oltbText.DrawText(
 					self.strText,
-					colorBlack,
+					colorText,
 					self.jh,
 					JV.Middle,
 					fShrinkToFit=(len(self.strText)>=10))
@@ -133,7 +133,7 @@ class CImageCell(CCellBlot):
 		self.jh = jh
 		self.img = doc.imgc.ImgFlagFromStrCountry(strCountry, rectImage)
 
-	def Draw(self):
+	def Draw(self, colorText: SColor = colorBlack):
 		if self.img is None:
 			return
 
@@ -162,9 +162,9 @@ class CHeaderBlot(CBlot):
 
 	s_rowsp: TRowSpec = [
 		None,															# number
-		SCellSpec(None,	JH.Center,	CTextCell,	lambda: '\uef0c'),		# pos		(nerdfont nf-fa-person_running)
 		None,															# captain
 		None,															# name
+		SCellSpec(None,	JH.Center,	CTextCell,	lambda: '\uef0c'),		# pos		(nerdfont nf-fa-person_running)
 		SCellSpec(None,	JH.Right,	CTextCell,	lambda: '\uf1fd'),		# age		(nerdfont nf-fa-cake_candles)
 		SCellSpec(None,	JH.Right,	CTextCell,	lambda: '\U000f0499'),	# caps		(nerdfont nf-md-shield_outline)
 		SCellSpec(None,	JH.Right,	CTextCell,	lambda: '\uf4de'),		# goals		(nerdfont nf-oct-goal)
@@ -197,9 +197,9 @@ class CPlayerBlot(CBlot):
 
 	s_rowsp: TRowSpec = [
 		SCellSpec(0.15,	JH.Right,	CTextCell,	lambda player: player.strNumber),		# number
-		SCellSpec(0.14,	JH.Center,	CTextCell,	lambda player: player.strPos[0]),		# pos
-		SCellSpec(0.08,	JH.Right,	CTextCell,	lambda player: StrCaptain(player)),		# captain
+		SCellSpec(0.1,	JH.Right,	CTextCell,	lambda player: StrCaptain(player)),		# captain
 		SCellSpec(1.4,	JH.Left,	CTextCell,	lambda player: player.strName),			# name
+		SCellSpec(0.12,	JH.Center,	CTextCell,	lambda player: player.strPos[0]),		# pos
 		SCellSpec(0.16,	JH.Right,	CTextCell,	lambda player: StrAge(player)),			# age
 		SCellSpec(0.21,	JH.Right,	CTextCell,	lambda player: StrCaps(player)),		# caps
 		SCellSpec(0.21,	JH.Right,	CTextCell,	lambda player: StrGoals(player)),		# goals
@@ -247,9 +247,27 @@ class CSquadBlot(CBlot): # tag = squadb
 		self.group = group
 		self.squad = squad
 		country = group.doc.db.countries[self.squad.strCountry]
-		strFifaCode = country.strFifaCode
-		self.strSeed = mpStrFifaCodeStrSeed[strFifaCode]
-		self.strRank = country.strFifaRank
+		self.strSeed = mpStrFifaCodeStrSeed[country.strFifaCode]
+
+		self.rowspCountry: TRowSpec = [
+			SCellSpec(0.37,	JH.Center,	CImageCell,		lambda: country.strName),
+			SCellSpec(-1,	JH.Left,	CTextCell,		lambda: f"{country.strName} #{country.strFifaRank}"),
+			SCellSpec(-1,	JH.Right,	CTextCell,		lambda: country.strFifaCode),
+#			SCellSpec(0.6,	JH.Right,	CQRCodeCell,	lambda: country.strName),	# club flag
+		]
+
+		coach = group.doc.db.coaches[self.squad.strCoach]
+		lStrJobPrevious = [strJob for strJob in coach.lStrJobPrevious if strJob]
+		strJobs = f"[{','.join(lStrJobPrevious)}]" if lStrJobPrevious else ""
+
+		self.rowspCoach: TRowSpec = [
+			SCellSpec(0.10),
+			SCellSpec(1.1,	JH.Left,	CTextCell,		lambda: self.squad.strCoach),
+			SCellSpec(1.15,	JH.Right,	CTextCell,		lambda: strJobs),
+			SCellSpec(0.3,	JH.Right,	CImageCell,		lambda: coach.strCountry),
+			SCellSpec(-1,	JH.Left,	CTextCell,		lambda: coach.strCountry),
+		]
+
 
 	def Draw(self, pos: SPoint):
 		rectSquad = SRect(pos.x, pos.y, self.group.dXSquad, self.group.dYSquad)
@@ -258,14 +276,16 @@ class CSquadBlot(CBlot): # tag = squadb
 
 		self.FillBox(rectCountry, colorLightGrey)
 
-		uCountryText = 0.75
-		oltbSquadName = self.Oltb(rectCountry, SFontKey('NotoSans', ''), dYCountry * uCountryText, dSMargin = 0)
-		oltbSquadName.DrawText(
-						f"{self.squad.strCountry} #{self.strRank}",
-						colorBlack,
-						JH.Left,
-						JV.Middle)
-		
+		xCur = rectCountry.x
+		for cellp in IterCellsp(rectCountry.dX, self.rowspCountry):
+			rectCell = rectCountry.Copy(x=xCur, dX=cellp.dX)
+			xCur += rectCell.dX
+
+			if cellp.clsCell is None:
+				continue
+
+			cellp.clsCell(self.group.doc, rectCell, cellp.fnField(), cellp.jh).Draw(colorDarkgrey)
+
 		rectPeople = rectSquad.Copy().Stretch(dYTop = dYCountry)
 		dYPerson = rectPeople.dY / (self.group.doc.cPersonMax + 1)
 		yCur = rectPeople.y
@@ -273,12 +293,17 @@ class CSquadBlot(CBlot): # tag = squadb
 		if self.squad.strCoach:
 			rectCoach = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
 			yCur += dYPerson
-			oltbPerson = self.Oltb(rectCoach, SFontKey('NotoSans', 'I'), dYPerson * CTextCell.s_uYText)
-			oltbPerson.DrawText(
-							self.squad.strCoach,
-							colorDarkgrey,
-							JH.Left,
-							JV.Middle)
+
+			xCur = rectCoach.x
+			for cellp in IterCellsp(rectCoach.dX, self.rowspCoach):
+				rectCell = rectCoach.Copy(x=xCur, dX=cellp.dX)
+				xCur += rectCell.dX
+
+				if cellp.clsCell is None:
+					continue
+
+				cellp.clsCell(self.group.doc, rectCell, cellp.fnField(), cellp.jh).Draw(colorDarkgrey)
+
 
 		rectPlayer = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
 		yCur += dYPerson
