@@ -14,7 +14,7 @@ from dateutil import parser as dateutil_parser
 from dateutil.relativedelta import relativedelta
 from bolay import CBlot, SRect, SPoint, SFontKey, JH, JV
 from bolay import SColor, ColorFromStr, ColorResaturate, ColorResaturateDarker, FIsSaturated
-from bolay import colorWhite, colorBlack, colorLightGrey, colorDarkgrey, colorGrey
+from bolay import colorWhite, colorBlack, colorLightGrey, colorDarkgrey
 
 colorDimGrey = ColorFromStr("dimgrey")
 
@@ -149,7 +149,7 @@ class CImageCell(CCellBlot):
 		else:
 			self.img = doc.imgc.ImgFlagFromStrCountry(strImage, rectImage)
 
-	def Draw(self, colorText: SColor = colorBlack):
+	def Draw(self, colorBorder: SColor = colorDimGrey):
 		if self.img is None:
 			return
 
@@ -173,7 +173,7 @@ class CImageCell(CCellBlot):
 		if not self.fIsUrl:
 			dSLine = min(self.img.dXIn, self.img.dYIn) / 30.0
 
-			self.DrawBox(rectFlag, dSLine, colorDimGrey)
+			self.DrawBox(rectFlag, dSLine, colorBorder)
 
 class CHeaderBlot(CBlot):
 
@@ -292,7 +292,7 @@ class CSquadBlot(CBlot): # tag = squadb
 		dYCountry = rectSquad.dX / self.s_rSCountry
 		rectCountry = rectSquad.Copy(dY=dYCountry)
 
-		self.FillBox(rectCountry, colorLightGrey)
+		self.FillBox(rectCountry, colorBlack)
 
 		# country bar
 
@@ -304,7 +304,7 @@ class CSquadBlot(CBlot): # tag = squadb
 			if cellp.clsCell is None:
 				continue
 
-			cellp.clsCell(self.group.doc, rectCell, cellp.fnField(), cellp.jh).Draw(colorDimGrey)
+			cellp.clsCell(self.group.doc, rectCell, cellp.fnField(), cellp.jh).Draw(colorWhite)
 
 		# coach and people
 
@@ -315,6 +315,8 @@ class CSquadBlot(CBlot): # tag = squadb
 		if self.squad.strCoach:
 			rectCoach = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
 			yCur += dYPerson
+
+			self.FillBox(rectCoach, self.group.colors.colorLighter)
 
 			xCur = rectCoach.x
 			for cellp in IterCellsp(rectCoach.dX, self.rowspCoach):

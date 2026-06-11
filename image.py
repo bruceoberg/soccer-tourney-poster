@@ -120,7 +120,7 @@ class CImageCache: # tag = imgc
 		# stay crisp (no anti-aliased blur that would hurt scannability).
 
 		bytesPng = io.BytesIO()
-		qr.make_image(fill_color="black", back_color="white").save(bytesPng)
+		qr.make_image(fill_color="white", back_color="black").save(bytesPng)
 
 		with Image.open(io.BytesIO(bytesPng.getvalue())) as img:
 			imgFit = img.convert("RGB").resize((dSBox, dSBox), Image.NEAREST)
