@@ -14,7 +14,9 @@ from dateutil import parser as dateutil_parser
 from dateutil.relativedelta import relativedelta
 from bolay import CBlot, SRect, SPoint, SFontKey, JH, JV
 from bolay import SColor, ColorFromStr, ColorResaturate, ColorResaturateDarker, FIsSaturated
-from bolay import colorWhite, colorBlack, colorLightGrey, colorDarkgrey
+from bolay import colorWhite, colorBlack, colorLightGrey, colorDarkgrey, colorGrey
+
+colorDimGrey = ColorFromStr("dimgrey")
 
 from .database import SGroup, SSquad, SPlayer, StrUrlSquad
 from .common import mpStrGroupStrColor, mpStrFifaCodeStrSeed, strDateStart, strYearTitle
@@ -118,7 +120,7 @@ class CTextCell(CCellBlot):
 					fShrinkToFit=(len(self.strText)>=10))
 
 class CImageCell(CCellBlot):
-	s_uSRectImage = CTextCell.s_uYText
+	s_uSRectImage = 0.70
 
 	def __init__(self, doc: CDocument, rect: SRect, strImage: str, jh: JH):
 		self.fIsUrl = strImage.startswith('http')
@@ -171,7 +173,7 @@ class CImageCell(CCellBlot):
 		if not self.fIsUrl:
 			dSLine = min(self.img.dXIn, self.img.dYIn) / 30.0
 
-			self.DrawBox(rectFlag, dSLine, colorDarkgrey)
+			self.DrawBox(rectFlag, dSLine, colorDimGrey)
 
 class CHeaderBlot(CBlot):
 
@@ -220,7 +222,7 @@ class CPlayerBlot(CBlot):
 		SCellSpec(0.16,	JH.Right,	CTextCell,	lambda player: StrAge(player)),			# age
 		SCellSpec(0.21,	JH.Right,	CTextCell,	lambda player: StrCaps(player)),		# caps
 		SCellSpec(0.21,	JH.Right,	CTextCell,	lambda player: StrGoals(player)),		# goals
-		SCellSpec(0.3,	JH.Right,	CImageCell,	lambda player: player.strClubCountry),	# club flag
+		SCellSpec(0.3,	JH.Center,	CImageCell,	lambda player: player.strClubCountry),	# club flag
 		SCellSpec(-1,	JH.Left,	CTextCell,	lambda player: player.strClub),			# club
 	]
 
@@ -274,14 +276,13 @@ class CSquadBlot(CBlot): # tag = squadb
 		]
 
 		coach = group.doc.db.coaches[self.squad.strCoach]
-		lStrJobPrevious = [strJob for strJob in coach.lStrJobPrevious if strJob]
-		strJobs = f"[{','.join(lStrJobPrevious)}]" if lStrJobPrevious else ""
+		strJobs = f"[{','.join(coach.lStrJobPrevious)}]" if coach.lStrJobPrevious else ""
 
 		self.rowspCoach: TRowSpec = [
 			SCellSpec(0.10),
 			SCellSpec(1.1,	JH.Left,	CTextCell,		lambda: self.squad.strCoach),
 			SCellSpec(1.15,	JH.Right,	CTextCell,		lambda: strJobs),
-			SCellSpec(0.3,	JH.Right,	CImageCell,		lambda: coach.strCountry),
+			SCellSpec(0.3,	JH.Center,	CImageCell,		lambda: coach.strCountry),
 			SCellSpec(-1,	JH.Left,	CTextCell,		lambda: coach.strCountry),
 		]
 
@@ -293,6 +294,8 @@ class CSquadBlot(CBlot): # tag = squadb
 
 		self.FillBox(rectCountry, colorLightGrey)
 
+		# country bar
+
 		xCur = rectCountry.x
 		for cellp in IterCellsp(rectCountry.dX, self.rowspCountry):
 			rectCell = rectCountry.Copy(x=xCur, dX=cellp.dX)
@@ -301,7 +304,9 @@ class CSquadBlot(CBlot): # tag = squadb
 			if cellp.clsCell is None:
 				continue
 
-			cellp.clsCell(self.group.doc, rectCell, cellp.fnField(), cellp.jh).Draw(colorDarkgrey)
+			cellp.clsCell(self.group.doc, rectCell, cellp.fnField(), cellp.jh).Draw(colorDimGrey)
+
+		# coach and people
 
 		rectPeople = rectSquad.Copy().Stretch(dYTop = dYCountry)
 		dYPerson = rectPeople.dY / (self.group.doc.cPersonMax + 1)
@@ -319,7 +324,7 @@ class CSquadBlot(CBlot): # tag = squadb
 				if cellp.clsCell is None:
 					continue
 
-				cellp.clsCell(self.group.doc, rectCell, cellp.fnField(), cellp.jh).Draw(colorDarkgrey)
+				cellp.clsCell(self.group.doc, rectCell, cellp.fnField(), cellp.jh).Draw(colorDimGrey)
 
 
 		rectPlayer = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
