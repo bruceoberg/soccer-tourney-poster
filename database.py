@@ -461,37 +461,38 @@ def StrTitleFromUrl(strUrl: str) -> str:
 	return urllib.parse.unquote(strUrl.rsplit("/wiki/", 1)[-1]).replace("_", " ")
 
 
-def LStrPrevJobsFromCoachUrl(strUrl: str) -> list[str]:
+def LStrJobPrevious(strUrlCoach: str) -> list[str]:
 	"""
-	A coach's two most-recent prior managerial jobs (newest first), padded to length 2.
+	A coach's two most-recent prior managerial jobs (newest first).
 
 	HTTP lookup against the coach's Wikipedia article — populate path only, the sibling of
 	StrFifaCodeRankFromCountry. We read the rendered infobox rather than the wikitext: each row after
 	the "Managerial career" header pairs a years cell (th, "2021–2022") with a team cell (td,
 	whose link names the club/country). We drop the trailing current job (open-ended date — the
 	national team the coach holds now) and return the previous two team names, newest first.
-	Returns ["", ""] when the article, infobox, or career section is missing.
+	Returns [] when the article, infobox, or career section is missing.
 	"""
-	if not strUrl:
-		return ["", ""]
+	if not strUrlCoach:
+		return []
 
 	objJson = ObjApiParse({
 		"action":    "parse",
-		"page":      StrTitleFromUrl(strUrl),
+		"page":      StrTitleFromUrl(strUrlCoach),
 		"prop":      "text",
 		"redirects": "1",
 	})
 	if "error" in objJson:
-		return ["", ""]
+		return []
 
 	soup = BeautifulSoup(objJson.get("parse", {}).get("text", {}).get("*", ""), "html.parser")
 	infobox = soup.find("table", {"class": "infobox"})
 	if infobox is None:
-		return ["", ""]
+		return []
 
 	# Walk the infobox rows: skip until the "Managerial career" header, then collect each
 	# (team, is-current) career row until the years cell stops looking like a year range.
-	lStrJobCareer: list[tuple[str, bool]] = []
+	lStrJobCareer: list[str] = []
+	strJobCurrent = ''
 	fInCareer = False
 	for tr in infobox.find_all("tr"):
 		th = tr.find("th")
@@ -512,18 +513,14 @@ def LStrPrevJobsFromCoachUrl(strUrl: str) -> list[str]:
 
 		link = td.find("a")
 		strJob = link.get_text(strip=True) if link is not None else td.get_text(" ", strip=True)
-		lStrJobCareer.append((strJob, bool(g_reCareerCurrent.search(strYears))))
+		if g_reCareerCurrent.search(strYears):
+			strJobCurrent = strJob
+		else:
+			lStrJobCareer.append(strJob)
 
-	# Drop trailing current jobs (the national team coached now), then take the previous two
-	# in chronological order and reverse to newest-first.
-	while lStrJobCareer and lStrJobCareer[-1][1]:
-		lStrJobCareer.pop()
-
-	lStrJobPrevious = [strJob for strJob, _ in lStrJobCareer[-2:]]
+	lStrJobPrevious = [strJob for strJob in lStrJobCareer if strJob != strJobCurrent]
 	lStrJobPrevious.reverse()
-	while len(lStrJobPrevious) < 2:
-		lStrJobPrevious.append("")
-	return lStrJobPrevious
+	return lStrJobPrevious[:2]
 
 
 def StrUrlTeamFromP(p: Tag) -> str | None:
@@ -747,7 +744,7 @@ class CScraper:
 				# previous_jobs — never on the page, so the cache (a populated entry is always
 				# length 2), else the coach-article API when populating, else an error.
 				strUrlCoach = self.mpStrCoachUrl[coach.strName]
-				coach.lStrJobPrevious = LStrPrevJobsFromCoachUrl(strUrlCoach)
+				coach.lStrJobPrevious = LStrJobPrevious(strUrlCoach)
 
 				pbar.update(1)
 
