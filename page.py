@@ -18,7 +18,7 @@ from bolay import colorWhite, colorBlack, colorGrey, colorDarkgrey
 
 colorDimGrey = ColorFromStr("dimgrey")
 
-from .database import SGroup, SSquad, SPlayer, StrUrlSquad
+from .database import SGroup, SSquad, SPlayer, SCountry, StrUrlSquad
 from .common import mpStrGroupStrColor, mpStrFifaCodeStrSeed, strDateStart, strYearTitle
 
 from . import metrics
@@ -453,6 +453,36 @@ class CGroupBlot(CBlot): # tag = groupb
 		self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
 		self.DrawBox(rectBorder, self.s_dSLineInner, self.colors.color)
 
+class CFlagBlot(CBlot):
+	s_uSRectInset = 0.95
+	s_uDYImage = 0.90
+
+	def __init__(self, flags: CFlagsBlot, strCountry: str):
+		super().__init__(flags.doc.pdf)
+
+		self.flags = flags
+		self.strCountry = strCountry
+
+	def Draw(self, pos: SPoint):
+		rect = SRect(pos.x, pos.y, self.flags.dXFlagb, self.flags.dYFlagb)
+
+		# sad that SRect.Inset() is in absolute units, not relative.
+		rectInset = rect.Copy(
+							dX = rect.dX * self.s_uSRectInset,
+							dY = rect.dY * self.s_uSRectInset)
+		rectInset.Shift(
+					dX = (rect.dX - rectInset.dX) / 2.0,
+					dY = (rect.dY - rectInset.dY) / 2.0)
+		
+		dYImage = rectInset.dY * self.s_uDYImage
+		rectImage = rectInset.Copy(dY = dYImage)
+		CImageCell(self.flags.doc, rectImage, self.strCountry, JH.Center).Draw()
+
+		dYLabel = rectInset.dY - dYImage
+		rectLabel = rectInset.Copy(y = rectImage.yMax, dY = dYLabel)
+		CTextCell(self.flags.doc, rectLabel, self.strCountry, JH.Center).Draw()
+
+
 class CFlagsBlot(CBlot): # tag = groupb
 
 	s_dX = metrics.page.dXLive
@@ -489,7 +519,7 @@ class CFlagsBlot(CBlot): # tag = groupb
 		self.dXFlagb = dXFlags / self.s_cCol
 		self.dYFlagb = dYFlags / self.cRow
 
-		self.lFlagb: list[CBlot] = [CBlot(self.doc.pdf) for _ in self.doc.db.countries.values()]
+		self.lFlagb: list[CBlot] = [CFlagBlot(self, strCountry) for strCountry in sorted(self.doc.db.countries)]
 
 	def Draw(self, pos: SPoint) -> None:
 
@@ -519,14 +549,7 @@ class CFlagsBlot(CBlot): # tag = groupb
 
 		for iFlagb, flagb in enumerate(self.lFlagb):
 			row, col = divmod(iFlagb, self.s_cCol)
-			rectFlagb = SRect(
-							posFlags.x + col * self.dXFlagb,
-							posFlags.y + row * self.dYFlagb,
-							self.dXFlagb,
-							self.dYFlagb)
-			rectFlagbDraw = rectFlagb.Copy().Inset(self.s_dSLineOuter / 2.0)
-			
-			flagb.DrawBox(rectFlagbDraw, self.s_dSLineInner, colorBlack)
+			flagb.Draw(SPoint(posFlags.x + col * self.dXFlagb, posFlags.y + row * self.dYFlagb))
 
 		# borders
 
