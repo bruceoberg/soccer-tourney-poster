@@ -14,7 +14,7 @@ from dateutil import parser as dateutil_parser
 from dateutil.relativedelta import relativedelta
 from bolay import CBlot, SRect, SPoint, SFontKey, JH, JV
 from bolay import SColor, ColorFromStr, ColorResaturate, ColorResaturateDarker, FIsSaturated
-from bolay import colorWhite, colorBlack, colorLightGrey, colorDarkgrey
+from bolay import colorWhite, colorBlack, colorGrey, colorDarkgrey
 
 colorDimGrey = ColorFromStr("dimgrey")
 
@@ -449,6 +449,95 @@ class CGroupBlot(CBlot): # tag = groupb
 					rectGroupLabel.yMax,
 					xLine,
 					rectInside.yMax)
+		
+		self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
+		self.DrawBox(rectBorder, self.s_dSLineInner, self.colors.color)
+
+class CFlagsBlot(CBlot): # tag = groupb
+
+	s_dX = metrics.page.dXLive
+	s_dY = metrics.page.dYLive
+
+	s_rSLineOuter = 0.001
+	s_rSLineInner = 0.0002
+	s_dSLineOuter = s_dX * s_rSLineOuter
+	s_dSLineInner = s_dX * s_rSLineInner
+
+	s_rSGroup = 15.0
+
+	s_cCol = 6
+
+	def __init__(self, doc: CDocument) -> None:
+		super().__init__(doc.pdf)
+
+		self.doc = doc
+
+		self.colors = SColors("lightgrey")
+
+		# repeating some of the layout in Draw() here
+
+		rectBorder = SRect(0, 0, self.s_dX, self.s_dY)
+		rectInside = rectBorder.Copy().Inset(self.s_dSLineOuter / 2.0)
+
+		dYTitle = rectInside.dX / self.s_rSGroup
+
+		dXFlags = rectInside.dX
+		dYFlags = rectInside.dY - dYTitle
+
+		self.cRow = (len(self.doc.db.countries) + (self.s_cCol - 1)) // self.s_cCol
+
+		self.dXFlagb = dXFlags / self.s_cCol
+		self.dYFlagb = dYFlags / self.cRow
+
+		self.lFlagb: list[CBlot] = [CBlot(self.doc.pdf) for _ in self.doc.db.countries.values()]
+
+	def Draw(self, pos: SPoint) -> None:
+
+		rectBorder = SRect(pos.x, pos.y, self.s_dX, self.s_dY)
+		rectInside = rectBorder.Copy().Inset(self.s_dSLineOuter / 2.0)
+
+		# title
+
+		dYTitle = rectInside.dX / self.s_rSGroup
+		rectTitle = rectInside.Copy(dY=dYTitle)
+
+		self.FillBox(rectTitle, self.colors.color)
+
+		rectTitleText = rectTitle.Copy().Stretch(dXLeft = dYTitle, dXRight = -dYTitle)
+
+		uLabel = 0.65
+		strLabel = "Flags"
+		oltbLabel = self.Oltb(rectTitleText, SFontKey('NotoSans', ''), dYTitle * uLabel)
+		oltbLabel.DrawText(strLabel, colorWhite, JH.Right) #, JV.Top)
+
+		oltbCompetition = self.Oltb(rectTitleText, SFontKey('NotoSans', ''), dYTitle * uLabel)
+		oltbCompetition.DrawText(strYearTitle, colorWhite, JH.Left) #, JV.Top)
+
+		# squads
+
+		posFlags = SPoint(rectInside.x, rectInside.y + dYTitle)
+
+		for iFlagb, flagb in enumerate(self.lFlagb):
+			row, col = divmod(iFlagb, self.s_cCol)
+			rectFlagb = SRect(
+							posFlags.x + col * self.dXFlagb,
+							posFlags.y + row * self.dYFlagb,
+							self.dXFlagb,
+							self.dYFlagb)
+			rectFlagbDraw = rectFlagb.Copy().Inset(self.s_dSLineOuter / 2.0)
+			
+			flagb.DrawBox(rectFlagbDraw, self.s_dSLineInner, colorBlack)
+
+		# borders
+
+		# self.pdf.set_line_width(.25 / 72.0)
+		# self.pdf.SetDrawColor(colorBlack)
+		# xLine = rectInside.x + self.dXFlagb
+		# self.pdf.line(
+		# 			xLine,
+		# 			rectGroupLabel.yMax,
+		# 			xLine,
+		# 			rectInside.yMax)
 		
 		self.DrawBox(rectBorder, self.s_dSLineOuter, colorBlack)
 		self.DrawBox(rectBorder, self.s_dSLineInner, self.colors.color)

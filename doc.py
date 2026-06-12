@@ -17,7 +17,7 @@ from bolay import CBlot, CPdf, SRect, SPoint, colorBlack
 from .database import SDatabase
 from .common import strFileBase, strYearTitle
 from .image import CImageCache
-from .page import CGroupBlot
+from .page import CGroupBlot, CFlagsBlot
 
 from . import metrics
 from . import g_pathCode
@@ -87,13 +87,6 @@ class CFlagsDocument(CDocument):
 		assert self.pdf.w == metrics.page.dX
 		assert self.pdf.h == metrics.page.dY
 
-		CBlot(self.pdf).DrawBox(
-					rect = SRect(
-						metrics.page.dX / 4,
-						metrics.page.dY / 4,
-						metrics.page.dX / 2,
-						metrics.page.dY / 2),
-					dSLine = 0.1,
-					colorLine = colorBlack)
+		CFlagsBlot(self).Draw(SPoint(metrics.page.dXLeft, metrics.page.dYTop))
 
 		self.WritePdf('-flags')
