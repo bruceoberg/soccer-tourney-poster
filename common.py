@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 year = 2026
-strFile = f'{year}-mens-world-cup-rosters'
+strFileBase = f'{year}-mens-world-cup'
 strYearTitle = f'{year} World Cup'
 strSquadsPage = f'{year}_FIFA_World_Cup_squads'
 strDateStart = 'June 11, 2026'

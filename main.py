@@ -10,7 +10,7 @@ import argparse
 import logging
 
 from .database import DbEnsure
-from .doc import CDocument
+from .doc import CRosterDocument, CFlagsDocument
 
 logging.getLogger("fontTools.subset").setLevel(logging.ERROR) # disable warnings about subsetting
 
@@ -28,7 +28,10 @@ def main() -> None:
 	)
 	args = parser.parse_args()
 
-	CDocument(DbEnsure(args.rescrape_squads, args.rescrape_all)).Write()
+	db = DbEnsure(args.rescrape_squads, args.rescrape_all)
+
+	CRosterDocument(db).Write() 
+	CFlagsDocument(db).Write()
 
 	# group = next(iter(db.groups.values()))
 	# squad = next(iter(group.values()))

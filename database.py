@@ -908,7 +908,7 @@ def DbEnsure(fRescapeSquads: bool, fRescrapeAll: bool) -> SDatabase:
 		dbCache = None
 	else:
 		strYaml = s_pathDatabaseFile.read_text(encoding="utf-8")
-		print(f"Reading {s_pathDatabaseFile.stem}...")
+		# print(f"Reading {s_pathDatabaseFile.stem}...")
 		objDb = yaml.safe_load(strYaml)
 		dbCache = SDatabase.model_validate(objDb)
 

@@ -12,10 +12,10 @@ import platform
 
 from pathlib import Path
 
-from bolay import CBlot, CPdf, SRect, SPoint, SFontKey, colorBlack, JH, JV
+from bolay import CBlot, CPdf, SRect, SPoint, colorBlack
 
 from .database import SDatabase
-from .common import strFile, strYearTitle
+from .common import strFileBase, strYearTitle
 from .image import CImageCache
 from .page import CGroupBlot
 
@@ -31,8 +31,6 @@ class CDocument():
 		self.imgc = CImageCache(db)
 		self.cPersonMax = self.db.CPersonMax()
 
-	def Write(self):
-
 		self.pdf.AddFont('NotoSans', '', g_pathFonts / 'NotoSansNerdFont-Regular.ttf')
 		self.pdf.AddFont('NotoSans', 'B', g_pathFonts / 'NotoSans-Bold.ttf')
 		self.pdf.AddFont('NotoSans', 'I', g_pathFonts / 'NotoSans-Light.ttf')
@@ -42,11 +40,27 @@ class CDocument():
 
 		self.pdf.set_title(strYearTitle)
 		self.pdf.set_author('bruce oberg')
-		self.pdf.set_subject("Roster Cheat Sheet")
-		self.pdf.set_keywords('world cup soccer football rosters')
 		self.pdf.set_creator(f'python v{platform.python_version()}, fpdf2 v{fpdf.__version__}')
 		self.pdf.set_lang('en')
 		self.pdf.set_creation_date(datetime.datetime.now())
+
+	def WritePdf(self, strFileSuffix: str) -> None:
+
+		strFileName = strFileBase + strFileSuffix
+		pathDst = (Path.cwd() / "playground" / strFileName).with_suffix('.pdf')
+		pathDst.parent.mkdir(parents=True, exist_ok=True)
+
+		print(f'Writing: {pathDst.relative_to(Path.cwd())}')
+		self.pdf.output(str(pathDst))
+
+class CRosterDocument(CDocument):
+	def __init__(self, db):
+		super().__init__(db)
+
+	def Write(self) -> None:
+
+		self.pdf.set_subject("Roster Cheat Sheet")
+		self.pdf.set_keywords('world cup soccer football rosters')
 
 		for strGroup, group in self.db.groups.items():
 
@@ -57,8 +71,29 @@ class CDocument():
 
 			CGroupBlot(self, strGroup, group).Draw(SPoint(metrics.page.dXLeft, metrics.page.dYTop))
 
-		pathDst = (Path.cwd() / "playground" / strFile).with_suffix('.pdf')
-		pathDst.parent.mkdir(parents=True, exist_ok=True)
+		self.WritePdf('-rosters')
 
-		print(f'Writing: {pathDst.relative_to(Path.cwd())}')
-		self.pdf.output(str(pathDst))
+class CFlagsDocument(CDocument):
+	def __init__(self, db):
+		super().__init__(db)
+
+	def Write(self) -> None:
+
+		self.pdf.set_subject("Flags Cheat Sheet")
+		self.pdf.set_keywords('world cup soccer football flags')
+
+		self.pdf.add_page(orientation=metrics.page.strOrientation, format=metrics.page.strFormat)
+
+		assert self.pdf.w == metrics.page.dX
+		assert self.pdf.h == metrics.page.dY
+
+		CBlot(self.pdf).DrawBox(
+					rect = SRect(
+						metrics.page.dX / 4,
+						metrics.page.dY / 4,
+						metrics.page.dX / 2,
+						metrics.page.dY / 2),
+					dSLine = 0.1,
+					colorLine = colorBlack)
+
+		self.WritePdf('-flags')
