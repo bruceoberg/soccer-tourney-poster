@@ -313,7 +313,7 @@ class CSquadBlot(CBlot): # tag = squadb
 		yCur = rectPeople.y
 
 		if self.squad.strCoach:
-			rectCoach = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
+			rectCoach = SRect(rectPeople.x, yCur, rectPeople.dX, dYPerson)
 			yCur += dYPerson
 
 			self.FillBox(rectCoach, self.group.colors.colorLighter)
