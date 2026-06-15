@@ -232,6 +232,7 @@ published:
     - { tz: Africa/Abidjan,         loc: fr_CI, region: africa }
     - { tz: Africa/Casablanca,      loc: ar_MA, region: africa }
     - { tz: Africa/Algiers,         loc: ar_DZ, region: africa }
+    - { tz: Africa/Tunis,           loc: ar_TN, region: africa }
     - { tz: Africa/Johannesburg,    loc: en_ZA, region: africa }
     - { tz: Africa/Cairo,           loc: ar_EG, region: africa }
     - { tz: Africa/Kinshasa,        loc: sw_CD, region: africa }
