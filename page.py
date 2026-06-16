@@ -326,7 +326,7 @@ class CSquadBlot(CBlot): # tag = squadb
 				if cellp.clsCell is None:
 					continue
 
-				cellp.clsCell(self.group.doc, rectCell, cellp.fnField(), cellp.jh).Draw(colorDimGrey)
+				cellp.clsCell(self.group.doc, rectCell, cellp.fnField(), cellp.jh).Draw(colorBlack)
 
 
 		rectPlayer = SRect(rectPeople.x, yCur, rectPeople.dY, dYPerson)
@@ -478,8 +478,11 @@ class CFlagBlot(CBlot):
 		rectImage = rectInset.Copy(dY = dYImage)
 		CImageCell(self.flags.doc, rectImage, self.strCountry, JH.Center).Draw()
 
-		dYLabel = rectInset.dY - dYImage
-		rectLabel = rectInset.Copy(y = rectImage.yMax, dY = dYLabel)
+		dYLabelSmall = rectInset.dY - dYImage
+		rectLabelSmall = rectInset.Copy(y = rectImage.yMax, dY = dYLabelSmall)
+		uYLabelExpand = 1.0 / 0.4 # CTextCell.s_uYText
+		dYLabel = dYLabelSmall * uYLabelExpand
+		rectLabel = rectLabelSmall.Copy(dY=dYLabel).Shift(dY = -(dYLabel - dYLabelSmall))
 		CTextCell(self.flags.doc, rectLabel, self.strCountry, JH.Center).Draw()
 
 
