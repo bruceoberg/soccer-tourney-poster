@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Soccer Tournament Poster Generator."""
+"""Soccer Tournament Poster Database Querier."""
 
 from importlib.metadata import version, metadata
 from pathlib import Path

@@ -2,7 +2,7 @@
 
 from __future__ import annotations  # Forward refs without quotes (eg foo: CFoo, not foo: 'CFoo')
 
-from .database import CDataBase, CTournamentDataBase
+from stp.database import CDataBase, CTournamentDataBase
 
 def main():
 	for strName in CDataBase.LStrNameTournament():

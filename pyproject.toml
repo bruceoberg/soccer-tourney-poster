@@ -41,7 +41,7 @@ dependencies = [
 [project.scripts]
 stp = "stp.main:main"
 stp-profile-diff = "stp.profile_diff:Main"
-dbq = "stp.dbq:main"
+dbq = "dbq.main:main"
 
 [build-system]
 requires = ["hatchling"]
