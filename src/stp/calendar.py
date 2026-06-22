@@ -23,6 +23,10 @@ class SRectColor(NamedTuple):
 	color: SColor
 
 class CMatchBlot(CBlot): # tag = dayb
+	s_colorScoreText = colorBlack
+	s_colorScoreHalo = colorWhite
+	s_haloaScore = SHaloArgs(s_colorScoreHalo, 0.1)
+
 	def __init__(self, dayb: CDayBlot, match: CMatch, rect: SRect) -> None:
 		super().__init__(dayb.pdf)
 		self.doc = dayb.doc
@@ -65,7 +69,8 @@ class CMatchBlot(CBlot): # tag = dayb
 
 		if self.match.stage == STAGE.Group:
 			assert len(lColor) == 1
-			lRc.append(SRectColor(self.rect, lColor[0]))
+			if not self.page.pagea.fMonochrome:
+				lRc.append(SRectColor(self.rect, lColor[0]))
 		elif self.match.stage == self.tourn.stageElimFirst:
 			rectLeft = self.rect.Copy(dX=self.rect.dX / 2.0)
 			lRc.append(SRectColor(rectLeft, lColor[0]))
@@ -143,8 +148,6 @@ class CMatchBlot(CBlot): # tag = dayb
 		xAwayBox = self.rect.x + (self.rect.dX / 2.0) + (dXLineGap / 2.0 )
 		rectAwayBox = SRect(xAwayBox, yScore, self.dayb.s_dSScore, self.dayb.s_dSScore)
 
-		haloaScore = SHaloArgs(colorBlack, 0.1)
-
 		# PK boxes
 
 		rectHomePens = SRect(rectHomeBox.xMax, rectHomeBox.yMax)
@@ -161,9 +164,9 @@ class CMatchBlot(CBlot): # tag = dayb
 				self.DrawBox(rectAwayBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
 			case SCORING.Archive:
 				oltbHomeScore = self.Oltb(rectHomeBox, self.page.Fontkey('match.score'), self.dayb.s_dSScore)
-				oltbHomeScore.DrawText(str(self.match.scoreHome), colorWhite, JH.Center, haloa = haloaScore)
+				oltbHomeScore.DrawText(str(self.match.scoreHome), self.s_colorScoreText, JH.Center, haloa = self.s_haloaScore)
 				oltbAwayScore = self.Oltb(rectAwayBox, self.page.Fontkey('match.score'), self.dayb.s_dSScore)
-				oltbAwayScore.DrawText(str(self.match.scoreAway), colorWhite, JH.Center, haloa = haloaScore)
+				oltbAwayScore.DrawText(str(self.match.scoreAway), self.s_colorScoreText, JH.Center, haloa = self.s_haloaScore)
 			case SCORING.Instructions:
 				self.DrawBox(rectHomeBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
 				self.DrawBox(rectAwayBox, self.dayb.s_dSLineScore, colorBlack, colorWhite)
@@ -203,18 +206,18 @@ class CMatchBlot(CBlot): # tag = dayb
 					strHomeTiebreaker = f'({self.match.scoreHomeTiebreaker}'
 					rectHomeTiebreaker = SRect(rectHomePens.xMin, yExtraTime, rectHomePens.dX, dYExtraTime)
 					oltbHomeTiebreaker = self.Oltb(rectHomeTiebreaker, self.page.Fontkey('match.score'), dYFontExtraTime)
-					oltbHomeTiebreaker.DrawText(strHomeTiebreaker, colorWhite, JH.Right, JV.Bottom, haloa = haloaScore)
+					oltbHomeTiebreaker.DrawText(strHomeTiebreaker, self.s_colorScoreText, JH.Right, JV.Bottom, haloa = self.s_haloaScore)
 
 					strAwayTiebreaker = f'{self.match.scoreAwayTiebreaker})'
 					rectAwayTiebreaker = SRect(rectAwayPens.xMin, yExtraTime, rectAwayPens.dX, dYExtraTime)
 					oltbAwayTiebreaker = self.Oltb(rectAwayTiebreaker, self.page.Fontkey('match.score'), dYFontExtraTime)
-					oltbAwayTiebreaker.DrawText(strAwayTiebreaker, colorWhite, JH.Left, JV.Bottom, haloa = haloaScore)
+					oltbAwayTiebreaker.DrawText(strAwayTiebreaker, self.s_colorScoreText, JH.Left, JV.Bottom, haloa = self.s_haloaScore)
 
 				elif self.match.fAfterExtraTime:
 					strExtraTime = self.page.StrTranslation('match.after-extra-time')
 					rectExtraTime = SRect(rectHomePens.xMin, yExtraTime, rectAwayPens.xMax - rectHomePens.xMin, dYExtraTime)
 					oltbExtraTime = self.Oltb(rectExtraTime, self.page.Fontkey('match.score'), dYFontExtraTime)
-					oltbExtraTime.DrawText(strExtraTime, colorWhite, JH.Center, JV.Bottom, haloa = haloaScore)
+					oltbExtraTime.DrawText(strExtraTime, self.s_colorScoreText, JH.Center, JV.Bottom, haloa = self.s_haloaScore)
 
 		if self.fElimination and self.page.ScoringFromMatch(self.match) != SCORING.Archive:
 

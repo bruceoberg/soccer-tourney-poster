@@ -8,6 +8,12 @@ simple:
   pages:
     - { tz: US/Pacific }
 
+monochrome:
+  tournament: 2022-mens-world-cup
+  file_suffix: monochrome
+  pages:
+    - { tz: US/Pacific, monochrome: false, scoring: archive }
+
 coloring:
   tournament: latest
   coloring: swop

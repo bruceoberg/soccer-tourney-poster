@@ -91,6 +91,7 @@ class SPageArgs(BaseModel): # tag - pagea
 	scoring:				SCORING     = Field(default=SCORING.Fixtures,	alias='scoring')
 	fUtcOnly:          		bool        = Field(default=False,				alias='utc_only') # no friendly timezone name.
 	lStrTzAlias:			list[str]	= Field(default=[],					alias='tz_aliases')
+	fMonochrome:            bool        = Field(default=False,				alias='monochrome')
 
 TTuPagea = tuple[SPageArgs, ...]
 

@@ -114,6 +114,12 @@ class CPage:
 				sys.exit("page has no tournament")
 			self.tourn = cast(CTournamentDataBase, doc.tourn)
 
+		if self.pagea.fMonochrome:
+			mpStrGroupStrColor = {strGroup: "lightgray" for strGroup in self.tourn.mpStrGroupGroup}
+			self.tourn.ChangeColors(mpStrGroupStrColor)
+		else:
+			self.tourn.ResetColors()
+
 		self.strOrientation = self.pagea.strOrientation
 		self.zoneinfo = ZoneInfo(self.tourn.StrTimezone() if self.FAllMatchesHaveResults() else self.pagea.strTz)
 		self.locale = Locale.parse(self.pagea.strLocale)

@@ -515,6 +515,10 @@ class CTournamentDataBase(CDataBase): # tag = tourn
 	def StrKeyVenue(self, venue: int) -> str:
 		return 'venue.' + self.objProperties[f"venue.{venue:02}"]
 	
+	def ResetColors(self) -> None:
+		for strGroup, group in self.mpStrGroupGroup.items():
+			group.ChangeColor(self.StrColorGroup(strGroup))
+	
 	def ChangeColors(self, mpStrGroupStrColor: dict[str, str]) -> None:
 		for strGroup, strColor in mpStrGroupStrColor.items():
 			group = self.mpStrGroupGroup[strGroup]
