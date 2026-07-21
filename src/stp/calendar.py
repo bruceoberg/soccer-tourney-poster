@@ -58,7 +58,12 @@ class CMatchBlot(CBlot): # tag = dayb
 		if self.match.stage == STAGE.Third and isinstance(self.dayb, CElimBlot):
 			return
 
-		lStrGroup = self.match.lStrGroup if self.match.lStrGroup else self.tourn.lStrGroup
+		if self.match.stage != STAGE.Group and self.page.ScoringFromMatch(self.match) == SCORING.Archive:
+			groupHome = self.tourn.mpStrTeamGroup[self.match.strTeamHome]
+			groupAway = self.tourn.mpStrTeamGroup[self.match.strTeamAway]
+			lStrGroup = [groupHome.strName, groupAway.strName]
+		else:
+			lStrGroup = self.match.lStrGroup if self.match.lStrGroup else self.tourn.lStrGroup
 		lGroup = [self.tourn.mpStrGroupGroup[strGroup] for strGroup in lStrGroup]
 		if self.match.stage == STAGE.Group:
 			lColor = [group.colors.color for group in lGroup]

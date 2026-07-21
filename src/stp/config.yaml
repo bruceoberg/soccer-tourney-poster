@@ -6,7 +6,8 @@ simple:
   default: true
   tournament: latest
   pages:
-    - { tz: US/Pacific }
+    - { tz: US/Pacific, scoring: archive }
+#    - { tz: US/Pacific, scoring: archive, monochrome: true }
 
 monochrome:
   tournament: 2022-mens-world-cup
@@ -118,6 +119,7 @@ results:
     - { scoring: archive, tournament: 2024-mens-copa-america  }
     - { scoring: archive, tournament: 2024-mens-euro  }
     - { scoring: archive, tournament: 2025-mens-club-world-cup  }
+    - { scoring: archive, tournament: 2026-mens-world-cup  }
 
 tourneys:
   all_tournaments: true
